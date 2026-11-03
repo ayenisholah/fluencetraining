@@ -8,6 +8,7 @@ import {
   requireUser,
 } from "./lib/auth";
 import { rangesOverlap, todayUtc, validateLoanDates } from "./lib/dates";
+import { describeLoan } from "./lib/loanView";
 import { enqueueLoanEvent } from "./lib/outbox";
 import { assertWithinRateLimit } from "./lib/rateLimit";
 
@@ -18,43 +19,6 @@ async function activeLoanFor(ctx: QueryCtx, toolId: Doc<"tools">["_id"]) {
       q.eq("toolId", toolId).eq("status", "approved"),
     )
     .first();
-}
-
-/** Loan rows enriched for display, with recent automation activity. */
-async function describe(
-  ctx: QueryCtx,
-  loan: Doc<"loans">,
-  viewer: "lender" | "borrower" | "admin",
-) {
-  const [tool, lender, borrower] = await Promise.all([
-    ctx.db.get(loan.toolId),
-    ctx.db.get(loan.lenderId),
-    ctx.db.get(loan.borrowerId),
-  ]);
-  const activity = await ctx.db
-    .query("automationEvents")
-    .withIndex("by_loan", (q) => q.eq("loanId", loan._id))
-    .order("desc")
-    .take(5);
-  const counterpart = viewer === "lender" ? borrower : lender;
-  return {
-    _id: loan._id,
-    toolName: tool?.name ?? "Removed tool",
-    toolCategory: tool?.category,
-    startDate: loan.startDate,
-    endDate: loan.endDate,
-    status: loan.status,
-    overdue: loan.status === "approved" && loan.endDate < todayUtc(),
-    counterpartName: counterpart?.name.split(" ")[0] ?? "Neighbour",
-    ...(viewer === "admin"
-      ? { lenderName: lender?.name, borrowerName: borrower?.name }
-      : {}),
-    activity: activity.map((event) => ({
-      kind: event.kind,
-      status: event.status,
-      at: event.at,
-    })),
-  };
 }
 
 export const request = mutation({
@@ -160,7 +124,7 @@ export const myRequests = query({
       .withIndex("by_borrower", (q) => q.eq("borrowerId", user._id))
       .order("desc")
       .take(100);
-    return await Promise.all(loans.map((l) => describe(ctx, l, "borrower")));
+    return await Promise.all(loans.map((l) => describeLoan(ctx, l, "borrower")));
   },
 });
 
@@ -173,8 +137,7 @@ export const incoming = query({
       .withIndex("by_lender", (q) => q.eq("lenderId", user._id))
       .order("desc")
       .take(100);
-    return await Promise.all(loans.map((l) => describe(ctx, l, "lender")));
+    return await Promise.all(loans.map((l) => describeLoan(ctx, l, "lender")));
   },
 });
 
-export { describe as describeLoan };

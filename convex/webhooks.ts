@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { sign, SIGNATURE_HEADER, TIMESTAMP_HEADER } from "./lib/hmac";
 import type { LoanEvent } from "./lib/outbox";
+import { firstName } from "./lib/people";
 
 export const MAX_ATTEMPTS = 5;
 const TIMEOUT_MS = 10_000;
@@ -60,9 +61,9 @@ export const buildPayload = internalQuery({
         recipient: {
           role: to,
           email: recipient.email,
-          firstName: recipient.name.split(" ")[0],
+          firstName: firstName(recipient.name),
         },
-        otherParty: { firstName: other?.name.split(" ")[0] ?? "A neighbour" },
+        otherParty: { firstName: firstName(other?.name, "A neighbour") },
       },
     } as const;
   },

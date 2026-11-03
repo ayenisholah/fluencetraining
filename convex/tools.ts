@@ -3,6 +3,7 @@ import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { badRequest, requireToolOwner, requireUser } from "./lib/auth";
 import { enqueueLoanEvent } from "./lib/outbox";
+import { firstName } from "./lib/people";
 import { assertWithinRateLimit } from "./lib/rateLimit";
 import { toolFieldErrors } from "./lib/rules";
 import { vCategory, vCondition } from "./schema";
@@ -65,7 +66,7 @@ export const list = query({
           status: tool.status,
           isMine: tool.ownerId === user._id,
           // First name only; lenders' emails are never sent to other users.
-          lenderName: owner?.name.split(" ")[0] ?? "Neighbour",
+          lenderName: firstName(owner?.name),
           trustedLender: owner?.trustedLender ?? false,
         };
       }),

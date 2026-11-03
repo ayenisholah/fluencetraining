@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { badRequest, notFound, requireAdmin } from "./lib/auth";
 import { todayUtc } from "./lib/dates";
-import { describeLoan } from "./loans";
+import { describeLoan } from "./lib/loanView";
 import { removeTool } from "./tools";
 
 /** Every loan across all users, newest first, a page at a time. */
