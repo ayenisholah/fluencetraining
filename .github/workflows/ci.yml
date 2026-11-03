@@ -4,6 +4,15 @@ on:
     branches: [main]
   pull_request:
 
+# Least privilege: the jobs only read the repository.
+permissions:
+  contents: read
+
+# A newer push to the same branch or PR cancels the older run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Placeholder publishable key (decodes to a non-existent instance) so the
   # app builds without real credentials.
@@ -16,8 +25,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -46,8 +57,10 @@ jobs:
   storybook:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -60,7 +73,9 @@ jobs:
 
   e2e:
     # Needs a Clerk development instance and a Convex deployment, provided as
-    # repository secrets. Skipped (not failed) when they're absent.
+    # repository secrets. Skipped (not failed) when they're absent, and never
+    # run for pull requests from forks.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
       CLERK_SECRET_KEY: ${{ secrets.E2E_CLERK_SECRET_KEY }}
@@ -69,9 +84,11 @@ jobs:
       E2E_PORT: "3100"
       E2E_SIGNED_IN: "0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
         if: env.CLERK_SECRET_KEY != ''
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         if: env.CLERK_SECRET_KEY != ''
         with:
           node-version: 22
@@ -81,7 +98,7 @@ jobs:
       - name: Signed-out end-to-end suite
         if: env.CLERK_SECRET_KEY != ''
         run: npm run test:e2e:public
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: playwright-report
