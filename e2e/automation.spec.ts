@@ -282,7 +282,8 @@ test("a failing run triggers the error workflow: ops are emailed and Admin shows
 
   await admin.goto("/admin");
   const health = admin.locator("section").filter({ has: admin.getByRole("heading", { name: "Automation health", exact: true }) });
-  await expect(health.getByText(new RegExp(`Unknown event type: ${marker.replace(/[.]/g, "\\.")}`))).toBeVisible({ timeout: 20_000 });
+  // A plain substring match: no regular expression, so nothing to escape.
+  await expect(health.getByText(`Unknown event type: ${marker}`)).toBeVisible({ timeout: 20_000 });
   await expect(health.getByText("n8n error").first()).toBeVisible();
 });
 
