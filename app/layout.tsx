@@ -1,7 +1,10 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
+import { Analytics } from "@/components/Analytics";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { CookieConsent, CookieSettingsButton } from "@/components/CookieConsent";
 import { Nav } from "@/components/Nav";
 import "./globals.css";
 
@@ -24,9 +27,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <ConvexClientProvider>
             <Nav />
             <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
-            <footer className="mx-auto w-full max-w-5xl px-4 py-6 text-xs text-muted">
-              LendLoop is a fictional neighbourhood lending board.
+            <footer className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-6 text-xs text-muted">
+              <span>LendLoop is a fictional neighbourhood lending board.</span>
+              <nav aria-label="Legal" className="flex flex-wrap gap-x-4 gap-y-2 sm:ml-auto">
+                <Link href="/privacy" className="underline-offset-2 hover:underline">Privacy</Link>
+                <Link href="/terms" className="underline-offset-2 hover:underline">Terms</Link>
+                <CookieSettingsButton />
+              </nav>
             </footer>
+            <CookieConsent />
+            <Analytics />
           </ConvexClientProvider>
         </ClerkProvider>
       </body>
