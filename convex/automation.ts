@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { daysBetween } from "./lib/dates";
+import { firstName } from "./lib/people";
 import { vAutomationKind } from "./schema";
 
 export function reminderKey(loanId: string, asOf: string): string {
@@ -21,30 +22,27 @@ export const overdueLoans = internalQuery({
         q.eq("status", "approved").lt("endDate", asOf),
       )
       .take(500);
-    const results = [];
-    for (const loan of loans) {
-      const sent = await ctx.db
-        .query("automationEvents")
-        .withIndex("by_key", (q) =>
-          q.eq("idempotencyKey", reminderKey(loan._id, asOf)),
-        )
-        .unique();
-      if (sent?.status === "sent") continue;
-      const [tool, borrower] = await Promise.all([
-        ctx.db.get(loan.toolId),
-        ctx.db.get(loan.borrowerId),
-      ]);
-      if (!borrower?.email) continue;
-      results.push({
-        loanId: loan._id,
-        idempotencyKey: reminderKey(loan._id, asOf),
-        toolName: tool?.name ?? "a tool",
-        endDate: loan.endDate,
-        daysOverdue: daysBetween(loan.endDate, asOf),
-        borrower: { email: borrower.email, firstName: borrower.name.split(" ")[0] },
-      });
-    }
-    return results;
+    // Per-loan lookups are independent; run them together and keep the order.
+    const rows = await Promise.all(
+      loans.map(async (loan) => {
+        const idempotencyKey = reminderKey(loan._id, asOf);
+        const [sent, tool, borrower] = await Promise.all([
+          ctx.db.query("automationEvents").withIndex("by_key", (q) => q.eq("idempotencyKey", idempotencyKey)).unique(),
+          ctx.db.get(loan.toolId),
+          ctx.db.get(loan.borrowerId),
+        ]);
+        if (sent?.status === "sent" || !borrower?.email) return null;
+        return {
+          loanId: loan._id,
+          idempotencyKey,
+          toolName: tool?.name ?? "a tool",
+          endDate: loan.endDate,
+          daysOverdue: daysBetween(loan.endDate, asOf),
+          borrower: { email: borrower.email, firstName: firstName(borrower.name) },
+        };
+      }),
+    );
+    return rows.filter((row) => row !== null);
   },
 });
 

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { badRequest, requireToolOwner, requireUser } from "./lib/auth";
 import { enqueueLoanEvent } from "./lib/outbox";
@@ -37,26 +37,29 @@ export const list = query({
   args: { category: v.optional(vCategory) },
   handler: async (ctx, { category }) => {
     const user = await requireUser(ctx);
-    const statuses = ["available", "on_loan"] as const;
-    const results: Doc<"tools">[] = [];
-    for (const status of statuses) {
-      const rows = category
-        ? await ctx.db
+    // Everything except removed tools, newest first. The two status reads are
+    // independent, so run them together.
+    const byStatus = (status: "available" | "on_loan") =>
+      category
+        ? ctx.db
             .query("tools")
-            .withIndex("by_category_status", (q) =>
-              q.eq("category", category).eq("status", status),
-            )
+            .withIndex("by_category_status", (q) => q.eq("category", category).eq("status", status))
             .take(200)
-        : await ctx.db
+        : ctx.db
             .query("tools")
             .withIndex("by_status", (q) => q.eq("status", status))
             .take(200);
-      results.push(...rows);
-    }
+    const results = (await Promise.all([byStatus("available"), byStatus("on_loan")])).flat();
     results.sort((a, b) => b._creationTime - a._creationTime);
+    // One lookup per lender, not per tool: neighbours tend to list several.
+    const owners = new Map<Id<"users">, Promise<Doc<"users"> | null>>();
+    const ownerOf = (id: Id<"users">) => {
+      if (!owners.has(id)) owners.set(id, ctx.db.get(id));
+      return owners.get(id)!;
+    };
     return await Promise.all(
       results.map(async (tool) => {
-        const owner = await ctx.db.get(tool.ownerId);
+        const owner = await ownerOf(tool.ownerId);
         return {
           _id: tool._id,
           name: tool.name,
