@@ -20,7 +20,7 @@ A neighbourhood tool-lending board. Neighbours list tools, request to borrow the
 8. [Design system](#design-system)
 9. [Testing](#testing)
 10. [What I would change for production](#what-i-would-change-for-production)
-11. [Launch checklist](LAUNCH_CHECKLIST.md)
+11. [Full documentation](docs/README.md): user stories, architecture, ADRs, threat model, test plan, runbook, release checklist
 
 ## What it does
 
@@ -355,7 +355,7 @@ npm run check:contrast   # WCAG AA for the design tokens in both themes
 
 On the local stack I also ran each automation scenario end to end: request and approval emails, the overdue reminder and an idempotent re-run, a bad secret (401, failed, retried from Admin), n8n down (retried and delivered), and Mailpit down (error workflow fires and the delivery recovers).
 
-Launch-readiness items (legal pages, consent, SEO, contrast, links, performance) are tracked in [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md), with Lighthouse results in [docs/lighthouse/summary.md](docs/lighthouse/summary.md).
+Release gates (tests, contrast, links, bundle, security, docs) are in the [release checklist](docs/operations/release-checklist.md), with Lighthouse results in [docs/lighthouse/summary.md](docs/lighthouse/summary.md). The [docs index](docs/README.md) lists every lifecycle document.
 
 ## What I would change for production
 
