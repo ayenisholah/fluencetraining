@@ -21,7 +21,9 @@
     "test:convex": "vitest run --project convex",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "test:storybook": "vitest run --project storybook"
+    "test:storybook": "vitest run --project storybook",
+    "test:e2e": "playwright test",
+    "test:e2e:public": "playwright test --project public --project public-mobile"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.23",

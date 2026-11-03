@@ -13,6 +13,7 @@ import {
   SendIcon,
   ShieldIcon,
   SidebarItem,
+  Spinner,
   ThemeToggle,
   ToolIcon,
 } from "@/components/ui";
@@ -33,7 +34,11 @@ const icons: Record<NavIcon, ReactNode> = {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const me = useQuery(api.users.me);
-  const incoming = useQuery(api.loans.incoming);
+  // Pages call queries that need the user's row. On a first sign-in that row
+  // is created by users.store just after auth reaches Convex, so wait for it
+  // instead of letting those queries throw.
+  const ready = Boolean(me);
+  const incoming = useQuery(api.loans.incoming, ready ? {} : "skip");
   const pending = incoming?.filter((l) => l.status === "requested").length ?? 0;
   const links = appNav(me?.role);
   const current = links.find((l) => isActive(pathname, l.href));
@@ -87,7 +92,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <UserButton />
           </div>
         </header>
-        <main className="w-full flex-1 px-4 py-8 lg:px-8">{children}</main>
+        <main className="w-full flex-1 px-4 py-8 lg:px-8">
+          {ready ? children : <Spinner label="Setting up your account…" />}
+        </main>
         <Footer className="px-4 lg:px-8" />
       </div>
     </div>
