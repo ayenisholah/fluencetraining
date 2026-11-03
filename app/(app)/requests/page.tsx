@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { Spinner } from "@/components/ui";
 import { RequestsScreen } from "@/components/screens/Requests";
 
 export const metadata: Metadata = {
@@ -9,5 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <RequestsScreen />;
+  // The screen keeps its search and filters in the URL (useSearchParams).
+  return (
+    <Suspense fallback={<Spinner />}>
+      <RequestsScreen />
+    </Suspense>
+  );
 }

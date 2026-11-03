@@ -7,6 +7,8 @@ import {
 } from "./_generated/server";
 import { sign, SIGNATURE_HEADER, TIMESTAMP_HEADER } from "./lib/hmac";
 import type { LoanEvent } from "./lib/outbox";
+import { loanEventEmail } from "./lib/email/loanEmails";
+import { firstName } from "./lib/people";
 
 export const MAX_ATTEMPTS = 5;
 const TIMEOUT_MS = 10_000;
@@ -45,6 +47,9 @@ export const buildPayload = internalQuery({
     if (!recipient?.email) {
       return { error: "Recipient has no email address on file." } as const;
     }
+    const recipientFirstName = firstName(recipient.name);
+    const otherFirstName = firstName(other?.name, "A neighbour");
+    const toolName = tool?.name ?? "a tool";
     return {
       body: {
         deliveryId,
@@ -56,13 +61,24 @@ export const buildPayload = internalQuery({
           startDate: loan.startDate,
           endDate: loan.endDate,
         },
-        tool: { name: tool?.name ?? "a tool" },
+        tool: { name: toolName, category: tool?.category },
         recipient: {
           role: to,
           email: recipient.email,
-          firstName: recipient.name.split(" ")[0],
+          firstName: recipientFirstName,
         },
-        otherParty: { firstName: other?.name.split(" ")[0] ?? "A neighbour" },
+        otherParty: { firstName: otherFirstName },
+        // The rendered message (convex/lib/email): a view of the fields above,
+        // so n8n only verifies and sends. No extra personal data.
+        email: loanEventEmail({
+          event: delivery.event,
+          recipientFirstName,
+          otherFirstName,
+          toolName,
+          toolCategory: tool?.category,
+          startDate: loan.startDate,
+          endDate: loan.endDate,
+        }),
       },
     } as const;
   },

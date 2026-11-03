@@ -7,8 +7,8 @@ const box =
   "peer size-5 shrink-0 appearance-none border border-line-strong bg-surface outline-none transition-colors checked:border-brand checked:bg-brand focus-visible:ring-4 focus-visible:ring-focus-ring disabled:cursor-not-allowed disabled:opacity-50";
 
 /** 20×20 checkbox (Figma "Selectors"). Native input, so forms and keyboard just work. */
-export const Checkbox = forwardRef<HTMLInputElement, ChoiceProps>(function Checkbox(
-  { label, className, id: idProp, ...props },
+export const Checkbox = forwardRef<HTMLInputElement, ChoiceProps & { indeterminate?: boolean }>(function Checkbox(
+  { label, className, id: idProp, indeterminate = false, ...props },
   ref,
 ) {
   const autoId = useId();
@@ -16,13 +16,17 @@ export const Checkbox = forwardRef<HTMLInputElement, ChoiceProps>(function Check
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span className="relative inline-flex">
-        <input ref={ref} id={id} type="checkbox" className={cn(box, "rounded-[5px]")} {...props} />
+        <input ref={(node) => {
+          if (node) node.indeterminate = indeterminate;
+          if (typeof ref === "function") return ref(node);
+          if (ref) ref.current = node;
+        }} id={id} type="checkbox" className={cn(box, "rounded-[5px] indeterminate:border-brand indeterminate:bg-brand")} {...props} aria-checked={indeterminate ? "mixed" : props["aria-checked"]} />
         <svg
           aria-hidden
           viewBox="0 0 20 20"
-          className="pointer-events-none absolute inset-0 hidden text-white peer-checked:block"
+          className={cn("pointer-events-none absolute inset-0 text-on-brand", indeterminate ? "block" : "hidden peer-checked:block")}
         >
-          <path d="m5.5 10.5 3 3 6-6.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d={indeterminate ? "M5 10h10" : "m5.5 10.5 3 3 6-6.5"} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
       <label htmlFor={id} className="text-body text-fg">

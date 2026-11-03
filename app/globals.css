@@ -54,6 +54,8 @@
   --fg-muted: #636373; /* Figma neutral-500 #7E7E8F is 3.99:1 on white */
   --fg-subtle: var(--neutral-500); /* icons, large text only */
   --line: var(--neutral-200);
+  --field-border: #e8edf2; /* Figma "Neutral Border [day]" */
+  --popover-shadow: 0 20px 50px rgba(22, 22, 30, 0.12);
   --line-strong: var(--neutral-300);
   --brand: var(--brand-1);
   --on-brand: #ffffff;
@@ -75,6 +77,22 @@
   --warning-soft: #fdefe6;
   --info: #1d5fd6; /* accent-blue #2775FF: 4.21:1 */
   --info-soft: #e7efff;
+  /* Preset colours (Frox accents tuned to AA as small text on their soft fill).
+     Categories map onto these in lib/categories.ts. */
+  --preset-orange: #9a4a10;
+  --preset-orange-soft: #fdeee3;
+  --preset-blue: #1d5fd6;
+  --preset-blue-soft: #e7efff;
+  --preset-green: #237a3b;
+  --preset-green-soft: #e6f6ea;
+  --preset-pink: #b02a6b;
+  --preset-pink-soft: #fde8f2;
+  --preset-emerald: #0f7a5f;
+  --preset-emerald-soft: #e1f6ef;
+  --preset-sky: #0b6a80;
+  --preset-sky-soft: #e0f5fa;
+  --preset-violet: #6a3dbb;
+  --preset-violet-soft: #f0e9fb;
   --ghost-disabled: var(--gray-3);
   /* Keyboard focus indicator. Figma state-focus #B2A7FF is 2.13:1 on white
      (needs 3:1), so day uses brand-1; hover still uses state-focus. */
@@ -105,6 +123,8 @@
   --fg-muted: var(--neutral-800);
   --fg-subtle: var(--neutral-500);
   --line: #363844;
+  --field-border: #363844;
+  --popover-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
   --line-strong: var(--neutral-400);
   --brand-fg: #b2a7ff;
   --brand-soft: #2f2a52;
@@ -123,6 +143,20 @@
   --warning-soft: #3d2a20;
   --info: #8cb3ff;
   --info-soft: #1e2a45;
+  --preset-orange: #f6b48a;
+  --preset-orange-soft: #3a2416;
+  --preset-blue: #9cbcff;
+  --preset-blue-soft: #1b2a4a;
+  --preset-green: #8fd99f;
+  --preset-green-soft: #18301e;
+  --preset-pink: #f5a3c9;
+  --preset-pink-soft: #3a1a2a;
+  --preset-emerald: #7fe0c3;
+  --preset-emerald-soft: #12302a;
+  --preset-sky: #7fdcf0;
+  --preset-sky-soft: #10303a;
+  --preset-violet: #c4a8f5;
+  --preset-violet-soft: #2a2046;
   --ghost-disabled: var(--neutral-400);
   --focus-ring: var(--state-focus);
   }
@@ -151,6 +185,8 @@
   --fg-muted: var(--neutral-800);
   --fg-subtle: var(--neutral-500);
   --line: #363844;
+  --field-border: #363844;
+  --popover-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
   --line-strong: var(--neutral-400);
   --brand-fg: #b2a7ff;
   --brand-soft: #2f2a52;
@@ -169,6 +205,20 @@
   --warning-soft: #3d2a20;
   --info: #8cb3ff;
   --info-soft: #1e2a45;
+  --preset-orange: #f6b48a;
+  --preset-orange-soft: #3a2416;
+  --preset-blue: #9cbcff;
+  --preset-blue-soft: #1b2a4a;
+  --preset-green: #8fd99f;
+  --preset-green-soft: #18301e;
+  --preset-pink: #f5a3c9;
+  --preset-pink-soft: #3a1a2a;
+  --preset-emerald: #7fe0c3;
+  --preset-emerald-soft: #12302a;
+  --preset-sky: #7fdcf0;
+  --preset-sky-soft: #10303a;
+  --preset-violet: #c4a8f5;
+  --preset-violet-soft: #2a2046;
   --ghost-disabled: var(--neutral-400);
   --focus-ring: var(--state-focus);
 }
@@ -212,6 +262,8 @@
   --color-fg-subtle: var(--fg-subtle);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-field-border: var(--field-border);
+  --shadow-popover: var(--popover-shadow);
   --color-brand: var(--brand);
   --color-on-brand: var(--on-brand);
   --color-brand-fg: var(--brand-fg);
@@ -232,6 +284,20 @@
   --color-warning-soft: var(--warning-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
+  --color-preset-orange: var(--preset-orange);
+  --color-preset-orange-soft: var(--preset-orange-soft);
+  --color-preset-blue: var(--preset-blue);
+  --color-preset-blue-soft: var(--preset-blue-soft);
+  --color-preset-green: var(--preset-green);
+  --color-preset-green-soft: var(--preset-green-soft);
+  --color-preset-pink: var(--preset-pink);
+  --color-preset-pink-soft: var(--preset-pink-soft);
+  --color-preset-emerald: var(--preset-emerald);
+  --color-preset-emerald-soft: var(--preset-emerald-soft);
+  --color-preset-sky: var(--preset-sky);
+  --color-preset-sky-soft: var(--preset-sky-soft);
+  --color-preset-violet: var(--preset-violet);
+  --color-preset-violet-soft: var(--preset-violet-soft);
   --color-ghost-disabled: var(--ghost-disabled);
 
   --radius-sm: 8px;
@@ -293,4 +359,11 @@
     outline: 3px solid var(--focus-ring);
     outline-offset: 2px;
   }
+}
+
+/* ConfirmDialog entrance (skipped under prefers-reduced-motion via motion-safe). */
+/* Transform only: the dialog is never transparent, so it reads (and tests) as visible at once. */
+@keyframes dialog-in {
+  from { transform: translateY(6px) scale(0.98); }
+  to { transform: none; }
 }

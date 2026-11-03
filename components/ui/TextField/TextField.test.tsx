@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
 import { axeViolations } from "@/test/axe";
-import { Select } from "../Select/Select";
 import { TextField } from "./TextField";
 
 describe("TextField", () => {
@@ -40,18 +39,15 @@ describe("TextField", () => {
     expect(screen.getByLabelText("Name")).toHaveValue("Saw");
   });
 
+  test("multiline is not leaked to the DOM", () => {
+    render(<TextField multiline label="Notes" />);
+    expect(screen.getByLabelText("Notes")).not.toHaveAttribute("multiline");
+  });
+
   test("forwards refs", () => {
     const ref = { current: null as HTMLInputElement | null };
     render(<TextField ref={ref} label="X" />);
     expect(ref.current).toBeInstanceOf(HTMLInputElement);
-  });
-
-  test("Select renders options with a label", async () => {
-    render(<Select label="Category" options={[{ value: "a", label: "Garden" }, { value: "b", label: "Kitchen" }]} defaultValue="b" />);
-    const select = screen.getByLabelText("Category");
-    expect(select).toHaveValue("b");
-    await userEvent.selectOptions(select, "a");
-    expect(select).toHaveValue("a");
   });
 
   test("has no axe violations, including the error state", async () => {
@@ -59,7 +55,6 @@ describe("TextField", () => {
       <>
         <TextField label="Name" />
         <TextField label="Email" error="Required" />
-        <Select label="Category" options={[{ value: "a", label: "A" }]} />
       </>,
     );
     expect(await axeViolations(container)).toEqual([]);

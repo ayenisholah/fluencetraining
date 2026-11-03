@@ -1,3 +1,6 @@
+/** Where a successful sign-in from the public pages lands. */
+export const AFTER_SIGN_IN = "/tools";
+
 export type NavIcon = "tools" | "listings" | "requests" | "incoming" | "admin";
 export type NavLink = { href: string; label: string; icon: NavIcon };
 

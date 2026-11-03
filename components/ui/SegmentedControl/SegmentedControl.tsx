@@ -60,7 +60,7 @@ export function SegmentedControl<T extends string>({
       role="radiogroup"
       aria-label={aria["aria-label"]}
       onKeyDown={onKeyDown}
-      className={cn("inline-flex rounded-pill bg-segmented-track p-1", className)}
+      className={cn("inline-flex max-w-full flex-wrap rounded-pill bg-segmented-track p-1", className)}
     >
       {options.map((option, i) => {
         const selected = i === index;

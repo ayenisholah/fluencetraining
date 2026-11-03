@@ -1,0 +1,10 @@
+# Default reviewer for everything.
+* @ayenisholah
+
+# Security-sensitive areas.
+/convex/lib/auth.ts        @ayenisholah
+/convex/http.ts            @ayenisholah
+/convex/lib/hmac.ts        @ayenisholah
+/proxy.ts                  @ayenisholah
+/.github/                  @ayenisholah
+/infra/                    @ayenisholah

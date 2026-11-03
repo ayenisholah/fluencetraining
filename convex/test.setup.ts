@@ -37,3 +37,6 @@ export async function signIn(
 export function isoDay(offsetDays: number): string {
   return new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
 }
+
+/** Pagination args that fetch everything in one page, for tests. */
+export const ALL = { pageNumber: 1, pageSize: 100 };

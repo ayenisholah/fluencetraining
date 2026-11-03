@@ -1,5 +1,6 @@
 import { Alert, Badge, Button, Card, ClockIcon } from "@/components/ui";
-import { categoryLabel, formatDate, timeAgo } from "@/lib/format";
+import { CategoryBadge } from "@/components/CategoryBadge";
+import { formatDate, timeAgo } from "@/lib/format";
 import { loanActions, loanStatusBadge, type LoanStatus } from "@/lib/loanStatus";
 
 export type LoanView = {
@@ -52,10 +53,13 @@ export function LoanCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-subtitle-semibold text-fg">{loan.toolName}</h2>
-          <p className="mt-1 text-description text-fg-muted">
-            {categoryLabel(loan.toolCategory)} · {formatDate(loan.startDate)} – {formatDate(loan.endDate)} ·{" "}
-            {viewer === "lender" ? `requested by ${loan.counterpartName}` : `lent by ${loan.counterpartName}`}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {loan.toolCategory && <CategoryBadge category={loan.toolCategory} />}
+            <p className="text-description text-fg-muted">
+              {formatDate(loan.startDate)} – {formatDate(loan.endDate)} ·{" "}
+              {viewer === "lender" ? `requested by ${loan.counterpartName}` : `lent by ${loan.counterpartName}`}
+            </p>
+          </div>
         </div>
         <Badge tone={badge.tone}>{badge.label}</Badge>
       </div>

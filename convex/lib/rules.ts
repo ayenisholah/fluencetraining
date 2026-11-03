@@ -9,6 +9,14 @@ export const MAX_LOAN_DAYS = 30;
 
 export type ToolFieldErrors = { name?: string; description?: string };
 
+// User text ends up in email subjects and bodies (via n8n) as well as the UI.
+// Control characters (CR/LF can split mail headers) and bidi overrides/isolates
+// (which can make text display differently from what it is) are never needed
+// in a tool name. Descriptions may keep line breaks and tabs.
+const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
+const CONTROL_EXCEPT_TAB_LF = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/;
+export const BIDI_CONTROLS = /[\u202a-\u202e\u2066-\u2069]/;
+
 export function toolFieldErrors(fields: {
   name: string;
   description: string;
@@ -17,8 +25,12 @@ export function toolFieldErrors(fields: {
   const name = fields.name.trim();
   if (name.length < TOOL_NAME_MIN) errors.name = "Give the tool a name (at least 2 characters).";
   else if (name.length > TOOL_NAME_MAX) errors.name = `Keep the name under ${TOOL_NAME_MAX} characters.`;
-  if (fields.description.trim().length > TOOL_DESCRIPTION_MAX) {
+  else if (CONTROL.test(name) || BIDI_CONTROLS.test(name)) errors.name = "Use plain text in the name.";
+  const description = fields.description.trim();
+  if (description.length > TOOL_DESCRIPTION_MAX) {
     errors.description = `Keep the description under ${TOOL_DESCRIPTION_MAX} characters.`;
+  } else if (CONTROL_EXCEPT_TAB_LF.test(description) || BIDI_CONTROLS.test(description)) {
+    errors.description = "Use plain text in the description.";
   }
   return errors;
 }

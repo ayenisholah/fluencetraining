@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import { isoDay, setup, signIn } from "./test.setup";
+import { isoDay, setup, signIn, ALL } from "./test.setup";
 
 const drill = {
   name: "Cordless drill",
@@ -13,14 +13,28 @@ describe("public listing", () => {
   test("exposes only name and category", async () => {
     const t = setup();
     const ada = await signIn(t, "Ada Lovelace");
-    await ada.as.mutation(api.tools.create, drill);
-    const list = await t.query(api.tools.listPublic, {});
-    expect(list).toEqual([{ name: "Cordless drill", category: "power_tools" }]);
+    const toolId = await ada.as.mutation(api.tools.create, drill);
+    const list = (await t.query(api.tools.listPublic, { ...ALL })).page;
+    expect(list).toEqual([{ _id: toolId, name: "Cordless drill", category: "power_tools" }]);
+  });
+
+  test("hides tools that are on loan", async () => {
+    const t = setup();
+    const ada = await signIn(t, "Ada");
+    const bob = await signIn(t, "Bob");
+    const toolId = await ada.as.mutation(api.tools.create, drill);
+    const loanId = await bob.as.mutation(api.loans.request, {
+      toolId,
+      startDate: isoDay(1),
+      endDate: isoDay(2),
+    });
+    await ada.as.mutation(api.loans.approve, { loanId });
+    expect((await t.query(api.tools.listPublic, { ...ALL })).page).toEqual([]);
   });
 
   test("signed-out users cannot use authenticated queries", async () => {
     const t = setup();
-    await expect(t.query(api.tools.list, {})).rejects.toThrow(/Sign in/);
+    await expect(t.query(api.tools.list, { ...ALL })).rejects.toThrow(/Sign in/);
     await expect(t.mutation(api.tools.create, drill)).rejects.toThrow(/Sign in/);
   });
 });
@@ -38,7 +52,7 @@ describe("listing ownership", () => {
       /Only the owner/,
     );
     await ada.as.mutation(api.tools.update, { toolId, ...drill, name: "Drill v2" });
-    expect((await ada.as.query(api.tools.mine, {}))[0].name).toBe("Drill v2");
+    expect(((await ada.as.query(api.tools.mine, { ...ALL })).page)[0].name).toBe("Drill v2");
   });
 
   test("browse view does not leak lender email", async () => {
@@ -46,7 +60,7 @@ describe("listing ownership", () => {
     const ada = await signIn(t, "Ada Lovelace");
     const bob = await signIn(t, "Bob");
     await ada.as.mutation(api.tools.create, drill);
-    const [row] = await bob.as.query(api.tools.list, {});
+    const [row] = (await bob.as.query(api.tools.list, { ...ALL })).page;
     expect(row.lenderName).toBe("Ada");
     expect(JSON.stringify(row)).not.toContain("@");
   });
@@ -107,7 +121,7 @@ describe("loan workflow", () => {
       /Only the lender/,
     );
     await ada.as.mutation(api.loans.markReturned, { loanId });
-    const [mine] = await bob.as.query(api.loans.myRequests, {});
+    const [mine] = (await bob.as.query(api.loans.myRequests, { ...ALL })).page;
     expect(mine.status).toBe("returned");
   });
 
@@ -125,7 +139,7 @@ describe("loan workflow", () => {
   test("approval marks the tool on loan and blocks overlapping requests", async () => {
     const { ada, eve, toolId, loanId } = await requested();
     await ada.as.mutation(api.loans.approve, { loanId });
-    const [row] = await eve.as.query(api.tools.list, {});
+    const [row] = (await eve.as.query(api.tools.list, { ...ALL })).page;
     expect(row.status).toBe("on_loan");
     await expect(
       eve.as.mutation(api.loans.request, {
@@ -161,7 +175,7 @@ describe("admin", () => {
     await expect(
       bob.as.mutation(api.admin.setTrustedLender, { userId: bob.id, trusted: true }),
     ).rejects.toThrow(/Admins only/);
-    await expect(bob.as.query(api.admin.allLoans, {})).rejects.toThrow(/Admins only/);
+    await expect(bob.as.query(api.admin.allLoans, { pageNumber: 1, pageSize: 10 })).rejects.toThrow(/Admins only/);
   });
 
   test("admin can remove any listing and mark a trusted lender", async () => {
@@ -179,9 +193,9 @@ describe("admin", () => {
       userId: ada.id,
       trusted: true,
     });
-    expect((await bob.as.query(api.tools.list, {}))[0].trustedLender).toBe(true);
+    expect(((await bob.as.query(api.tools.list, { ...ALL })).page)[0].trustedLender).toBe(true);
     await admin.as.mutation(api.admin.removeListing, { toolId });
-    expect(await t.query(api.tools.listPublic, {})).toEqual([]);
+    expect((await t.query(api.tools.listPublic, { ...ALL })).page).toEqual([]);
     // Open requests on a removed listing are declined, not left dangling.
     const loan = await t.run((ctx) => ctx.db.get(loanId));
     expect(loan?.status).toBe("declined");

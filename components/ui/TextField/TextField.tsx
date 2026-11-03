@@ -35,7 +35,9 @@ const inputClass =
  */
 export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextFieldProps | TextAreaFieldProps>(
   function TextField(props, ref) {
-    const { label, hint, error, maxLengthHint, className, id: idProp, ...rest } = props;
+    // `multiline` is ours, not a DOM attribute: keep it out of `rest`.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { label, hint, error, maxLengthHint, className, id: idProp, multiline: _multiline, ...rest } = props;
     const autoId = useId();
     const id = idProp ?? autoId;
     const [focused, setFocused] = useState(false);

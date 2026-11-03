@@ -4,9 +4,10 @@ import { SignInButton, UserButton } from "@clerk/nextjs";
 import { Authenticated, Unauthenticated } from "convex/react";
 import Link from "next/link";
 import { buttonVariants, ThemeToggle } from "@/components/ui";
+import { AFTER_SIGN_IN } from "@/lib/nav";
 import { Logo } from "./Logo";
 
-/** Header for public pages: logo, theme, and a secondary sign-in action. */
+/** Header for public pages: logo, theme, and sign-in (which lands on /tools). */
 export function SiteHeader() {
   return (
     <header className="border-b border-line bg-surface">
@@ -15,8 +16,8 @@ export function SiteHeader() {
         <div className="ml-auto flex items-center gap-3">
           <ThemeToggle className="hidden sm:inline-flex" />
           <Unauthenticated>
-            <SignInButton mode="modal">
-              <button className={buttonVariants({ variant: "ghost", size: "sm" })}>Sign in</button>
+            <SignInButton mode="modal" forceRedirectUrl={AFTER_SIGN_IN} signUpForceRedirectUrl={AFTER_SIGN_IN}>
+              <button className={buttonVariants({ size: "sm" })}>Sign in</button>
             </SignInButton>
           </Unauthenticated>
           <Authenticated>

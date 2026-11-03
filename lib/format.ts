@@ -1,31 +1,28 @@
 import { ConvexError } from "convex/values";
+import type { Doc } from "@/convex/_generated/dataModel";
+import { CATEGORY_STYLES, type Category, type CategoryStyle } from "./categories";
 
-export const CATEGORIES = [
-  ["power_tools", "Power tools"],
-  ["hand_tools", "Hand tools"],
-  ["garden", "Garden"],
-  ["kitchen", "Kitchen"],
-  ["camping", "Camping"],
-  ["cleaning", "Cleaning"],
-  ["other", "Other"],
-] as const;
+export type { Category } from "./categories";
+export type Condition = Doc<"tools">["condition"];
 
-export type Category = (typeof CATEGORIES)[number][0];
+// Keyed by the schema's own union, so adding a condition in convex/schema.ts is
+// a type error here until it has a label. Category labels live with their
+// colour and icon in lib/categories.tsx.
+const conditionLabels: Record<Condition, string> = {
+  new: "Like new",
+  good: "Good",
+  fair: "Fair",
+  worn: "Well used",
+};
 
-export const CONDITIONS = [
-  ["new", "Like new"],
-  ["good", "Good"],
-  ["fair", "Fair"],
-  ["worn", "Well used"],
-] as const;
+/** [value, label] pairs in display order, for selects and filters. */
+export const CATEGORIES = (Object.entries(CATEGORY_STYLES) as [Category, CategoryStyle][]).map(
+  ([value, style]) => [value, style.label] as [Category, string],
+);
+export const CONDITIONS = Object.entries(conditionLabels) as [Condition, string][];
 
-export type Condition = (typeof CONDITIONS)[number][0];
-
-const categoryLabels = Object.fromEntries(CATEGORIES) as Record<string, string>;
-const conditionLabels = Object.fromEntries(CONDITIONS) as Record<string, string>;
-
-export const categoryLabel = (c?: string) => (c ? categoryLabels[c] ?? c : "");
-export const conditionLabel = (c: string) => conditionLabels[c] ?? c;
+export const categoryLabel = (c?: string) => (c ? CATEGORY_STYLES[c as Category]?.label ?? c : "");
+export const conditionLabel = (c: string) => conditionLabels[c as Condition] ?? c;
 
 export function errorMessage(err: unknown): string {
   if (err instanceof ConvexError) {

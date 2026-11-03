@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { Badge } from "./Badge";
+import { Badge, PRESET_COLORS, type PresetColor } from "./Badge";
 
 const meta = { title: "Components/Badge", component: Badge, args: { children: "Badge" } } satisfies Meta<typeof Badge>;
 export default meta;
@@ -23,6 +23,17 @@ export const StatusTones: Story = {
     <div className="flex flex-wrap gap-2">
       {(["neutral", "brand", "success", "warning", "danger", "info"] as const).map((tone) => (
         <Badge key={tone} tone={tone}>{tone}</Badge>
+      ))}
+    </div>
+  ),
+};
+
+/** Preset colours: the fixed palette categories map onto (lib/categories.tsx). */
+export const PresetColours: Story = {
+  render: () => (
+    <div className="flex flex-wrap gap-2">
+      {(Object.keys(PRESET_COLORS) as PresetColor[]).map((color) => (
+        <Badge key={color} color={color}>{color}</Badge>
       ))}
     </div>
   ),

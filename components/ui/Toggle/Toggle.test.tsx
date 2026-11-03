@@ -60,3 +60,19 @@ describe("Checkbox and Radio", () => {
     expect(await axeViolations(container)).toEqual([]);
   });
 });
+
+
+test("mixed checkbox has a native indeterminate state and supports keyboard selection", async () => {
+  function Mixed() {
+    const [selected, setSelected] = useState(false);
+    return <Checkbox label="Select all" checked={selected} indeterminate={!selected} onChange={(e) => setSelected(e.target.checked)} />;
+  }
+  const { container } = render(<Mixed />);
+  const checkbox = screen.getByRole("checkbox", { name: "Select all" });
+  expect(checkbox).toBePartiallyChecked();
+  expect(await axeViolations(container)).toEqual([]);
+  await userEvent.tab();
+  await userEvent.keyboard(" ");
+  expect(checkbox).toBeChecked();
+  expect(checkbox).not.toBePartiallyChecked();
+});

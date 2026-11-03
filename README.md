@@ -1,5 +1,10 @@
 # LendLoop
 
+[![CI](https://github.com/ayenisholah/fluencetraining/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ayenisholah/fluencetraining/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ayenisholah/fluencetraining/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/ayenisholah/fluencetraining/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Security policy](https://img.shields.io/badge/security-policy-brightgreen.svg)](SECURITY.md)
+
 > Borrow what you need. Lend what you don't.
 
 A neighbourhood tool-lending board. Neighbours list tools, request to borrow them for a date range, and approve, decline and close out loans. n8n handles the notifications and overdue reminders.
@@ -20,7 +25,7 @@ A neighbourhood tool-lending board. Neighbours list tools, request to borrow the
 8. [Design system](#design-system)
 9. [Testing](#testing)
 10. [What I would change for production](#what-i-would-change-for-production)
-11. [Launch checklist](LAUNCH_CHECKLIST.md)
+11. [Full documentation](docs/README.md): user stories, architecture, ADRs, threat model, test plan, runbook, release checklist
 
 ## What it does
 
@@ -166,6 +171,24 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 | n8n | http://localhost:5678 (create the local owner on first visit) |
 | Convex dashboard | http://localhost:6791 (admin key from `.env.local`) |
 
+### Sample data
+
+Fill the board with a believable neighbourhood: four neighbours and 100 tools covering every category. It's safe to re-run, because anything that already exists is skipped.
+
+```bash
+npm run seed
+```
+
+The seeded neighbours are `role: "user"` with `@lendloop.local` addresses, so their notifications land in Mailpit. They can't sign in, so they exist only to lend. Each e2e spec deletes its own "E2E …" tool when it finishes. If an interrupted run leaves some behind, this removes them along with their loans and activity:
+
+```bash
+npx convex run dev:purgeTestData '{"prefix":"E2E "}'
+```
+
+The seed adds missing sample tools without changing existing listings or user data. Lists fetch one page at a time from the server, with Previous/Next controls and page sizes of 10 (default), 25, 50 or 100. Changing search, filters or page size returns to page 1.
+
+Both are `internalMutation`s, so only someone with the Convex admin key can run them.
+
 ### Trying the automations
 
 - **Notifications:** sign in as two users (one normal window, one private window). List a tool as one, request it as the other, and watch Mailpit.
@@ -210,6 +233,7 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 |---|---|
 | `CLERK_JWT_ISSUER_DOMAIN` | Issuer Convex trusts for Clerk JWTs |
 | `N8N_WEBHOOK_URL` | n8n production webhook URL |
+| `LENDLOOP_APP_URL` | Public app URL for links and the logo in emails (set by `npm run setup`) |
 | `LENDLOOP_TO_N8N_SECRET`, `N8N_TO_LENDLOOP_SECRET` | Same values as `.env` |
 
 ## Roles and access control
@@ -240,9 +264,11 @@ The Next.js `proxy.ts` redirects signed-out visitors away from app pages. That i
 
 | File | Trigger | What it does |
 |---|---|---|
-| `01-request-notifications.json` | Webhook `POST /webhook/lendloop-loan-events` | Verifies the HMAC over the raw body, responds 401 if invalid, and acknowledges duplicate deliveries without re-sending. Then composes and sends the email, responds 200, and writes a signed `request_notification` event to Convex. |
-| `02-overdue-reminders.json` | Schedule (daily 08:00 UTC) + manual | Makes a signed fetch of overdue loans, then sends one reminder per loan. Write-backs are signed and idempotent, recording `sent`/`failed` per loan. Finally it fails the run if any reminder failed, so the error workflow fires. |
+| `01-request-notifications.json` | Webhook `POST /webhook/lendloop-loan-events` | Verifies the HMAC over the raw body, responds 401 if invalid, and acknowledges duplicate deliveries without re-sending. Then checks the payload carries its rendered email, sends it (HTML + text), responds 200, and writes a signed `request_notification` event to Convex. |
+| `02-overdue-reminders.json` | Schedule (daily 08:00 UTC) + manual | Makes a signed fetch of overdue loans (each with its rendered reminder), then sends one reminder per loan (HTML + text). Write-backs are signed and idempotent, recording `sent`/`failed` per loan. Finally it fails the run if any reminder failed, so the error workflow fires. |
 | `03-error-handler.json` | Error Trigger (set as the error workflow of the other two) | Emails ops a summary (workflow, node, message; no item data) and records a `workflow_error` in Convex, shown in Admin. |
+
+**Email templates.** Messages are rendered in Convex, not in n8n: `convex/lib/email/` holds a table-based, inline-styled branded layout (LendLoop header, coloured status banner, a loan-details card with the category in its preset colour, call-to-action buttons, footer) and one template per event plus the overdue reminder, each with a plain-text alternative. They are typed and unit-tested, every piece of user text is HTML-escaped, and the colours are checked against the app's tokens. Convex sends `{ subject, html, text }` with the signed payload, so n8n only verifies and sends. Preview them all with `npm run email:preview` (writes `email-previews/`).
 
 Reliability measures:
 - **Convex → n8n:**
@@ -281,9 +307,22 @@ To refresh the exported JSON after editing in the n8n UI, run `npm run n8n:expor
   - Signed-in users see a lender's first name, never their email.
   - Only admins see full names and emails.
 - **Server decides time.** The overdue endpoint ignores any date in the request and uses the server clock, so a caller can't widen the query.
-- **Input limits.** Field lengths are validated on the server. HTTP bodies are capped at 16 KB, and write-back payloads are validated against an allow-list of kinds.
+- **Input is plain text and bounded.**
+  - Field lengths are validated on the server.
+  - Tool names and descriptions reject control characters and bidi overrides (`convex/lib/rules.ts`, shared with the form). They reach email subjects through n8n, where CR/LF could split headers, and bidi overrides can make text display as something it isn't.
+  - Display names from Clerk are cleaned the same way and capped before they're stored.
+  - HTTP bodies are capped at 16 KB, measured in bytes, and a declared oversized body is refused before it's read.
+  - Write-back payloads are validated against an allow-list of kinds.
 - **Local stack binds to 127.0.0.1 only.** Mailpit's SMTP port isn't published at all.
-- **Baseline headers.** The app sends `X-Frame-Options: DENY`, `nosniff`, a strict referrer policy and a restrictive `Permissions-Policy`.
+- **Strict Content-Security-Policy.**
+  - `proxy.ts` uses Clerk's strict CSP: a fresh nonce per request and `'strict-dynamic'` for scripts, with no host allow-lists.
+  - `connect-src` is limited to the app, Clerk and the Convex deployment, including its websocket.
+  - The policy also sets `frame-ancestors 'none'`, `object-src 'none'` and `base-uri 'self'`.
+  - Next.js and Clerk add the nonce to their own scripts. The one inline script, which sets the theme before paint, gets it from the layout.
+  - Playwright checks the header and that no page, including Clerk's sign-in and the signed-in app, triggers a violation.
+- **Baseline headers.** The app also sends `X-Frame-Options: DENY`, `nosniff`, a strict referrer policy, a restrictive `Permissions-Policy`, and HSTS in production.
+- **The HTTPS redirect doesn't trust the request.** With `ENFORCE_HTTPS=true`, plain-http requests are redirected to the configured `NEXT_PUBLIC_SITE_URL`. `Host` and `X-Forwarded-Host` are client-controlled and could otherwise turn the redirect into an open redirect or poison a cache.
+- **Dependencies.** `npm audit --omit=dev` reports no vulnerabilities in what ships. The remaining advisories are in dev-only tooling (`glob`/`minimatch` ReDoS via linters and test runners).
 
 ## Design system
 
@@ -302,11 +341,15 @@ npm run build-storybook  # static build in storybook-static/
 
 ## Testing
 
+For local notification troubleshooting, prerequisites and a manual two-account smoke test,
+see the [automation runbook](docs/operations/runbook.md#verify-local-notifications).
+
 ```bash
 npm test                 # Vitest: Convex backend (edge-runtime) + components and lib (jsdom)
 npm run test:storybook   # every story in Chrome: render, play function, axe
 npm run test:e2e         # Playwright (builds and starts the app)
 npm run test:e2e:public  # signed-out suite only
+npm run test:automation # local email + recovery suite; temporarily stops/restores Mailpit
 npm run typecheck && npm run lint
 npm run check:contrast   # WCAG AA for the design tokens in both themes
 ```
@@ -324,7 +367,7 @@ npm run check:contrast   # WCAG AA for the design tokens in both themes
 
 On the local stack I also ran each automation scenario end to end: request and approval emails, the overdue reminder and an idempotent re-run, a bad secret (401, failed, retried from Admin), n8n down (retried and delivered), and Mailpit down (error workflow fires and the delivery recovers).
 
-Launch-readiness items (legal pages, consent, SEO, contrast, links, performance) are tracked in [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md), with Lighthouse results in [docs/lighthouse/summary.md](docs/lighthouse/summary.md).
+Release gates (tests, contrast, links, bundle, security, docs) are in the [release checklist](docs/operations/release-checklist.md), with Lighthouse results in [docs/lighthouse/summary.md](docs/lighthouse/summary.md). The [docs index](docs/README.md) lists every lifecycle document.
 
 ## What I would change for production
 
