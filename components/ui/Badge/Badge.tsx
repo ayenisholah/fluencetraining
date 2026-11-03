@@ -45,8 +45,30 @@ export const badgeVariants = cva(
   },
 );
 
-export type BadgeProps = HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants>;
+/**
+ * Preset colours: a fixed palette (Frox accents tuned to AA) for tags such as
+ * categories. A preset overrides `tone`; it always renders soft (tinted fill,
+ * coloured text). Literal class names so Tailwind generates them.
+ */
+export const PRESET_COLORS = {
+  orange: "bg-preset-orange-soft text-preset-orange",
+  blue: "bg-preset-blue-soft text-preset-blue",
+  green: "bg-preset-green-soft text-preset-green",
+  pink: "bg-preset-pink-soft text-preset-pink",
+  emerald: "bg-preset-emerald-soft text-preset-emerald",
+  sky: "bg-preset-sky-soft text-preset-sky",
+  violet: "bg-preset-violet-soft text-preset-violet",
+} as const;
+export type PresetColor = keyof typeof PRESET_COLORS;
 
-export function Badge({ className, variant, tone, shape, ...props }: BadgeProps) {
-  return <span className={cn(badgeVariants({ variant, tone, shape }), className)} {...props} />;
+export type BadgeProps = HTMLAttributes<HTMLSpanElement> &
+  VariantProps<typeof badgeVariants> & { color?: PresetColor };
+
+export function Badge({ className, variant, tone, shape, color, ...props }: BadgeProps) {
+  return (
+    <span
+      className={cn(badgeVariants({ variant: color ? "soft" : variant, tone: color ? undefined : tone, shape }), color && PRESET_COLORS[color], className)}
+      {...props}
+    />
+  );
 }

@@ -2,7 +2,7 @@
 // real Code nodes from the exported workflows, with the network stubbed.
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { api, internal } from "../convex/_generated/api";
-import { isoDay, setup, signIn, type T } from "../convex/test.setup";
+import { ALL, isoDay, setup, signIn, type T } from "../convex/test.setup";
 import { loadWorkflow, runCode } from "./runCode";
 
 const TO_N8N = "rt-lendloop-to-n8n";
@@ -90,9 +90,9 @@ describe("request notification: Convex → n8n → Convex", () => {
     expect(await t.run((ctx) => ctx.db.query("automationEvents").collect())).toHaveLength(1);
 
     // Bonus: both sides see the activity on the loan.
-    const [incoming] = await owner.as.query(api.loans.incoming, {});
+    const [incoming] = (await owner.as.query(api.loans.incoming, ALL)).page;
     expect(incoming.activity).toEqual([expect.objectContaining({ kind: "request_notification", status: "sent" })]);
-    const [mine] = await renter.as.query(api.loans.myRequests, {});
+    const [mine] = (await renter.as.query(api.loans.myRequests, ALL)).page;
     expect(mine._id).toBe(loanId);
     expect(mine.activity).toHaveLength(1);
 
@@ -147,7 +147,7 @@ describe("overdue reminders: n8n → Convex → n8n → Convex", () => {
 
     const events = await t.run((ctx) => ctx.db.query("automationEvents").collect());
     expect(events.map((e) => [e.kind, e.status])).toEqual([["overdue_reminder", "sent"]]);
-    const [incoming] = await owner.as.query(api.loans.incoming, {});
+    const [incoming] = (await owner.as.query(api.loans.incoming, ALL)).page;
     expect(incoming).toMatchObject({ overdue: true, activity: [expect.objectContaining({ kind: "overdue_reminder", status: "sent" })] });
   });
 });

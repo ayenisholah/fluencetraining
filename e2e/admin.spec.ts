@@ -115,13 +115,13 @@ test("admin removes someone else's listing even while it's on loan", async () =>
   await admin.goto("/admin");
   const listings = section(admin, "Listings");
   await listings.getByRole("button", { name: `Remove ${toolName}` }).click();
-  const confirm = listings.getByRole("group", { name: `Remove ${toolName}?` });
-  await expect(confirm).toContainText("the loan stays open");
+  const confirm = admin.getByRole("alertdialog", { name: `Remove "${toolName}"?` });
+  await expect(confirm).toContainText("The loan stays open");
   await confirm.getByRole("button", { name: "Keep" }).click();
   await expect(listings.getByRole("button", { name: `Remove ${toolName}` })).toBeVisible();
 
   await listings.getByRole("button", { name: `Remove ${toolName}` }).click();
-  await listings.getByRole("button", { name: "Confirm remove" }).click();
+  await confirm.getByRole("button", { name: "Remove listing" }).click();
   await expect(listings.getByRole("button", { name: `Remove ${toolName}` })).toHaveCount(0);
 
   await renter.goto("/tools");

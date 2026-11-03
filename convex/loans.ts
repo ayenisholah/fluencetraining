@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
@@ -8,9 +9,13 @@ import {
   requireUser,
 } from "./lib/auth";
 import { rangesOverlap, todayUtc, validateLoanDates } from "./lib/dates";
-import { describeLoan } from "./lib/loanView";
+import { setToolStatus } from "./lib/toolRecord";
+import { loanPhase, setLoanStatus } from "./lib/loanRecord";
+import { describeLoan, pageLoans } from "./lib/loanView";
 import { enqueueLoanEvent } from "./lib/outbox";
 import { assertWithinRateLimit } from "./lib/rateLimit";
+import { vSearch } from "./lib/search";
+import { vLoanPhase } from "./schema";
 
 async function activeLoanFor(ctx: QueryCtx, toolId: Doc<"tools">["_id"]) {
   return await ctx.db
@@ -55,6 +60,8 @@ export const request = mutation({
       startDate,
       endDate,
       status: "requested",
+      phase: loanPhase("requested"),
+      toolName: tool.name,
     });
     await enqueueLoanEvent(ctx, loanId, "loan.requested");
     return loanId;
@@ -73,8 +80,8 @@ export const approve = mutation({
     if (await activeLoanFor(ctx, loan.toolId)) {
       badRequest("The tool is already lent out. Mark it returned first.");
     }
-    await ctx.db.patch(loanId, { status: "approved", decidedAt: Date.now() });
-    await ctx.db.patch(tool._id, { status: "on_loan" });
+    await setLoanStatus(ctx, loanId, "approved", { decidedAt: Date.now() });
+    await setToolStatus(ctx, tool._id, "on_loan");
     await enqueueLoanEvent(ctx, loanId, "loan.approved");
   },
 });
@@ -84,7 +91,7 @@ export const decline = mutation({
   handler: async (ctx, { loanId }) => {
     const { loan } = await requireLoanParty(ctx, loanId, "lender");
     if (loan.status !== "requested") badRequest("This request is not open.");
-    await ctx.db.patch(loanId, { status: "declined", decidedAt: Date.now() });
+    await setLoanStatus(ctx, loanId, "declined", { decidedAt: Date.now() });
     await enqueueLoanEvent(ctx, loanId, "loan.declined");
   },
 });
@@ -96,7 +103,7 @@ export const cancel = mutation({
     if (loan.status !== "requested") {
       badRequest("Only open requests can be cancelled.");
     }
-    await ctx.db.patch(loanId, { status: "cancelled", decidedAt: Date.now() });
+    await setLoanStatus(ctx, loanId, "cancelled", { decidedAt: Date.now() });
     await enqueueLoanEvent(ctx, loanId, "loan.cancelled");
   },
 });
@@ -106,38 +113,46 @@ export const markReturned = mutation({
   handler: async (ctx, { loanId }) => {
     const { loan } = await requireLoanParty(ctx, loanId, "lender");
     if (loan.status !== "approved") badRequest("This loan is not active.");
-    await ctx.db.patch(loanId, { status: "returned", returnedAt: Date.now() });
+    await setLoanStatus(ctx, loanId, "returned", { returnedAt: Date.now() });
     const tool = await ctx.db.get(loan.toolId);
     if (tool && tool.status === "on_loan") {
-      await ctx.db.patch(tool._id, { status: "available" });
+      await setToolStatus(ctx, tool._id, "available");
     }
     await enqueueLoanEvent(ctx, loanId, "loan.returned");
   },
 });
 
+const loanListArgs = { paginationOpts: paginationOptsValidator, search: vSearch, phase: v.optional(vLoanPhase) };
+
+/** Loans the caller asked to borrow, searchable by tool name, by phase. */
 export const myRequests = query({
-  args: {},
-  handler: async (ctx) => {
+  args: loanListArgs,
+  handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    const loans = await ctx.db
-      .query("loans")
-      .withIndex("by_borrower", (q) => q.eq("borrowerId", user._id))
-      .order("desc")
-      .take(100);
-    return await Promise.all(loans.map((l) => describeLoan(ctx, l, "borrower")));
+    const result = await pageLoans(ctx, { ...args, party: { field: "borrowerId", userId: user._id } });
+    return { ...result, page: await Promise.all(result.page.map((l) => describeLoan(ctx, l, "borrower"))) };
   },
 });
 
+/** Requests for the caller's tools, searchable by tool name, by phase. */
 export const incoming = query({
-  args: {},
-  handler: async (ctx) => {
+  args: loanListArgs,
+  handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    const loans = await ctx.db
-      .query("loans")
-      .withIndex("by_lender", (q) => q.eq("lenderId", user._id))
-      .order("desc")
-      .take(100);
-    return await Promise.all(loans.map((l) => describeLoan(ctx, l, "lender")));
+    const result = await pageLoans(ctx, { ...args, party: { field: "lenderId", userId: user._id } });
+    return { ...result, page: await Promise.all(result.page.map((l) => describeLoan(ctx, l, "lender"))) };
   },
 });
 
+/** Open requests waiting on the caller, for the sidebar badge (capped at 100). */
+export const pendingIncomingCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+    const open = await ctx.db
+      .query("loans")
+      .withIndex("by_lender_phase", (q) => q.eq("lenderId", user._id).eq("phase", "open"))
+      .take(100);
+    return open.length;
+  },
+});

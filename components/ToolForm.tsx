@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Alert, Button, Select, TextField } from "@/components/ui";
 import { TOOL_DESCRIPTION_MAX, TOOL_NAME_MAX, toolFieldErrors } from "@/convex/lib/rules";
 import { CATEGORIES, CONDITIONS, errorMessage, type Category, type Condition } from "@/lib/format";
+import { PhotoPicker, type PhotoValue } from "./PhotoPicker";
 
 export type ToolFields = {
   name: string;
@@ -14,32 +15,44 @@ export type ToolFields = {
 
 export const emptyTool: ToolFields = { name: "", category: "power_tools", condition: "good", description: "" };
 
+/** What the form hands back: the fields plus what to do with the photo. */
+export type ToolSubmit = ToolFields & { imageId?: string; removeImage?: boolean };
+
 const categoryOptions = CATEGORIES.map(([value, label]) => ({ value, label }));
 const conditionOptions = CONDITIONS.map(([value, label]) => ({ value, label }));
 
 export function ToolForm({
   initial = emptyTool,
+  initialImageUrl,
   submitLabel,
   onSubmit,
   onCancel,
+  uploadImage,
 }: {
   initial?: ToolFields;
+  /** The listing's current photo, when editing. */
+  initialImageUrl?: string | null;
   submitLabel: string;
-  onSubmit: (fields: ToolFields) => Promise<unknown>;
+  onSubmit: (fields: ToolSubmit) => Promise<unknown>;
   onCancel?: () => void;
+  /** Uploads a chosen photo and resolves to its storage id. Without it, no photo picker. */
+  uploadImage?: (file: File) => Promise<string>;
 }) {
   const nameRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [fields, setFields] = useState(initial);
-  const [touched, setTouched] = useState<{ name?: boolean; description?: boolean }>({});
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const startPhoto: PhotoValue = initialImageUrl ? { kind: "existing", url: initialImageUrl } : { kind: "none" };
+  const [photo, setPhoto] = useState<PhotoValue>(startPhoto);
   const set = <K extends keyof ToolFields>(key: K, value: ToolFields[K]) =>
     setFields((f) => ({ ...f, [key]: value }));
 
   const errors = toolFieldErrors(fields);
-  const show = (field: "name" | "description") => (touched[field] || submitted ? errors[field] : undefined);
+  // Errors appear only once the user tries to submit, then update live as they
+  // fix the field. Typing into or leaving a field never shows one by itself.
+  const show = (field: "name" | "description") => (submitted ? errors[field] : undefined);
 
   return (
     <form
@@ -53,10 +66,13 @@ export function ToolForm({
         setPending(true);
         setError(undefined);
         try {
-          await onSubmit(fields);
+          // Upload first so a failed upload leaves the listing untouched.
+          const imageId = photo.kind === "new" && uploadImage ? await uploadImage(photo.file) : undefined;
+          const removeImage = Boolean(initialImageUrl) && photo.kind === "none";
+          await onSubmit({ ...fields, ...(imageId ? { imageId } : {}), ...(removeImage ? { removeImage } : {}) });
           if (initial === emptyTool) {
             setFields(emptyTool);
-            setTouched({});
+            setPhoto({ kind: "none" });
             setSubmitted(false);
           }
         } catch (err) {
@@ -74,7 +90,6 @@ export function ToolForm({
         value={fields.name}
         error={show("name")}
         onChange={(e) => set("name", e.target.value)}
-        onBlur={() => setTouched((t) => ({ ...t, name: true }))}
       />
       <div className="grid grid-cols-2 gap-3">
         <Select
@@ -99,8 +114,8 @@ export function ToolForm({
         value={fields.description}
         error={show("description")}
         onChange={(e) => set("description", e.target.value)}
-        onBlur={() => setTouched((t) => ({ ...t, description: true }))}
       />
+      {uploadImage && <PhotoPicker value={photo} onChange={setPhoto} />}
       <Alert tone="danger">{error}</Alert>
       <div className="flex gap-2">
         <Button type="submit" loading={pending}>

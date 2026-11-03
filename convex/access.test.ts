@@ -6,7 +6,7 @@
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { isoDay, setup, signIn, type T } from "./test.setup";
+import { isoDay, setup, signIn, type T, ALL } from "./test.setup";
 
 const drill = {
   name: "Cordless drill",
@@ -28,6 +28,7 @@ const PUBLIC_FUNCTIONS: Record<string, "anyone" | "signed-in" | "owner" | "lende
   "tools:create": "signed-in",
   "tools:update": "owner",
   "tools:remove": "owner",
+  "tools:generateUploadUrl": "signed-in",
   "loans:request": "signed-in",
   "loans:approve": "lender",
   "loans:decline": "lender",
@@ -35,6 +36,7 @@ const PUBLIC_FUNCTIONS: Record<string, "anyone" | "signed-in" | "owner" | "lende
   "loans:cancel": "borrower",
   "loans:myRequests": "signed-in",
   "loans:incoming": "signed-in",
+  "loans:pendingIncomingCount": "signed-in",
   "users:store": "anyone", // no-op without an identity; never sets a role
   "users:me": "anyone", // returns null when signed out
   "admin:allLoans": "admin",
@@ -64,7 +66,14 @@ describe("coverage guard", () => {
     expect(publicNames.sort()).toEqual(Object.keys(PUBLIC_FUNCTIONS).sort());
     // Role changes and test helpers must never be callable from a browser.
     expect(internalNames).toEqual(
-      expect.arrayContaining(["users:setRole", "dev:backdateLoan", "dev:purgeTestData", "dev:seedNeighbourhood"]),
+      expect.arrayContaining([
+        "users:setRole",
+        "dev:backdateLoan",
+        "dev:purgeTestData",
+        "dev:seedNeighbourhood",
+        "migrations:backfillSearch",
+        "images:deleteOrphans",
+      ]),
     );
   });
 });
@@ -201,20 +210,20 @@ describe("user: loans only for their own tools or their own borrowing", () => {
 
   test("personal views show only the caller's loans, even to an admin", async () => {
     const w = await world();
-    expect(await w.other.as.query(api.loans.incoming, {})).toEqual([]);
-    expect(await w.other.as.query(api.loans.myRequests, {})).toEqual([]);
-    expect(await w.admin.as.query(api.loans.incoming, {})).toEqual([]);
-    expect(await w.admin.as.query(api.loans.myRequests, {})).toEqual([]);
-    expect(await w.owner.as.query(api.loans.incoming, {})).toHaveLength(1);
-    expect(await w.borrower.as.query(api.loans.myRequests, {})).toHaveLength(1);
+    expect((await w.other.as.query(api.loans.incoming, { ...ALL })).page).toEqual([]);
+    expect((await w.other.as.query(api.loans.myRequests, { ...ALL })).page).toEqual([]);
+    expect((await w.admin.as.query(api.loans.incoming, { ...ALL })).page).toEqual([]);
+    expect((await w.admin.as.query(api.loans.myRequests, { ...ALL })).page).toEqual([]);
+    expect((await w.owner.as.query(api.loans.incoming, { ...ALL })).page).toHaveLength(1);
+    expect((await w.borrower.as.query(api.loans.myRequests, { ...ALL })).page).toHaveLength(1);
   });
 });
 
 describe("admin-only functions", () => {
   const adminCalls: [string, (w: World, who: Caller) => Promise<unknown>][] = [
     ["allLoans", (w, who) => client(w, who).query(api.admin.allLoans, page())],
-    ["users", (w, who) => client(w, who).query(api.admin.users, {})],
-    ["listings", (w, who) => client(w, who).query(api.admin.listings, {})],
+    ["users", (w, who) => client(w, who).query(api.admin.users, { ...ALL })],
+    ["listings", (w, who) => client(w, who).query(api.admin.listings, { ...ALL })],
     ["stats", (w, who) => client(w, who).query(api.admin.stats, {})],
     ["automationHealth", (w, who) => client(w, who).query(api.admin.automationHealth, {})],
     ["setTrustedLender", (w, who) => client(w, who).mutation(api.admin.setTrustedLender, { userId: w.owner.id, trusted: true })],
@@ -256,8 +265,8 @@ describe("admin abilities", () => {
     const tool = await w.t.run((ctx) => ctx.db.get(w.toolId));
     expect(tool).toMatchObject({ status: "removed", removedBy: w.admin.id });
     expect(await status(w.t, w.loanId)).toBe("declined");
-    expect(await w.borrower.as.query(api.tools.list, {})).toEqual([]);
-    expect(await w.owner.as.query(api.tools.mine, {})).toEqual([]);
+    expect((await w.borrower.as.query(api.tools.list, { ...ALL })).page).toEqual([]);
+    expect((await w.owner.as.query(api.tools.mine, { ...ALL })).page).toEqual([]);
     await expect(w.admin.as.mutation(api.admin.removeListing, { toolId: w.toolId })).rejects.toThrow(/not found/);
   });
 
@@ -270,12 +279,12 @@ describe("admin abilities", () => {
     await w.admin.as.mutation(api.admin.removeListing, { toolId: w.toolId });
     expect(await status(w.t, w.toolId)).toBe("removed");
     expect(await status(w.t, w.loanId)).toBe("approved");
-    const [incoming] = await w.owner.as.query(api.loans.incoming, {});
+    const [incoming] = (await w.owner.as.query(api.loans.incoming, { ...ALL })).page;
     expect(incoming).toMatchObject({ status: "approved", toolName: "Cordless drill" });
     await w.owner.as.mutation(api.loans.markReturned, { loanId: w.loanId });
     expect(await status(w.t, w.loanId)).toBe("returned");
     expect(await status(w.t, w.toolId)).toBe("removed");
-    expect(await w.t.query(api.tools.listPublic, {})).toEqual([]);
+    expect((await w.t.query(api.tools.listPublic, { ...ALL })).page).toEqual([]);
   });
 
   test("views all loans across users, with both parties' names, page by page", async () => {
@@ -311,10 +320,10 @@ describe("admin abilities", () => {
   test("marks and unmarks a trusted lender, shown on their listings", async () => {
     const w = await world();
     await w.admin.as.mutation(api.admin.setTrustedLender, { userId: w.owner.id, trusted: true });
-    expect((await w.borrower.as.query(api.tools.list, {}))[0].trustedLender).toBe(true);
-    expect((await w.admin.as.query(api.admin.users, {})).find((u) => u._id === w.owner.id)?.trustedLender).toBe(true);
+    expect(((await w.borrower.as.query(api.tools.list, { ...ALL })).page)[0].trustedLender).toBe(true);
+    expect(((await w.admin.as.query(api.admin.users, { ...ALL })).page).find((u) => u._id === w.owner.id)?.trustedLender).toBe(true);
     await w.admin.as.mutation(api.admin.setTrustedLender, { userId: w.owner.id, trusted: false });
-    expect((await w.borrower.as.query(api.tools.list, {}))[0].trustedLender).toBe(false);
+    expect(((await w.borrower.as.query(api.tools.list, { ...ALL })).page)[0].trustedLender).toBe(false);
   });
 
   test("trusting an unknown user is a not-found error", async () => {

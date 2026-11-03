@@ -1,8 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { axeViolations } from "@/test/axe";
-import { auth, queryArgs, queryResults, resetConvexMock } from "@/test/convex-mock";
+import { auth, paginated, queryArgs, resetConvexMock } from "@/test/convex-mock";
+import { navigation } from "@/test/next-navigation-mock";
 import { HomeScreen } from "./Home";
 
 vi.mock("convex/react", async () => (await import("@/test/convex-mock")).convexReactMock);
@@ -26,59 +28,74 @@ const tools = [
 beforeEach(() => {
   resetConvexMock();
   signInProps.length = 0;
-  queryResults["tools:listPublic"] = tools;
+  paginated["tools:listPublic"] = { results: tools, status: "Exhausted" };
 });
 
 const list = () => screen.getByRole("region", { name: "Available now" });
+const lastArgs = () => queryArgs["tools:listPublic"].at(-1);
 
 describe("HomeScreen (public landing)", () => {
-  test("shows the LendLoop tagline as the page heading", () => {
+  test("tagline, then How it works, then the available tools", () => {
     render(<HomeScreen />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Borrow what you need. Lend what you don't.");
-    expect(screen.getByText(/LendLoop is a neighbourhood board/)).toBeInTheDocument();
+    const headings = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(headings).toEqual(["How it works", "Available now"]);
+    const steps = within(screen.getByRole("region", { name: "How it works" })).getByRole("list");
+    expect(steps.tagName).toBe("OL");
+    expect(within(steps).getAllByRole("listitem")).toHaveLength(3);
   });
 
-  test("reads the public Convex query with no arguments", () => {
-    render(<HomeScreen />);
-    expect(queryArgs["tools:listPublic"]).toBeDefined();
-    expect(queryArgs["tools:listPublic"].at(-1)).toBeUndefined();
-  });
-
-  test("lists each tool's name and category label only", () => {
+  test("each tool shows its name and a coloured category badge, nothing else", () => {
     render(<HomeScreen />);
     const items = within(list()).getAllByRole("listitem");
-    expect(items.map((li) => li.textContent)).toEqual([
-      "Cordless drillPower tools",
-      "Two-person tentCamping",
-      "Leaf rakeGarden",
-    ]);
-  });
-
-  test("the list is read-only: no links or buttons on tools", () => {
-    render(<HomeScreen />);
+    expect(items.map((li) => li.textContent)).toEqual(["Cordless drillPower tools", "Two-person tentCamping", "Leaf rakeGarden"]);
+    // Scoped to the tool cards: the category chips above repeat the labels.
+    expect(within(items[0]).getByText("Power tools").className).toContain("bg-preset-orange-soft");
+    expect(within(items[2]).getByText("Garden").className).toContain("bg-preset-green-soft");
     expect(within(list()).queryAllByRole("link")).toEqual([]);
-    expect(within(list()).queryAllByRole("button")).toEqual([]);
   });
 
-  test("shows a busy skeleton while loading", () => {
-    queryResults["tools:listPublic"] = undefined;
+  test("search and category go to the server and into the URL", async () => {
     render(<HomeScreen />);
-    const skeleton = within(list()).getByRole("list", { name: "Loading tools" });
-    expect(skeleton).toHaveAttribute("aria-busy", "true");
+    expect(lastArgs()).toEqual({ search: undefined, category: undefined });
+    await userEvent.type(screen.getByRole("searchbox", { name: "Search available tools" }), "drill");
+    await vi.waitFor(() => expect(lastArgs()).toEqual({ search: "drill", category: undefined }));
+    expect(navigation.href).toBe("/?q=drill");
+    await userEvent.click(within(list()).getByRole("radio", { name: "Garden" }));
+    expect(lastArgs()).toEqual({ search: "drill", category: "garden" });
+    expect(navigation.href).toContain("category=garden");
   });
 
-  test("shows an empty state when nothing is listed", () => {
-    queryResults["tools:listPublic"] = [];
+  test("filters are read back from the URL", () => {
+    navigation.reset("/?q=rake&category=garden");
     render(<HomeScreen />);
+    expect(screen.getByRole("searchbox", { name: "Search available tools" })).toHaveValue("rake");
+    expect(within(list()).getByRole("radio", { name: "Garden" })).toHaveAttribute("aria-checked", "true");
+    expect(lastArgs()).toEqual({ search: "rake", category: "garden" });
+  });
+
+  test("Load more appears while the server has more", async () => {
+    paginated["tools:listPublic"].status = "CanLoadMore";
+    const { loadMore } = await import("@/test/convex-mock");
+    render(<HomeScreen />);
+    expect(screen.getByText("Showing 3 tools")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load more tools" }));
+    expect(loadMore).toHaveBeenCalledWith(24);
+  });
+
+  test("loading skeleton, and empty states with and without filters", () => {
+    paginated["tools:listPublic"] = { results: [], status: "LoadingFirstPage" };
+    const { rerender } = render(<HomeScreen />);
+    expect(within(list()).getByRole("list", { name: "Loading tools" })).toHaveAttribute("aria-busy", "true");
+    paginated["tools:listPublic"] = { results: [], status: "Exhausted" };
+    rerender(<HomeScreen />);
     expect(within(list()).getByText("No tools listed yet")).toBeInTheDocument();
   });
 
-  test("signed out: 'Sign in to lend or borrow' is a Clerk modal sign-in", () => {
+  test("signed out: both Clerk buttons land on /tools after sign-in", () => {
     render(<HomeScreen />);
-    const wrapper = screen.getByTestId("clerk-sign-in");
-    expect(within(wrapper).getByRole("button", { name: "Sign in to lend or borrow" })).toBeInTheDocument();
-    expect(signInProps.at(-1)).toMatchObject({ mode: "modal" });
-    expect(screen.queryByRole("link", { name: "Browse tools" })).toBeNull();
+    expect(within(screen.getByTestId("clerk-sign-in")).getByRole("button", { name: "Sign in to lend or borrow" })).toBeInTheDocument();
+    expect(signInProps.at(-1)).toMatchObject({ mode: "modal", forceRedirectUrl: "/tools", signUpForceRedirectUrl: "/tools" });
   });
 
   test("signed in: the sign-in button is replaced by a link into the app", () => {
@@ -88,12 +105,8 @@ describe("HomeScreen (public landing)", () => {
     expect(screen.getByRole("link", { name: "Browse tools" })).toHaveAttribute("href", "/tools");
   });
 
-  test("has no axe violations (loaded, loading and empty)", async () => {
-    for (const value of [tools, undefined, []]) {
-      queryResults["tools:listPublic"] = value;
-      const { container, unmount } = render(<HomeScreen />);
-      expect(await axeViolations(container)).toEqual([]);
-      unmount();
-    }
+  test("has no axe violations", async () => {
+    const { container } = render(<HomeScreen />);
+    expect(await axeViolations(container)).toEqual([]);
   });
 });

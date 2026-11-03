@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { getCurrentUser, notFound } from "./lib/auth";
+import { userSearchText } from "./lib/people";
 import { vRole } from "./schema";
 
 /** Called by the client after sign-in; creates or refreshes the user record. */
@@ -17,9 +18,10 @@ export const store = mutation({
         q.eq("tokenIdentifier", identity.tokenIdentifier),
       )
       .unique();
+    const searchText = userSearchText(name, identity.email);
     if (existing) {
-      if (existing.name !== name || existing.email !== identity.email) {
-        await ctx.db.patch(existing._id, { name, email: identity.email });
+      if (existing.name !== name || existing.email !== identity.email || existing.searchText !== searchText) {
+        await ctx.db.patch(existing._id, { name, email: identity.email, searchText });
       }
       return existing._id;
     }
@@ -31,6 +33,7 @@ export const store = mutation({
       email: identity.email,
       role: "user",
       trustedLender: false,
+      searchText,
     });
   },
 });

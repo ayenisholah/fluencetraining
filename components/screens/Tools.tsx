@@ -1,65 +1,128 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import { useState } from "react";
 import { BorrowForm } from "@/components/BorrowForm";
-import { ToolStatusBadge } from "@/components/ToolStatusBadge";
-import { Badge, Button, Card, EmptyState, PageHeader, Select, Spinner, ToolIcon } from "@/components/ui";
+import { CategoryChips } from "@/components/CategoryChips";
+import { ToolCard, ToolRow, ToolTile } from "@/components/ToolCard";
+import {
+  Button,
+  CardsIcon,
+  EmptyState,
+  ListIcon,
+  LoadMore,
+  PageHeader,
+  SearchField,
+  SegmentedControl,
+  TilesIcon,
+  Toggle,
+  ToolIcon,
+} from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { CATEGORIES, categoryLabel, conditionLabel, type Category } from "@/lib/format";
+import { CATEGORY_STYLES, type Category } from "@/lib/categories";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import { useUrlState } from "@/lib/useUrlState";
 
-const filterOptions = [{ value: "", label: "All categories" }, ...CATEGORIES.map(([value, label]) => ({ value, label }))];
+export const BOARD_PAGE_SIZE = 24;
+
+const asCategory = (value: string): Category | "" => (value in CATEGORY_STYLES ? (value as Category) : "");
+
+/** Board layouts. Cards is the default (and isn't written to the URL). */
+export type BoardView = "cards" | "tiles" | "list";
+const VIEWS = {
+  cards: { Item: ToolCard, label: "Cards", Icon: CardsIcon, grid: "grid gap-5 md:grid-cols-2 xl:grid-cols-3" },
+  tiles: { Item: ToolTile, label: "Tiles", Icon: TilesIcon, grid: "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5" },
+  list: { Item: ToolRow, label: "List", Icon: ListIcon, grid: "space-y-2" },
+} as const;
+const asView = (value: string): BoardView => (value in VIEWS ? (value as BoardView) : "cards");
 
 export function ToolsScreen() {
-  const [category, setCategory] = useState<Category | "">("");
+  // Filters live in the URL so refresh and back keep them.
+  const [url, setUrl] = useUrlState(["q", "category", "available", "view"] as const);
+  const view = asView(url.view);
+  const { Item, grid } = VIEWS[view];
+  const [search, setSearch] = useState(url.q);
+  const term = useDebouncedValue(search.trim());
+  const category = asCategory(url.category);
+  const availableOnly = url.available === "1";
+
+  const { results: tools, status, loadMore } = usePaginatedQuery(
+    api.tools.list,
+    { search: term || undefined, category: category || undefined, availableOnly: availableOnly || undefined },
+    { initialNumItems: BOARD_PAGE_SIZE },
+  );
+  const request = useMutation(api.loans.request);
   const [borrowing, setBorrowing] = useState<Id<"tools">>();
   const [sent, setSent] = useState<Id<"tools">>();
-  const tools = useQuery(api.tools.list, category ? { category } : {});
-  const request = useMutation(api.loans.request);
+  const filtered = Boolean(term || category || availableOnly);
+
+  const onSearch = (value: string) => {
+    setSearch(value);
+    setUrl({ q: value.trim() });
+  };
+  const clearFilters = () => {
+    setSearch("");
+    setUrl({ q: "", category: "", available: "" });
+  };
 
   return (
     <>
-      <PageHeader
-        title="All tools"
-        description="Everything your neighbours are lending right now."
-        actions={
-          <Select
-            label="Category"
-            hideLabel
-            className="w-56"
-            options={filterOptions}
-            value={category}
-            onValueChange={(v) => setCategory(v as Category | "")}
-          />
-        }
-      />
-      {tools === undefined ? (
-        <Spinner />
+      <PageHeader title="All tools" description="Everything your neighbours are lending right now." />
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchField label="Search tools" placeholder="Search by name or description" value={search} onChange={onSearch} className="sm:max-w-md sm:flex-1" />
+          <div className="flex items-center justify-between gap-4 sm:ml-auto">
+            <Toggle label="Available only" checked={availableOnly} onCheckedChange={(on) => setUrl({ available: on ? "1" : "" })} />
+            <SegmentedControl<BoardView>
+              aria-label="View"
+              size="sm"
+              value={view}
+              onChange={(next) => setUrl({ view: next === "cards" ? "" : next })}
+              options={(Object.keys(VIEWS) as BoardView[]).map((v) => {
+                const { Icon, label } = VIEWS[v];
+                return { value: v, ariaLabel: label, label: <Icon size={18} /> };
+              })}
+            />
+          </div>
+        </div>
+        <CategoryChips value={category} onChange={(c) => setUrl({ category: c })} />
+      </div>
+
+      {status === "LoadingFirstPage" ? (
+        <ul aria-busy="true" aria-label="Loading tools" className={grid}>
+          {[0, 1, 2].map((i) => (
+            <li key={i} className={`${view === "list" ? "h-[90px]" : view === "tiles" ? "h-[260px]" : "h-[380px]"} animate-pulse rounded-lg border border-line bg-surface`} />
+          ))}
+        </ul>
       ) : tools.length === 0 ? (
-        <EmptyState icon={<ToolIcon />} title={`Nothing here yet${category ? " in this category" : ""}`} />
+        <EmptyState
+          icon={<ToolIcon />}
+          title={filtered ? (term ? `No tools match "${term}"` : "No tools match these filters") : "Nothing here yet"}
+          description={filtered ? undefined : "List the first tool from My listings."}
+          action={filtered ? <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button> : undefined}
+        />
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {tools.map((tool) => (
-            <Card as="li" key={tool._id} className="flex flex-col">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-subtitle-semibold text-fg">{tool.name}</h2>
-                  <p className="mt-1 text-description text-fg-muted">
-                    {categoryLabel(tool.category)} · {conditionLabel(tool.condition)} · lent by{" "}
-                    {tool.isMine ? "you" : tool.lenderName}
+        <>
+          <ul className={grid} data-view={view}>
+            {tools.map((tool) => (
+              <Item
+                key={tool._id}
+                tool={tool}
+                action={
+                  tool.isMine || borrowing === tool._id || sent === tool._id ? null : (
+                    <Button size="sm" onClick={() => setBorrowing(tool._id)}>
+                      Request to borrow
+                    </Button>
+                  )
+                }
+              >
+                {sent === tool._id && (
+                  <p role="status" className="mt-4 text-body text-success">
+                    Request sent. The lender has been notified.
                   </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1">
-                  <ToolStatusBadge status={tool.status} />
-                  {tool.trustedLender && <Badge variant="ghost" tone="brand">Trusted lender</Badge>}
-                </div>
-              </div>
-              {tool.description && <p className="mt-3 text-body text-fg">{tool.description}</p>}
-              <div className="mt-auto">
-                {sent === tool._id ? (
-                  <p role="status" className="mt-4 text-body text-success">Request sent. The lender has been notified.</p>
-                ) : borrowing === tool._id ? (
+                )}
+                {borrowing === tool._id && (
                   <BorrowForm
                     onSubmit={(dates) => request({ toolId: tool._id, ...dates })}
                     onSent={() => {
@@ -68,17 +131,12 @@ export function ToolsScreen() {
                     }}
                     onCancel={() => setBorrowing(undefined)}
                   />
-                ) : (
-                  !tool.isMine && (
-                    <Button variant="ghost" size="sm" className="mt-4" onClick={() => setBorrowing(tool._id)}>
-                      Request to borrow
-                    </Button>
-                  )
                 )}
-              </div>
-            </Card>
-          ))}
-        </ul>
+              </Item>
+            ))}
+          </ul>
+          <LoadMore status={status} count={tools.length} noun="tools" onLoadMore={() => loadMore(BOARD_PAGE_SIZE)} />
+        </>
       )}
     </>
   );

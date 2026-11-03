@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import { isoDay, setup, signIn } from "./test.setup";
+import { isoDay, setup, signIn, ALL } from "./test.setup";
 
 const drill = {
   name: "Cordless drill",
@@ -65,7 +65,7 @@ describe("listing a tool", () => {
     const { ada, toolId } = await lenderAndBorrower();
     await expect(ada.as.mutation(api.tools.update, { toolId, ...drill, name: "" })).rejects.toThrow(/name/);
     await ada.as.mutation(api.tools.update, { toolId, ...drill, condition: "fair" });
-    expect((await ada.as.query(api.tools.mine, {}))[0].condition).toBe("fair");
+    expect(((await ada.as.query(api.tools.mine, { ...ALL })).page)[0].condition).toBe("fair");
   });
 });
 
@@ -76,29 +76,29 @@ describe("browsing tools", () => {
     const loanId = await bob.as.mutation(api.loans.request, { toolId, startDate: isoDay(1), endDate: isoDay(2) });
     await ada.as.mutation(api.loans.approve, { loanId });
 
-    const all = await bob.as.query(api.tools.list, {});
+    const all = (await bob.as.query(api.tools.list, { ...ALL })).page;
     expect(all.map((t) => [t.name, t.status, t.isMine])).toEqual([
       ["Leaf rake", "available", true],
       ["Cordless drill", "on_loan", false],
     ]);
-    const garden = await bob.as.query(api.tools.list, { category: "garden" });
+    const garden = (await bob.as.query(api.tools.list, { ...ALL, category: "garden" })).page;
     expect(garden.map((t) => t.name)).toEqual(["Leaf rake"]);
-    const power = await bob.as.query(api.tools.list, { category: "power_tools" });
+    const power = (await bob.as.query(api.tools.list, { ...ALL, category: "power_tools" })).page;
     expect(power.map((t) => t.name)).toEqual(["Cordless drill"]);
-    expect(await bob.as.query(api.tools.list, { category: "kitchen" })).toEqual([]);
+    expect((await bob.as.query(api.tools.list, { ...ALL, category: "kitchen" })).page).toEqual([]);
   });
 
   test("removed tools disappear from browse and from My listings", async () => {
     const { ada, bob, toolId } = await lenderAndBorrower();
     await ada.as.mutation(api.tools.create, rake);
     await ada.as.mutation(api.tools.remove, { toolId });
-    expect((await bob.as.query(api.tools.list, {})).map((t) => t.name)).toEqual(["Leaf rake"]);
-    expect((await ada.as.query(api.tools.mine, {})).map((t) => t.name)).toEqual(["Leaf rake"]);
+    expect(((await bob.as.query(api.tools.list, { ...ALL })).page).map((t) => t.name)).toEqual(["Leaf rake"]);
+    expect(((await ada.as.query(api.tools.mine, { ...ALL })).page).map((t) => t.name)).toEqual(["Leaf rake"]);
   });
 
   test("My listings only shows the caller's tools", async () => {
     const { bob } = await lenderAndBorrower();
-    expect(await bob.as.query(api.tools.mine, {})).toEqual([]);
+    expect((await bob.as.query(api.tools.mine, { ...ALL })).page).toEqual([]);
   });
 
   test("a tool on loan cannot be removed", async () => {
@@ -160,9 +160,9 @@ describe("approving, declining and returning", () => {
   test("declining closes the request and leaves the tool available", async () => {
     const { ada, bob, loanId } = await requested();
     await ada.as.mutation(api.loans.decline, { loanId });
-    const [mine] = await bob.as.query(api.loans.myRequests, {});
+    const [mine] = (await bob.as.query(api.loans.myRequests, { ...ALL })).page;
     expect(mine.status).toBe("declined");
-    expect((await bob.as.query(api.tools.list, {}))[0].status).toBe("available");
+    expect(((await bob.as.query(api.tools.list, { ...ALL })).page)[0].status).toBe("available");
     await expect(ada.as.mutation(api.loans.decline, { loanId })).rejects.toThrow(/not open/);
     await expect(ada.as.mutation(api.loans.approve, { loanId })).rejects.toThrow(/not open/);
   });
@@ -204,7 +204,7 @@ describe("approving, declining and returning", () => {
     await expect(ada.as.mutation(api.loans.markReturned, { loanId })).rejects.toThrow(/not active/);
     await ada.as.mutation(api.loans.approve, { loanId });
     await ada.as.mutation(api.loans.markReturned, { loanId });
-    expect((await bob.as.query(api.tools.list, {}))[0].status).toBe("available");
+    expect(((await bob.as.query(api.tools.list, { ...ALL })).page)[0].status).toBe("available");
     await expect(ada.as.mutation(api.loans.markReturned, { loanId })).rejects.toThrow(/not active/);
   });
 });
@@ -214,27 +214,28 @@ describe("My requests and Incoming requests", () => {
     const { ada, bob, eve, toolId } = await lenderAndBorrower();
     await bob.as.mutation(api.loans.request, { toolId, startDate: isoDay(1), endDate: isoDay(2) });
 
-    const incoming = await ada.as.query(api.loans.incoming, {});
+    const incoming = (await ada.as.query(api.loans.incoming, { ...ALL })).page;
     expect(incoming).toHaveLength(1);
     expect(incoming[0]).toMatchObject({ toolName: "Cordless drill", status: "requested", counterpartName: "Bob" });
     expect(JSON.stringify(incoming)).not.toContain("@");
 
-    const requests = await bob.as.query(api.loans.myRequests, {});
+    const requests = (await bob.as.query(api.loans.myRequests, { ...ALL })).page;
     expect(requests[0]).toMatchObject({ toolName: "Cordless drill", counterpartName: "Ada" });
     expect(requests[0]).not.toHaveProperty("lenderName");
 
-    expect(await ada.as.query(api.loans.myRequests, {})).toEqual([]);
-    expect(await bob.as.query(api.loans.incoming, {})).toEqual([]);
-    expect(await eve.as.query(api.loans.incoming, {})).toEqual([]);
-    expect(await eve.as.query(api.loans.myRequests, {})).toEqual([]);
+    expect((await ada.as.query(api.loans.myRequests, { ...ALL })).page).toEqual([]);
+    expect((await bob.as.query(api.loans.incoming, { ...ALL })).page).toEqual([]);
+    expect((await eve.as.query(api.loans.incoming, { ...ALL })).page).toEqual([]);
+    expect((await eve.as.query(api.loans.myRequests, { ...ALL })).page).toEqual([]);
   });
 
   test("signed-out callers can't read the personal views or act on loans", async () => {
     const { t, bob, toolId } = await lenderAndBorrower();
     const loanId = await bob.as.mutation(api.loans.request, { toolId, startDate: isoDay(1), endDate: isoDay(2) });
-    for (const q of [api.tools.mine, api.loans.myRequests, api.loans.incoming]) {
-      await expect(t.query(q, {})).rejects.toThrow(/Sign in/);
-    }
+    await expect(t.query(api.tools.mine, ALL)).rejects.toThrow(/Sign in/);
+    await expect(t.query(api.loans.myRequests, ALL)).rejects.toThrow(/Sign in/);
+    await expect(t.query(api.loans.incoming, ALL)).rejects.toThrow(/Sign in/);
+    await expect(t.query(api.loans.pendingIncomingCount, {})).rejects.toThrow(/Sign in/);
     for (const m of [api.loans.approve, api.loans.decline, api.loans.markReturned, api.loans.cancel]) {
       await expect(t.mutation(m, { loanId })).rejects.toThrow(/Sign in/);
     }

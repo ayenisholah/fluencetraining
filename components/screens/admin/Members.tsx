@@ -1,18 +1,42 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import { Avatar, Badge, Spinner, Toggle } from "@/components/ui";
+import { useMutation, usePaginatedQuery } from "convex/react";
+import { useState } from "react";
+import { Avatar, Badge, LoadMore, SearchField, SegmentedControl, Spinner, Toggle } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { RowError, Section, type RowActions } from "./shared";
+import { useSectionSearch } from "./useSectionSearch";
 
-/** Everyone who has signed in, with the Trusted Lender switch. */
+const PAGE = 25;
+type Filter = "" | "admins" | "trusted";
+
+/** Members, searchable by name or email, with the Trusted Lender switch. */
 export function Members({ actions }: { actions: RowActions }) {
-  const users = useQuery(api.admin.users);
+  const { search, setSearch, term } = useSectionSearch();
+  const [filter, setFilter] = useState<Filter>("");
+  const { results: users, status, loadMore } = usePaginatedQuery(api.admin.users, { search: term, filter: filter || undefined }, { initialNumItems: PAGE });
   const setTrusted = useMutation(api.admin.setTrustedLender);
   return (
     <Section title="Members" description="Trusted lenders get a badge on their listings.">
-      {users === undefined ? (
+      <div className="mb-3 flex flex-col gap-3">
+        <SearchField label="Search members by name or email" value={search} onChange={setSearch} />
+        <SegmentedControl<Filter>
+          aria-label="Show members"
+          size="sm"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { value: "", label: "Everyone" },
+            { value: "trusted", label: "Trusted" },
+            { value: "admins", label: "Admins" },
+          ]}
+          className="self-start"
+        />
+      </div>
+      {status === "LoadingFirstPage" ? (
         <Spinner />
+      ) : users.length === 0 ? (
+        <p className="text-body text-fg-muted">No members match.</p>
       ) : (
         <ul className="divide-y divide-line">
           {users.map((u) => (
@@ -38,6 +62,7 @@ export function Members({ actions }: { actions: RowActions }) {
           ))}
         </ul>
       )}
+      <LoadMore status={status} count={users.length} noun="members" onLoadMore={() => loadMore(PAGE)} />
     </Section>
   );
 }

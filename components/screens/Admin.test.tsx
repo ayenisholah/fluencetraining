@@ -29,14 +29,20 @@ function signInAs(role: "admin" | "user") {
 function seedAdminData() {
   queryResults["admin:stats"] = { openRequests: 2, activeLoans: 1, overdueLoans: 1, failedDeliveries: 0 };
   queryResults["admin:automationHealth"] = { deliveries: [], workflowErrors: [] };
-  queryResults["admin:listings"] = [
-    { _id: "t1", name: "Ladder", category: "hand_tools", status: "available", ownerName: "Olu Owner" },
-    { _id: "t2", name: "Tent", category: "camping", status: "on_loan", ownerName: "Ada" },
-  ];
-  queryResults["admin:users"] = [
-    { _id: "u1", name: "Olu Owner", email: "olu@example.com", role: "user", trustedLender: false },
-    { _id: "u2", name: "Root", email: "root@example.com", role: "admin", trustedLender: true },
-  ];
+  paginated["admin:listings"] = {
+    results: [
+      { _id: "t1", name: "Ladder", category: "hand_tools", status: "available", imageUrl: null, ownerName: "Olu Owner" },
+      { _id: "t2", name: "Tent", category: "camping", status: "on_loan", imageUrl: null, ownerName: "Ada" },
+    ],
+    status: "Exhausted",
+  };
+  paginated["admin:users"] = {
+    results: [
+      { _id: "u1", name: "Olu Owner", email: "olu@example.com", role: "user", trustedLender: false },
+      { _id: "u2", name: "Root", email: "root@example.com", role: "admin", trustedLender: true },
+    ],
+    status: "Exhausted",
+  };
   paginated["admin:allLoans"] = {
     results: [loan("l1", "Ladder", "requested"), loan("l2", "Tent", "approved", true)],
     status: "CanLoadMore",
@@ -88,7 +94,7 @@ describe("AdminScreen for an admin", () => {
     expect(within(loans).getAllByText(/Olu Owner → Bora Borrower/)).toHaveLength(2);
     expect(within(row(loans, "Ladder")).getByText("Requested")).toBeInTheDocument();
     expect(within(row(loans, "Tent")).getByText("Overdue")).toBeInTheDocument();
-    expect(queryArgs["admin:allLoans"].at(-1)).toEqual({});
+    expect(queryArgs["admin:allLoans"].at(-1)).toEqual({ search: undefined, phase: undefined });
     await userEvent.click(within(loans).getByRole("button", { name: "Load more loans" }));
     expect(loadMore).toHaveBeenCalledWith(LOANS_PAGE_SIZE);
   });
@@ -109,32 +115,29 @@ describe("AdminScreen for an admin", () => {
     expect(mutations["admin:setTrustedLender"]).toHaveBeenLastCalledWith({ userId: "u2", trusted: false });
   });
 
-  test("removing any listing asks first; Keep backs out", async () => {
+  test("removing any listing asks in a dialog; Keep backs out", async () => {
     render(<AdminScreen />);
     await userEvent.click(screen.getByRole("button", { name: "Remove Ladder" }));
-    const confirm = screen.getByRole("group", { name: "Remove Ladder?" });
-    expect(confirm).toHaveTextContent("Open requests will be declined.");
-    await userEvent.click(within(confirm).getByRole("button", { name: "Keep" }));
+    const dialog = screen.getByRole("alertdialog", { name: 'Remove "Ladder"?' });
+    expect(dialog).toHaveAccessibleDescription(/open requests for it are declined/);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Keep" }));
     expect(mutations["admin:removeListing"]).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByRole("button", { name: "Remove Ladder" }));
-    await userEvent.click(screen.getByRole("button", { name: "Confirm remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove listing" }));
     expect(mutations["admin:removeListing"]).toHaveBeenCalledWith({ toolId: "t1" });
   });
 
   test("an on-loan listing can be removed too, with a note that the loan stays open", async () => {
     render(<AdminScreen />);
-    const remove = screen.getByRole("button", { name: "Remove Tent" });
-    expect(remove).toBeEnabled();
-    await userEvent.click(remove);
-    expect(screen.getByRole("group", { name: "Remove Tent?" })).toHaveTextContent("the loan stays open");
-    await userEvent.click(screen.getByRole("button", { name: "Confirm remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove Tent" }));
+    expect(screen.getByRole("alertdialog", { name: 'Remove "Tent"?' })).toHaveAccessibleDescription(/loan stays open/);
+    await userEvent.click(screen.getByRole("button", { name: "Remove listing" }));
     expect(mutations["admin:removeListing"]).toHaveBeenCalledWith({ toolId: "t2" });
   });
 
-  test("a refused action is shown on its row instead of failing silently", async () => {
+  test("a refused action is shown where it happened instead of failing silently", async () => {
     render(<AdminScreen />);
-    // Create the stubs, then make them fail.
     await userEvent.click(screen.getByRole("switch", { name: "Olu Owner: Trusted" }));
     mutations["admin:setTrustedLender"].mockRejectedValueOnce(new ConvexError({ code: "FORBIDDEN", message: "Admins only." }));
     await userEvent.click(screen.getByRole("switch", { name: "Olu Owner: Trusted" }));
@@ -143,10 +146,20 @@ describe("AdminScreen for an admin", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Remove Ladder" }));
     mutations["admin:removeListing"].mockRejectedValueOnce(new ConvexError({ code: "NOT_FOUND", message: "Tool not found." }));
-    await userEvent.click(screen.getByRole("button", { name: "Confirm remove" }));
-    expect(await screen.findByText("Tool not found.")).toBeInTheDocument();
-    // Starting another action clears the old message.
-    expect(screen.queryByText("Admins only.")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Remove listing" }));
+    expect(await within(screen.getByRole("alertdialog")).findByText("Tool not found.")).toBeInTheDocument();
+  });
+
+  test("each section searches on the server", async () => {
+    render(<AdminScreen />);
+    await userEvent.type(screen.getByRole("searchbox", { name: "Search members by name or email" }), "olu");
+    await vi.waitFor(() => expect(queryArgs["admin:users"].at(-1)).toMatchObject({ search: "olu" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Trusted" }));
+    expect(queryArgs["admin:users"].at(-1)).toEqual({ search: "olu", filter: "trusted" });
+    await userEvent.type(screen.getByRole("searchbox", { name: "Search loans by tool name" }), "tent");
+    await vi.waitFor(() => expect(queryArgs["admin:allLoans"].at(-1)).toMatchObject({ search: "tent" }));
+    await userEvent.type(screen.getByRole("searchbox", { name: "Search listings" }), "lad");
+    await vi.waitFor(() => expect(queryArgs["admin:listings"].at(-1)).toMatchObject({ search: "lad" }));
   });
 
   test("has no axe violations", async () => {

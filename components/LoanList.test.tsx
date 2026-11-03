@@ -22,42 +22,58 @@ const loans: LoanView[] = [
 ];
 
 const card = (name: string) => screen.getByRole("heading", { name }).closest("li") as HTMLElement;
+const list = (as: "lender" | "borrower", over: Partial<Parameters<typeof LoanList>[0]> = {}) => (
+  <LoanList loans={loans} status="Exhausted" onLoadMore={() => {}} as={as} empty="none" {...over} />
+);
 
 beforeEach(resetConvexMock);
 
 describe("LoanList", () => {
-  test("lender actions call the right mutation with the loan id", async () => {
-    render(<LoanList loans={loans} as="lender" empty="none" />);
+  test("approve and mark returned act at once", async () => {
+    render(list("lender"));
     await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Approve" }));
     expect(mutations["loans:approve"]).toHaveBeenCalledWith({ loanId: "l1" });
-    await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Decline" }));
-    expect(mutations["loans:decline"]).toHaveBeenCalledWith({ loanId: "l1" });
     await userEvent.click(within(card("Drill")).getByRole("button", { name: "Mark returned" }));
     expect(mutations["loans:markReturned"]).toHaveBeenCalledWith({ loanId: "l2" });
   });
 
-  test("borrowers can only cancel open requests", async () => {
-    render(<LoanList loans={loans} as="borrower" empty="none" />);
-    expect(within(card("Drill")).queryByRole("button")).toBeNull();
-    await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Cancel request" }));
-    expect(mutations["loans:cancel"]).toHaveBeenCalledWith({ loanId: "l1" });
-    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+  test("decline asks first, naming the borrower", async () => {
+    render(list("lender"));
+    await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Decline" }));
+    const dialog = screen.getByRole("alertdialog", { name: "Decline Bob's request?" });
+    expect(mutations["loans:decline"]).not.toHaveBeenCalled();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Decline request" }));
+    expect(mutations["loans:decline"]).toHaveBeenCalledWith({ loanId: "l1" });
   });
 
-  test("a server error is shown on that card only", async () => {
-    render(<LoanList loans={loans} as="lender" empty="none" />);
-    mutations["loans:approve"].mockRejectedValueOnce(
-      new ConvexError({ code: "BAD_REQUEST", message: "The tool is already lent out. Mark it returned first." }),
-    );
+  test("borrowers can only cancel open requests, after confirming", async () => {
+    render(list("borrower"));
+    expect(within(card("Drill")).queryByRole("button")).toBeNull();
+    await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Cancel request" }));
+    const dialog = screen.getByRole("alertdialog", { name: "Cancel your request for the Ladder?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Keep request" }));
+    expect(mutations["loans:cancel"]).not.toHaveBeenCalled();
+    await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Cancel request" }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel request" }));
+    expect(mutations["loans:cancel"]).toHaveBeenCalledWith({ loanId: "l1" });
+  });
+
+  test("a server error on approve is shown on that card only", async () => {
+    render(list("lender"));
+    mutations["loans:approve"].mockRejectedValueOnce(new ConvexError({ code: "BAD_REQUEST", message: "The tool is already lent out. Mark it returned first." }));
     await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Approve" }));
     expect(await within(card("Ladder")).findByText(/already lent out/)).toBeInTheDocument();
     expect(within(card("Drill")).queryByText(/already lent out/)).toBeNull();
   });
 
-  test("loading and empty states", () => {
-    const { rerender } = render(<LoanList loans={undefined} as="lender" empty="Nothing yet" />);
+  test("loading, empty, and Load more", async () => {
+    const onLoadMore = vi.fn();
+    const { rerender } = render(list("lender", { loans: [], status: "LoadingFirstPage" }));
     expect(screen.getByRole("status")).toBeInTheDocument();
-    rerender(<LoanList loans={[]} as="lender" empty="Nothing yet" />);
+    rerender(list("lender", { loans: [], empty: "Nothing yet" }));
     expect(screen.getByText("Nothing yet")).toBeInTheDocument();
+    rerender(list("lender", { status: "CanLoadMore", onLoadMore }));
+    await userEvent.click(screen.getByRole("button", { name: "Load more requests" }));
+    expect(onLoadMore).toHaveBeenCalled();
   });
 });

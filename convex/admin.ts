@@ -4,52 +4,88 @@ import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { badRequest, notFound, requireAdmin } from "./lib/auth";
 import { todayUtc } from "./lib/dates";
-import { describeLoan } from "./lib/loanView";
+import { imageUrl } from "./lib/images";
+import { describeLoan, pageLoans } from "./lib/loanView";
+import { searchTerm, vSearch } from "./lib/search";
+import { vCategory, vLoanPhase } from "./schema";
 import { removeTool } from "./tools";
 
-/** Every loan across all users, newest first, a page at a time. */
+/** Every loan across all users, newest first, a page at a time; searchable by tool name. */
 export const allLoans = query({
-  args: { paginationOpts: paginationOptsValidator },
-  handler: async (ctx, { paginationOpts }) => {
+  args: { paginationOpts: paginationOptsValidator, search: vSearch, phase: v.optional(vLoanPhase) },
+  handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    const result = await ctx.db.query("loans").order("desc").paginate(paginationOpts);
+    const result = await pageLoans(ctx, args);
+    return { ...result, page: await Promise.all(result.page.map((l) => describeLoan(ctx, l, "admin"))) };
+  },
+});
+
+/** Members, searchable by name or email, filterable to admins or trusted lenders. */
+export const users = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    search: vSearch,
+    filter: v.optional(v.union(v.literal("admins"), v.literal("trusted"))),
+  },
+  handler: async (ctx, { paginationOpts, search, filter }) => {
+    await requireAdmin(ctx);
+    const term = searchTerm(search);
+    const users = ctx.db.query("users");
+    const result = term
+      ? await users
+          .withSearchIndex("search", (q) => {
+            const s = q.search("searchText", term);
+            return filter === "admins" ? s.eq("role", "admin") : filter === "trusted" ? s.eq("trustedLender", true) : s;
+          })
+          .paginate(paginationOpts)
+      : filter === "admins"
+        ? await users.withIndex("by_role", (q) => q.eq("role", "admin")).order("desc").paginate(paginationOpts)
+        : filter === "trusted"
+          ? await users.withIndex("by_trusted", (q) => q.eq("trustedLender", true)).order("desc").paginate(paginationOpts)
+          : await users.order("desc").paginate(paginationOpts);
     return {
       ...result,
-      page: await Promise.all(result.page.map((l) => describeLoan(ctx, l, "admin"))),
+      page: result.page.map((u) => ({
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        trustedLender: u.trustedLender,
+      })),
     };
   },
 });
 
-export const users = query({
-  args: {},
-  handler: async (ctx) => {
-    await requireAdmin(ctx);
-    const users = await ctx.db.query("users").take(500);
-    return users.map((u) => ({
-      _id: u._id,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      trustedLender: u.trustedLender,
-    }));
-  },
-});
-
+/** Every live listing with its owner, searchable, by category. */
 export const listings = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { paginationOpts: paginationOptsValidator, search: vSearch, category: v.optional(vCategory) },
+  handler: async (ctx, { paginationOpts, search, category }) => {
     await requireAdmin(ctx);
-    const tools = await ctx.db.query("tools").order("desc").take(300);
-    const live = tools.filter((t) => t.status !== "removed");
-    return await Promise.all(
-      live.map(async (t) => ({
-        _id: t._id,
-        name: t.name,
-        category: t.category,
-        status: t.status,
-        ownerName: (await ctx.db.get(t.ownerId))?.name ?? "Unknown",
-      })),
-    );
+    const term = searchTerm(search);
+    const tools = ctx.db.query("tools");
+    const result = term
+      ? await tools
+          .withSearchIndex("search", (q) => {
+            const s = q.search("searchText", term).eq("listed", true);
+            return category ? s.eq("category", category) : s;
+          })
+          .paginate(paginationOpts)
+      : category
+        ? await tools.withIndex("by_listed_category", (q) => q.eq("listed", true).eq("category", category)).order("desc").paginate(paginationOpts)
+        : await tools.withIndex("by_listed", (q) => q.eq("listed", true)).order("desc").paginate(paginationOpts);
+    return {
+      ...result,
+      page: await Promise.all(
+        result.page.map(async (t) => ({
+          _id: t._id,
+          name: t.name,
+          category: t.category,
+          status: t.status,
+          imageUrl: await imageUrl(ctx, t.imageId),
+          ownerName: (await ctx.db.get(t.ownerId))?.name ?? "Unknown",
+        })),
+      ),
+    };
   },
 });
 

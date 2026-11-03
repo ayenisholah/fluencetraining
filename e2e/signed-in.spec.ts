@@ -24,9 +24,9 @@ function requestFromTools(page: Page) {
   return requestToBorrow(page, toolName);
 }
 
+/** The board's category chips are a radiogroup. */
 async function pickCategory(page: Page, label: string) {
-  await page.getByRole("combobox", { name: /Category/ }).click();
-  await page.getByRole("option", { name: label }).click();
+  await page.getByRole("radiogroup", { name: "Category" }).getByRole("radio", { name: label }).click();
 }
 
 const toolName = `E2E ladder ${Date.now().toString(36)}`;
@@ -73,14 +73,104 @@ test("listing form validates before submitting", async () => {
   await expect(name).toBeFocused();
 });
 
-test("lender lists a tool", async () => {
+// A real 1×1 PNG, so the browser can decode the preview and the board image.
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+test("lender lists a tool with a photo", async () => {
   const form = lender.getByRole("region", { name: "List a tool" });
   await form.getByLabel("Name").fill(toolName);
   await form.getByRole("combobox", { name: /Category/ }).click();
   await lender.getByRole("option", { name: "Hand tools" }).click();
   await form.getByLabel("Short description").fill("Three metres, folds flat.");
+  await form.getByLabel("Choose a photo").setInputFiles({ name: "ladder.png", mimeType: "image/png", buffer: PNG });
+  await expect(form.getByRole("img", { name: "Selected photo" })).toBeVisible();
   await form.getByRole("button", { name: "List it" }).click();
   await expect(lender.getByRole("heading", { name: toolName })).toBeVisible();
+  // The form resets for the next listing.
+  await expect(form.getByLabel("Name")).toHaveValue("");
+  await expect(form.getByRole("img", { name: "Selected photo" })).toHaveCount(0);
+});
+
+test("the photo shows on the board, served from Convex", async () => {
+  await borrower.goto("/tools");
+  const img = toolCard(borrower).getByRole("img", { name: toolName });
+  await expect(img).toBeVisible();
+  await expect(img).toHaveAttribute("src", /\/api\/storage\//);
+  await expect.poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBe(1);
+});
+
+test("the board switches between cards, tiles and list", async () => {
+  await borrower.goto("/tools");
+  const views = borrower.getByRole("radiogroup", { name: "View" });
+  const grid = borrower.locator("ul[data-view]");
+  for (const [label, view] of [["Tiles", "tiles"], ["List", "list"], ["Cards", "cards"]] as const) {
+    await views.getByRole("radio", { name: label }).click();
+    await expect(grid).toHaveAttribute("data-view", view);
+    await expect(toolCard(borrower).getByRole("img", { name: toolName })).toBeVisible();
+    await expect(toolCard(borrower).getByText("Hand tools", { exact: true })).toBeVisible();
+  }
+  // List rows are one line: much shorter than cards.
+  await views.getByRole("radio", { name: "List" }).click();
+  await expect(grid).toHaveAttribute("data-view", "list");
+  const rowHeight = (await toolCard(borrower).boundingBox())!.height;
+  await views.getByRole("radio", { name: "Cards" }).click();
+  await expect(grid).toHaveAttribute("data-view", "cards");
+  const cardHeight = (await toolCard(borrower).boundingBox())!.height;
+  expect(rowHeight).toBeLessThan(cardHeight / 2);
+  // The chosen view survives a reload.
+  await views.getByRole("radio", { name: "Tiles" }).click();
+  await expect(borrower).toHaveURL(/[?&]view=tiles/);
+  await borrower.reload();
+  await expect(grid).toHaveAttribute("data-view", "tiles");
+  await views.getByRole("radio", { name: "Cards" }).click();
+});
+
+test("screenshots for review: board views, landing and listings, light and dark", async () => {
+  for (const scheme of ["light", "dark"] as const) {
+    await borrower.emulateMedia({ colorScheme: scheme });
+    for (const view of ["cards", "tiles", "list"]) {
+      await borrower.goto(view === "cards" ? "/tools" : `/tools?view=${view}`);
+      await expect(borrower.locator("ul[data-view]")).toBeVisible();
+      await borrower.screenshot({ path: `test-results/screens/board-${view}-${scheme}.png` });
+    }
+    await borrower.goto("/listings");
+    await expect(borrower.getByRole("heading", { level: 1, name: "My listings" })).toBeVisible();
+    await borrower.screenshot({ path: `test-results/screens/listings-${scheme}.png` });
+    await visitor.emulateMedia({ colorScheme: scheme });
+    await visitor.goto("/");
+    await expect(visitor.getByRole("region", { name: "How it works" })).toBeVisible();
+    await visitor.screenshot({ path: `test-results/screens/landing-${scheme}.png`, fullPage: true });
+  }
+  await borrower.emulateMedia({ colorScheme: null });
+  await visitor.emulateMedia({ colorScheme: null });
+});
+
+test("board search finds the tool on the server and survives a reload", async () => {
+  await borrower.goto("/tools");
+  const search = borrower.getByRole("searchbox", { name: "Search tools" });
+  const runId = toolName.split(" ").at(-1)!;
+  await search.fill(runId);
+  await expect(borrower).toHaveURL(new RegExp(`[?&]q=${runId}`));
+  await expect(toolCard(borrower)).toHaveCount(1);
+  await expect(borrower.getByRole("heading", { level: 2 })).toHaveCount(1); // nothing else matches
+  await borrower.reload();
+  await expect(search).toHaveValue(runId);
+  await expect(toolCard(borrower)).toHaveCount(1);
+  await search.fill("qqzzxxnomatch");
+  await expect(borrower.getByText('No tools match "qqzzxxnomatch"')).toBeVisible();
+  await borrower.getByRole("button", { name: "Clear filters" }).click();
+  await expect(borrower).toHaveURL(/\/tools$/);
+});
+
+test("landing page: search finds the new tool for a signed-out visitor", async () => {
+  await visitor.goto("/");
+  await visitor.getByRole("searchbox", { name: "Search available tools" }).fill(toolName.split(" ").at(-1)!);
+  const section = visitor.getByRole("region", { name: "Available now" });
+  await expect(section.getByRole("listitem")).toHaveCount(1);
+  await expect(section.getByRole("listitem")).toHaveText(`${toolName}Hand tools`);
 });
 
 test("landing page: a signed-out visitor sees the new tool with name and category only", async () => {
@@ -98,7 +188,8 @@ test("lender sees their tool as available but can't request it", async () => {
   await lender.goto("/tools");
   const card = toolCard(lender);
   await expect(card.getByText("Available", { exact: true })).toBeVisible();
-  await expect(card.getByText(/Hand tools · .* · lent by you/)).toBeVisible();
+  await expect(card.getByText("Hand tools", { exact: true })).toBeVisible();
+  await expect(card.getByText("Your listing")).toBeVisible();
   await expect(card.getByRole("button", { name: "Request to borrow" })).toHaveCount(0);
 });
 
@@ -109,7 +200,7 @@ test("category filter narrows the board", async () => {
   await expect(toolCard(borrower)).toHaveCount(0);
   await pickCategory(borrower, "Hand tools");
   await expect(toolCard(borrower)).toHaveCount(1);
-  await pickCategory(borrower, "All categories");
+  await pickCategory(borrower, "All");
   await expect(toolCard(borrower)).toHaveCount(1);
 });
 
@@ -173,6 +264,7 @@ test("borrower cancels a new request", async () => {
   await borrower.goto("/requests");
   const open = toolCard(borrower, "Requested");
   await open.getByRole("button", { name: "Cancel request" }).click();
+  await borrower.getByRole("alertdialog").getByRole("button", { name: "Cancel request" }).click();
   await expect(toolCard(borrower, "Cancelled")).toHaveCount(1);
   await expect(toolCard(borrower, "Requested")).toHaveCount(0);
 });
@@ -184,6 +276,8 @@ test("lender declines a request; the borrower sees it declined", async () => {
   const open = toolCard(lender, "Requested");
   await expect(open).toHaveCount(1);
   await open.getByRole("button", { name: "Decline" }).click();
+  const dialog = lender.getByRole("alertdialog", { name: `Decline ${BORROWER.firstName}'s request?` });
+  await dialog.getByRole("button", { name: "Decline request" }).click();
   await expect(toolCard(lender, "Declined")).toHaveCount(1);
   await expect(toolCard(lender, "Requested")).toHaveCount(0);
 
@@ -204,17 +298,25 @@ test("lender edits the listing", async () => {
   await lender.getByRole("option", { name: "Fair" }).click();
   await form.getByLabel("Short description").fill("Edited in e2e.");
   await form.getByRole("button", { name: "Save" }).click();
-  await expect(card.getByText("Hand tools · Fair")).toBeVisible();
+  await expect(card.getByText("Fair", { exact: true })).toBeVisible();
   await expect(card.getByText("Edited in e2e.")).toBeVisible();
 });
 
-test("lender deletes the listing after confirming", async () => {
+test("lender deletes the listing after confirming in a dialog", async () => {
   const card = toolCard(lender);
-  await card.getByRole("button", { name: "Delete" }).click();
-  await card.getByRole("button", { name: "Keep" }).click();
+  const trigger = card.getByRole("button", { name: "Delete" });
+  await trigger.click();
+  const dialog = lender.getByRole("alertdialog", { name: `Delete "${toolName}"?` });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Keep" })).toBeFocused();
+  // Escape cancels and puts focus back where it was.
+  await lender.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
   await expect(toolCard(lender)).toHaveCount(1);
-  await card.getByRole("button", { name: "Delete" }).click();
-  await card.getByRole("button", { name: "Confirm delete" }).click();
+  await trigger.click();
+  await dialog.getByRole("button", { name: "Delete listing" }).click();
+  await expect(dialog).toBeHidden();
   await expect(toolCard(lender)).toHaveCount(0);
   await borrower.goto("/tools");
   await expect(toolCard(borrower)).toHaveCount(0);

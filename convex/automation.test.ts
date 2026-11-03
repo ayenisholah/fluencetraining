@@ -4,7 +4,7 @@ import { reminderKey } from "./automation";
 import { todayUtc } from "./lib/dates";
 import { sign } from "./lib/hmac";
 import { backoffMs, MAX_ATTEMPTS } from "./webhooks";
-import { isoDay, setup, signIn, type T } from "./test.setup";
+import { isoDay, setup, signIn, type T, ALL } from "./test.setup";
 
 const SECRET = "test-n8n-to-lendloop";
 
@@ -110,7 +110,7 @@ describe("n8n HTTP endpoints", () => {
     expect((await rerun.json()).loans).toEqual([]);
 
     // The borrower sees the activity on the loan.
-    const [mine] = await bob.as.query(api.loans.myRequests, {});
+    const [mine] = (await bob.as.query(api.loans.myRequests, { ...ALL })).page;
     expect(mine.overdue).toBe(true);
     expect(mine.activity[0]).toMatchObject({ kind: "overdue_reminder", status: "sent" });
   });
@@ -439,8 +439,8 @@ describe("activity on each loan (bonus)", () => {
     }
     // Another loan's event never shows here.
     await t.run((ctx) => ctx.db.insert("automationEvents", { idempotencyKey: "other", kind: "workflow_error", status: "failed", at: 9_999 }));
-    const [lenderView] = await ada.as.query(api.loans.incoming, {});
-    const [borrowerView] = await bob.as.query(api.loans.myRequests, {});
+    const [lenderView] = (await ada.as.query(api.loans.incoming, { ...ALL })).page;
+    const [borrowerView] = (await bob.as.query(api.loans.myRequests, { ...ALL })).page;
     for (const view of [lenderView, borrowerView]) {
       expect(view.activity).toHaveLength(5);
       expect(view.activity[0]).toEqual({ kind: "overdue_reminder", status: "failed", at: 1_006 });

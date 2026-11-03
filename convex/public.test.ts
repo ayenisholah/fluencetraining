@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
-import { isoDay, setup, signIn } from "./test.setup";
+import { toolSearchFields } from "./lib/toolRecord";
+import { isoDay, setup, signIn, ALL } from "./test.setup";
 
 const tool = (name: string, category: "power_tools" | "garden" | "camping" = "power_tools") => ({
   name,
@@ -12,7 +13,7 @@ const tool = (name: string, category: "power_tools" | "garden" | "camping" = "po
 describe("tools.listPublic (landing page)", () => {
   test("works with no identity at all", async () => {
     const t = setup();
-    await expect(t.query(api.tools.listPublic, {})).resolves.toEqual([]);
+    expect((await t.query(api.tools.listPublic, { ...ALL })).page).toEqual([]);
   });
 
   test("returns exactly id, name and category: no owner, condition or description", async () => {
@@ -20,7 +21,7 @@ describe("tools.listPublic (landing page)", () => {
     const ada = await signIn(t, "Ada Lovelace", { email: "ada@example.com" });
     await ada.as.mutation(api.tools.create, tool("Drill"));
     await ada.as.mutation(api.tools.create, tool("Rake", "garden"));
-    const rows = await t.query(api.tools.listPublic, {});
+    const rows = (await t.query(api.tools.listPublic, { ...ALL })).page;
     for (const row of rows) expect(Object.keys(row).sort()).toEqual(["_id", "category", "name"]);
     const json = JSON.stringify(rows);
     for (const secret of ["Ada", "ada@example.com", ada.id, "good", "Private detail", "ownerId"]) {
@@ -35,7 +36,7 @@ describe("tools.listPublic (landing page)", () => {
     await ada.as.mutation(api.tools.create, tool("First"));
     await bob.as.mutation(api.tools.create, tool("Second", "camping"));
     await ada.as.mutation(api.tools.create, tool("Third", "garden"));
-    const rows = await t.query(api.tools.listPublic, {});
+    const rows = (await t.query(api.tools.listPublic, { ...ALL })).page;
     expect(rows.map((r) => [r.name, r.category])).toEqual([
       ["Third", "garden"],
       ["Second", "camping"],
@@ -50,11 +51,11 @@ describe("tools.listPublic (landing page)", () => {
     const toolId = await ada.as.mutation(api.tools.create, tool("Drill"));
     const loanId = await bob.as.mutation(api.loans.request, { toolId, startDate: isoDay(1), endDate: isoDay(2) });
     // A pending request doesn't hide it.
-    expect(await t.query(api.tools.listPublic, {})).toHaveLength(1);
+    expect((await t.query(api.tools.listPublic, { ...ALL })).page).toHaveLength(1);
     await ada.as.mutation(api.loans.approve, { loanId });
-    expect(await t.query(api.tools.listPublic, {})).toEqual([]);
+    expect((await t.query(api.tools.listPublic, { ...ALL })).page).toEqual([]);
     await ada.as.mutation(api.loans.markReturned, { loanId });
-    expect((await t.query(api.tools.listPublic, {})).map((r) => r.name)).toEqual(["Drill"]);
+    expect(((await t.query(api.tools.listPublic, { ...ALL })).page).map((r) => r.name)).toEqual(["Drill"]);
   });
 
   test("removed tools are gone; edits show up", async () => {
@@ -64,19 +65,48 @@ describe("tools.listPublic (landing page)", () => {
     const rake = await ada.as.mutation(api.tools.create, tool("Rake", "garden"));
     await ada.as.mutation(api.tools.remove, { toolId: drill });
     await ada.as.mutation(api.tools.update, { toolId: rake, ...tool("Leaf rake", "garden") });
-    expect(await t.query(api.tools.listPublic, {})).toEqual([{ _id: rake, name: "Leaf rake", category: "garden" }]);
+    expect((await t.query(api.tools.listPublic, { ...ALL })).page).toEqual([{ _id: rake, name: "Leaf rake", category: "garden" }]);
   });
 
-  test("is capped at 100 rows", async () => {
+  test("pages through every available tool without repeats", async () => {
     const t = setup();
     const ada = await signIn(t, "Ada");
+    // Inserted directly: 30 listings would trip the per-hour listing limit.
     await t.run(async (ctx) => {
-      for (let i = 0; i < 105; i++) {
-        await ctx.db.insert("tools", { ownerId: ada.id, ...tool(`Tool ${i}`), status: "available" });
+      for (let i = 0; i < 30; i++) {
+        const fields = { ...tool(`Tool ${i}`), status: "available" as const };
+        await ctx.db.insert("tools", { ownerId: ada.id, ...fields, ...toolSearchFields(fields) });
       }
     });
-    const rows = await t.query(api.tools.listPublic, {});
-    expect(rows).toHaveLength(100);
-    expect(rows[0].name).toBe("Tool 104");
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    for (;;) {
+      const result: { page: { name: string }[]; isDone: boolean; continueCursor: string } = await t.query(api.tools.listPublic, {
+        paginationOpts: { numItems: 7, cursor },
+      });
+      seen.push(...result.page.map((r) => r.name));
+      if (result.isDone) break;
+      cursor = result.continueCursor;
+    }
+    expect(seen).toHaveLength(30);
+    expect(new Set(seen).size).toBe(30);
+    expect(seen[0]).toBe("Tool 29");
+  });
+
+  test("search and category narrow the public list, still name and category only", async () => {
+    const t = setup();
+    const ada = await signIn(t, "Ada");
+    await ada.as.mutation(api.tools.create, { ...tool("Cordless drill"), description: "18V hammer drill" });
+    await ada.as.mutation(api.tools.create, tool("Leaf rake", "garden"));
+    await ada.as.mutation(api.tools.create, { ...tool("Garden shears", "garden"), description: "sharp" });
+    const names = async (args: Record<string, unknown>) =>
+      (await t.query(api.tools.listPublic, { ...ALL, ...args })).page.map((r) => r.name).sort();
+    expect(await names({ search: "drill" })).toEqual(["Cordless drill"]);
+    expect(await names({ search: "hammer" })).toEqual(["Cordless drill"]); // matches the description too
+    expect(await names({ category: "garden" })).toEqual(["Garden shears", "Leaf rake"]);
+    expect(await names({ search: "garden", category: "garden" })).toEqual(["Garden shears"]);
+    expect(await names({ search: "   " })).toHaveLength(3); // blank search = no search
+    const [row] = (await t.query(api.tools.listPublic, { ...ALL, search: "drill" })).page;
+    expect(Object.keys(row).sort()).toEqual(["_id", "category", "name"]);
   });
 });

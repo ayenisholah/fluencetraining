@@ -4,7 +4,9 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
 import { todayUtc } from "./lib/dates";
+import { userSearchText } from "./lib/people";
 import { toolFieldErrors } from "./lib/rules";
+import { toolSearchFields } from "./lib/toolRecord";
 import { vLoanStatus } from "./schema";
 
 const DAY = 86_400_000;
@@ -78,6 +80,7 @@ export const purgeTestData = internalMutation({
           counts.loans++;
         }
       }
+      if (tool.imageId && (await ctx.db.system.get(tool.imageId))) await ctx.storage.delete(tool.imageId);
       await ctx.db.delete(tool._id);
       counts.tools++;
     }
@@ -157,6 +160,7 @@ export const seedNeighbourhood = internalMutation({
         email: `${n.slug}@lendloop.local`,
         role: "user",
         trustedLender: false,
+        searchText: userSearchText(n.name, `${n.slug}@lendloop.local`),
       });
       users++;
     }
@@ -167,14 +171,14 @@ export const seedNeighbourhood = internalMutation({
       if (mine.some((t) => t.name === tool.name)) continue;
       const errors = toolFieldErrors(tool);
       if (errors.name || errors.description) throw new Error(`Bad seed tool ${tool.name}: ${JSON.stringify(errors)}`);
-      await ctx.db.insert("tools", {
-        ownerId,
+      const fields = {
         name: tool.name,
         category: tool.category,
         condition: tool.condition,
         description: tool.description,
-        status: "available",
-      });
+        status: "available" as const,
+      };
+      await ctx.db.insert("tools", { ownerId, ...fields, ...toolSearchFields(fields) });
       tools++;
     }
     return { users, tools };

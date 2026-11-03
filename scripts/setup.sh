@@ -41,6 +41,8 @@ if ! npx convex env get CLERK_JWT_ISSUER_DOMAIN >/dev/null 2>&1; then
   npx convex env set CLERK_JWT_ISSUER_DOMAIN https://set-me.clerk.accounts.dev >/dev/null
 fi
 npx convex dev --once
+# Derived search/phase fields for rows created before they existed (idempotent).
+npx convex run migrations:backfillSearch >/dev/null
 
 bash scripts/n8n-import.sh
 

@@ -33,6 +33,22 @@ test.describe("signed-out visitor", () => {
     await expect(section.getByRole("link")).toHaveCount(0);
   });
 
+  test("How it works sits between the hero and the tool list, as three ordered steps", async ({ page }) => {
+    await page.goto("/");
+    const how = page.getByRole("region", { name: "How it works" });
+    const available = page.getByRole("region", { name: "Available now" });
+    const [howBox, availableBox] = await Promise.all([how.boundingBox(), available.boundingBox()]);
+    expect(howBox!.y).toBeLessThan(availableBox!.y);
+    await expect(how.locator("ol > li")).toHaveCount(3);
+  });
+
+  test("the header Sign in is a brand button", async ({ page }) => {
+    await page.goto("/");
+    const signIn = page.getByRole("banner").getByRole("button", { name: "Sign in", exact: true });
+    const background = await signIn.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(background).not.toMatch(/rgba?\(0, 0, 0, 0\)|transparent/);
+  });
+
   test("the header Sign in also opens Clerk, and there is no app link while signed out", async ({ page }) => {
     await page.goto("/");
     await acceptEssentialOnly(page);

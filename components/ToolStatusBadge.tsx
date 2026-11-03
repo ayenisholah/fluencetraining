@@ -8,7 +8,7 @@ const BADGES = {
 } as const satisfies Record<Doc<"tools">["status"], { tone: string; label: string }>;
 
 /** A listed tool's availability, as shown on the board, My listings and Admin. */
-export function ToolStatusBadge({ status }: { status: Doc<"tools">["status"] }) {
+export function ToolStatusBadge({ status, className }: { status: Doc<"tools">["status"]; className?: string }) {
   const { tone, label } = BADGES[status];
-  return <Badge tone={tone}>{label}</Badge>;
+  return <Badge tone={tone} className={className}>{label}</Badge>;
 }

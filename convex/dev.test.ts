@@ -3,7 +3,7 @@ import { api, internal } from "./_generated/api";
 import { SEED_TOOLS } from "./dev";
 import { toolFieldErrors } from "./lib/rules";
 import { categories } from "./schema";
-import { isoDay, setup, signIn, type T } from "./test.setup";
+import { isoDay, setup, signIn, type T, ALL } from "./test.setup";
 
 const tool = (name: string) => ({ name, category: "garden" as const, condition: "good" as const, description: "" });
 
@@ -79,7 +79,7 @@ describe("dev:seedNeighbourhood", () => {
     expect(users.map((u) => u.role)).toEqual(["user", "user", "user", "user"]);
     expect(users.every((u) => u.email?.endsWith("@lendloop.local"))).toBe(true);
 
-    const listed = await t.query(api.tools.listPublic, {});
+    const listed = (await t.query(api.tools.listPublic, { ...ALL })).page;
     expect(listed).toHaveLength(SEED_TOOLS.length);
     expect(listed.some((r) => r.name.startsWith("E2E"))).toBe(false);
   });

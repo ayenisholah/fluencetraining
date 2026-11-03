@@ -17,13 +17,20 @@ describe("ToolForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  test("errors appear on blur, not while typing for the first time", async () => {
+  test("typing into or leaving a field never shows an error; submitting does, then fixing clears it", async () => {
     render(<ToolForm submitLabel="List it" onSubmit={vi.fn()} />);
     const name = screen.getByLabelText("Name");
     await userEvent.type(name, "a");
-    expect(name).not.toHaveAttribute("aria-invalid");
     await userEvent.tab();
+    await userEvent.click(name);
+    await userEvent.clear(name);
+    await userEvent.tab();
+    expect(name).not.toHaveAttribute("aria-invalid");
+    expect(screen.queryByText(/Give the tool a name/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "List it" }));
     expect(name).toHaveAttribute("aria-invalid", "true");
+    await userEvent.type(name, "Drill");
+    expect(name).not.toHaveAttribute("aria-invalid");
   });
 
   test("valid input submits trimmed values and resets the new-listing form", async () => {
@@ -55,6 +62,9 @@ describe("ToolForm", () => {
     await userEvent.click(description);
     await userEvent.paste("x".repeat(501));
     await userEvent.tab();
+    expect(description).not.toHaveAttribute("aria-invalid"); // the counter warns; the error waits for submit
+    await userEvent.type(screen.getByLabelText("Name"), "Drill");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(description).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByText("501/500")).toBeInTheDocument();
   });

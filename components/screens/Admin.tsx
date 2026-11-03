@@ -34,7 +34,7 @@ function AdminDashboard() {
         <AutomationHealth actions={actions} />
         <AllLoans />
         <div className="grid gap-6 xl:grid-cols-2">
-          <ListingsModeration actions={actions} />
+          <ListingsModeration />
           <Members actions={actions} />
         </div>
       </div>

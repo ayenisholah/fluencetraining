@@ -7,3 +7,8 @@ export function firstName(name: string | undefined | null, fallback = "Neighbour
   const first = name?.trim().split(/\s+/)[0];
   return first || fallback;
 }
+
+/** What admin search matches for a member: name and email. */
+export function userSearchText(name: string, email: string | undefined): string {
+  return `${name} ${email ?? ""}`.trim();
+}
