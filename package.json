@@ -13,7 +13,8 @@
     "convex": "convex dev",
     "setup": "bash scripts/setup.sh",
     "n8n:import": "bash scripts/n8n-import.sh",
-    "n8n:export": "bash scripts/n8n-export.sh"
+    "n8n:export": "bash scripts/n8n-export.sh",
+    "check:bundle": "bash scripts/check-client-bundle.sh"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.23",

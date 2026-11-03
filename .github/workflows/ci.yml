@@ -17,6 +17,15 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          # Placeholder publishable key (decodes to a non-existent instance);
+          # the real keys never enter CI.
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIuY2xlcmsuYWNjb3VudHMuZGV2JA
+          NEXT_PUBLIC_CONVEX_URL: https://ci-placeholder.convex.cloud
+      - name: No secrets in the client bundle
+        run: npm run check:bundle
       - name: Workflow exports contain no credential data
         run: |
           ! grep -rniE '"(password|apiKey|secret|token)"\s*:\s*"[^"]+"' n8n/workflows
