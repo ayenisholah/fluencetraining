@@ -1,9 +1,11 @@
 name: Deploy
-# Production deploys from main, after CI passes, with a manual approval
-# (environment "production"). The organisation's SCP forbids GitHub OIDC, so
-# AWS access uses the scoped `lendloop-github-deployer` IAM user, whose only
-# power is to assume the CDK roles and run the deploy steps
-# (infra/lib/deployer-stack.ts). Rotate its key with scripts/aws/create-deploy-key.sh.
+# Every push to main (a merged PR included) deploys to production once CI has
+# passed on that commit: no manual step. Pull requests run CI only; they never
+# deploy. The production environment accepts deployments from main alone.
+# The organisation's SCP forbids GitHub OIDC, so AWS access uses the scoped
+# `lendloop-github-deployer` IAM user, whose only power is to assume the CDK
+# roles and run the deploy steps (infra/lib/deployer-stack.ts). Rotate its key
+# with scripts/aws/create-deploy-key.sh.
 on:
   workflow_run:
     workflows: [CI]
@@ -20,7 +22,11 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # Only CI runs started by a push to main: a fork's PR from a branch that
+    # happens to be called main also reports head_branch main.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     # The URL shows on the repository page (Deployments → production).
     environment:

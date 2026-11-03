@@ -23,7 +23,9 @@ BASE_DOMAIN=$(param /lendloop/prod/base-domain 2>/dev/null || echo "$BASE_DOMAIN
 #    CDK assets in the bootstrap bucket; the S3 URLs are published as SSM params.
 aws s3 cp --region "$AWS_REGION" "$(param "$BUNDLE_PARAM")" /tmp/ec2.zip --only-show-errors
 aws s3 cp --region "$AWS_REGION" "$(param "$N8N_BUNDLE_PARAM")" /tmp/n8n.zip --only-show-errors
-rm -rf "$APP_DIR/n8n" && mkdir -p "$APP_DIR/n8n"
+# Empty the directory rather than replacing it: the running n8n container
+# bind-mounts it, and a new directory would be invisible to it.
+mkdir -p "$APP_DIR/n8n" && find "$APP_DIR/n8n" -mindepth 1 -delete
 unzip -oq /tmp/ec2.zip -d "$APP_DIR"
 unzip -oq /tmp/n8n.zip -d "$APP_DIR/n8n"
 chmod +x "$APP_DIR"/*.sh
@@ -66,6 +68,11 @@ n8n() { docker compose -f docker-compose.prod.yml exec -T n8n n8n "$@" 2>&1 | gr
 n8n import:credentials --input=/lendloop/credentials/mailpit-smtp.json
 n8n import:workflow --separate --input=/lendloop/workflows
 for id in LendLoopErrorWf1 LendLoopNotifyWf LendLoopRemindWf; do n8n publish:workflow --id="$id"; done
+# The CLI prints errors but exits 0, so check the result instead.
+workflows=$(n8n list:workflow)
+for id in LendLoopErrorWf1 LendLoopNotifyWf LendLoopRemindWf; do
+  grep -q "^$id|" <<<"$workflows" || { echo "n8n workflow $id was not imported" >&2; exit 1; }
+done
 docker compose -f docker-compose.prod.yml restart n8n >/dev/null
 
 # 6. Metrics every 5 minutes (systemd timer, survives reboots).

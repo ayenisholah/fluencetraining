@@ -2,6 +2,10 @@
 
 LendLoop supports explicit `mailpit` and `ses` imports. Python 3 (standard library), Docker Compose, and the running local stack are required. Set `DOCKER_CONTEXT=default` if your containers run in the system Docker engine rather than Docker Desktop.
 
+## Deployment boundary
+
+The provider commands below target the **local repo-root Docker Compose stack**. SES credentials are stored in that n8n instance's volume; they are not automatically available to EC2. The production `deploy/ec2/bootstrap.sh` still imports Mailpit credentials and local workflow templates on every refresh. Production Compose also defaults the ops mailbox to `ops@lendloop.local` unless configured otherwise. See the [AWS deployment guide](aws-deployment.md#architecture) for this gap before refreshing an EC2 instance with manual SES settings. This guide does not claim the production bootstrap preserves SES.
+
 ## Configure SES
 
 The sending configuration is Stockholm (`eu-north-1`), sender `LendLoop <notifications@sholaayeni.xyz>`, and operational alerts `ayenisholah@gmail.com`. Domain verification, DKIM signing, and custom MAIL FROM `bounce.sholaayeni.xyz` must succeed in SES. The SMTP IAM user needs `ses:SendRawEmail` on the domain identity ARN, restricted by `ses:FromAddress` to the notification address.

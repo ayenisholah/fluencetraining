@@ -2,7 +2,14 @@
 
 All notable changes, newest first. Dates are UTC. Commit references are short hashes.
 
-## Unreleased: `audit-tests-and-fixes`
+## Unreleased
+
+### Documentation
+- Document all four AWS CDK stacks and their services, DNS/TLS, IAM, secrets, deployment scripts, backups and recovery limits.
+- Add the CloudWatch/Synthetics/SNS monitoring guide with metric definitions, alarm thresholds and operator procedures.
+- Replace the proposed Vercel/Convex Cloud deployment guidance with the AWS architecture and document the EC2 bootstrap's remaining SES integration gap.
+
+## 2026-11-03: audit and integration changes
 
 ### Added
 - **Branded HTML emails** for every loan event and the overdue reminder: rendered and unit-tested in Convex (`convex/lib/email/`), sent by n8n as HTML plus text, with a preview command (`npm run email:preview`).
