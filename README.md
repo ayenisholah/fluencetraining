@@ -297,9 +297,22 @@ To refresh the exported JSON after editing in the n8n UI, run `npm run n8n:expor
   - Signed-in users see a lender's first name, never their email.
   - Only admins see full names and emails.
 - **Server decides time.** The overdue endpoint ignores any date in the request and uses the server clock, so a caller can't widen the query.
-- **Input limits.** Field lengths are validated on the server. HTTP bodies are capped at 16 KB, and write-back payloads are validated against an allow-list of kinds.
+- **Input is plain text and bounded.**
+  - Field lengths are validated on the server.
+  - Tool names and descriptions reject control characters and bidi overrides (`convex/lib/rules.ts`, shared with the form). They reach email subjects through n8n, where CR/LF could split headers, and bidi overrides can make text display as something it isn't.
+  - Display names from Clerk are cleaned the same way and capped before they're stored.
+  - HTTP bodies are capped at 16 KB, measured in bytes, and a declared oversized body is refused before it's read.
+  - Write-back payloads are validated against an allow-list of kinds.
 - **Local stack binds to 127.0.0.1 only.** Mailpit's SMTP port isn't published at all.
-- **Baseline headers.** The app sends `X-Frame-Options: DENY`, `nosniff`, a strict referrer policy and a restrictive `Permissions-Policy`.
+- **Strict Content-Security-Policy.**
+  - `proxy.ts` uses Clerk's strict CSP: a fresh nonce per request and `'strict-dynamic'` for scripts, with no host allow-lists.
+  - `connect-src` is limited to the app, Clerk and the Convex deployment, including its websocket.
+  - The policy also sets `frame-ancestors 'none'`, `object-src 'none'` and `base-uri 'self'`.
+  - Next.js and Clerk add the nonce to their own scripts. The one inline script, which sets the theme before paint, gets it from the layout.
+  - Playwright checks the header and that no page, including Clerk's sign-in and the signed-in app, triggers a violation.
+- **Baseline headers.** The app also sends `X-Frame-Options: DENY`, `nosniff`, a strict referrer policy, a restrictive `Permissions-Policy`, and HSTS in production.
+- **The HTTPS redirect doesn't trust the request.** With `ENFORCE_HTTPS=true`, plain-http requests are redirected to the configured `NEXT_PUBLIC_SITE_URL`. `Host` and `X-Forwarded-Host` are client-controlled and could otherwise turn the redirect into an open redirect or poison a cache.
+- **Dependencies.** `npm audit --omit=dev` reports no vulnerabilities in what ships. The remaining advisories are in dev-only tooling (`glob`/`minimatch` ReDoS via linters and test runners).
 
 ## Design system
 

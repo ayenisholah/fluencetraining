@@ -48,6 +48,15 @@ describe("listing a tool", () => {
     ).rejects.toThrow(/description/);
   });
 
+  test("the server refuses control and bidi characters even if the form is bypassed", async () => {
+    const t = setup();
+    const ada = await signIn(t, "Ada");
+    await expect(ada.as.mutation(api.tools.create, { ...drill, name: "Drill\r\nBcc: x@evil.example" })).rejects.toThrow(/plain text/);
+    await expect(ada.as.mutation(api.tools.create, { ...drill, description: "fine\u202Eenif" })).rejects.toThrow(/plain text/);
+    const toolId = await ada.as.mutation(api.tools.create, drill);
+    await expect(ada.as.mutation(api.tools.update, { toolId, ...drill, name: "Drill\u0000" })).rejects.toThrow(/plain text/);
+  });
+
   test("rejects unknown categories and conditions", async () => {
     const t = setup();
     const ada = await signIn(t, "Ada");

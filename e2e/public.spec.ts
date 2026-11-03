@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { acceptEssentialOnly, expectNoAxeViolations, expectNoHorizontalScroll } from "./helpers";
+import { acceptEssentialOnly, expectNoAxeViolations, expectNoHorizontalScroll, watchCsp } from "./helpers";
 
 test.describe("signed-out visitor", () => {
   test("landing page has one primary call to action", async ({ page }) => {
@@ -56,6 +56,41 @@ test.describe("signed-out visitor", () => {
     await expect(page.getByRole("link", { name: "Open app" })).toHaveCount(0);
     await page.getByRole("banner").getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page.locator(".cl-modalContent .cl-signIn-root")).toBeVisible();
+  });
+
+  test("pages are served with a strict, per-request Content-Security-Policy", async ({ page }) => {
+    const first = await page.goto("/");
+    const csp = first?.headers()["content-security-policy"] ?? "";
+    const directive = (name: string) => csp.split(";").map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) ?? "";
+    expect(directive("script-src")).toMatch(/'nonce-[A-Za-z0-9+/=]+'/);
+    expect(directive("script-src")).toContain("'strict-dynamic'");
+    expect(directive("script-src")).not.toMatch(/(^|\s)(https?:|\*)(\s|$)/); // no blanket host allow-lists
+    expect(directive("frame-ancestors")).toBe("frame-ancestors 'none'");
+    expect(directive("object-src")).toBe("object-src 'none'");
+    expect(directive("base-uri")).toBe("base-uri 'self'");
+    expect(directive("connect-src")).toMatch(/wss?:\/\//); // the Convex sync socket
+    // The nonce is fresh on every request.
+    const second = await page.reload();
+    const nonce = (h?: string) => h?.match(/'nonce-([^']+)'/)?.[1];
+    expect(nonce(second?.headers()["content-security-policy"])).not.toBe(nonce(csp));
+    // And it's the one on the inline theme script.
+    expect(await page.locator("head script[nonce]").count()).toBeGreaterThan(0);
+  });
+
+  test("nothing on the public pages, or Clerk's sign-in, is blocked by the policy", async ({ page }) => {
+    const violations = await watchCsp(page);
+    for (const path of ["/", "/privacy", "/terms"]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    }
+    await page.goto("/");
+    await acceptEssentialOnly(page);
+    await expect(page.getByRole("region", { name: "Available now" }).getByRole("listitem").first()).toBeVisible();
+    // Clerk's script must have loaded (under the CSP) before the button does anything.
+    await page.waitForFunction(() => (window as unknown as { Clerk?: { loaded?: boolean } }).Clerk?.loaded === true);
+    await page.getByRole("button", { name: "Sign in to lend or borrow" }).click();
+    await expect(page.locator(".cl-modalContent .cl-signIn-root")).toBeVisible();
+    expect(await violations()).toEqual([]);
   });
 
   test("cookie choice is remembered and can be reopened", async ({ page }) => {

@@ -34,7 +34,7 @@ export default defineConfig({
           { name: "clerk-setup", testMatch: /global\.setup\.ts/ },
           {
             name: "signed-in",
-            testMatch: /(signed-in|admin|automation)\.spec\.ts/,
+            testMatch: /(signed-in|admin|automation|sign-in)\.spec\.ts/,
             dependencies: ["clerk-setup"],
             use: { ...devices["Desktop Chrome"], channel },
           },

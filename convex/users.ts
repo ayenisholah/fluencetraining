@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { getCurrentUser, notFound } from "./lib/auth";
-import { userSearchText } from "./lib/people";
+import { cleanDisplayName, userSearchText } from "./lib/people";
 import { vRole } from "./schema";
 
 /** Called by the client after sign-in; creates or refreshes the user record. */
@@ -10,8 +10,9 @@ export const store = mutation({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-    const name =
-      identity.name ?? identity.givenName ?? identity.nickname ?? "Neighbour";
+    // Names come from the identity token and reach other users' screens and
+    // email subjects, so they are cleaned like any other user input.
+    const name = cleanDisplayName(identity.name ?? identity.givenName ?? identity.nickname);
     const existing = await ctx.db
       .query("users")
       .withIndex("by_token", (q) =>

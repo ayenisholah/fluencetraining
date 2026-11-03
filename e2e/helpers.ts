@@ -87,3 +87,26 @@ export function promoteToAdmin(email: string) {
 export function purgeTestTool(name: string, errorMarkers: string[] = []) {
   cli("npx", ["convex", "run", "dev:purgeTestData", JSON.stringify({ names: [name], errorMarkers })]);
 }
+
+/**
+ * Records Content-Security-Policy violations on a page: the browser's
+ * securitypolicyviolation events plus CSP console errors. Call before the
+ * first navigation, then `expect(await read()).toEqual([])`.
+ */
+export async function watchCsp(page: Page) {
+  const consoleErrors: string[] = [];
+  page.on("console", (msg) => {
+    if (/Content Security Policy|Refused to (load|execute|connect|apply|frame)/i.test(msg.text())) consoleErrors.push(msg.text());
+  });
+  await page.addInitScript(() => {
+    const w = window as unknown as { __csp?: string[] };
+    w.__csp = [];
+    document.addEventListener("securitypolicyviolation", (e) => {
+      w.__csp!.push(`${e.violatedDirective} blocked ${e.blockedURI || "inline"} (${e.sourceFile ?? ""}:${e.lineNumber})`);
+    });
+  });
+  return async () => [
+    ...consoleErrors,
+    ...((await page.evaluate(() => (window as unknown as { __csp?: string[] }).__csp ?? []).catch(() => [])) as string[]),
+  ];
+}

@@ -365,6 +365,16 @@ describe("roles can't be escalated", () => {
     expect(await as.query(api.users.me, {})).toBeNull();
   });
 
+  test("users.store cleans the name from the identity token before storing it", async () => {
+    const t = setup();
+    const as = t.withIdentity({ tokenIdentifier: "x|eve", name: "Eve\r\nBcc: x@evil.example\u202E" + "a".repeat(200), email: "eve@example.com" });
+    await as.mutation(api.users.store, {});
+    const me = await as.query(api.users.me, {});
+    expect(me?.name).not.toMatch(/[\r\n\u202E]/);
+    expect(me?.name.startsWith("Eve Bcc: x@evil.example")).toBe(true);
+    expect(me?.name.length).toBeLessThanOrEqual(80);
+  });
+
   test("signed out, store is a no-op and me is null", async () => {
     const t = setup();
     expect(await t.mutation(api.users.store, {})).toBeNull();

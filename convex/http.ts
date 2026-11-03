@@ -24,8 +24,12 @@ async function authenticate(
 ): Promise<{ body: Record<string, unknown> } | Response> {
   const secret = process.env.N8N_TO_LENDLOOP_SECRET;
   if (!secret) return json({ error: "not configured" }, 503);
+  // Refuse oversized bodies before reading them when the size is declared, and
+  // measure in bytes (not UTF-16 units) for chunked or undeclared ones.
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > MAX_BODY_BYTES) return json({ error: "too large" }, 413);
   const rawBody = await request.text();
-  if (rawBody.length > MAX_BODY_BYTES) return json({ error: "too large" }, 413);
+  if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) return json({ error: "too large" }, 413);
   const result = await verify({
     secret,
     rawBody,

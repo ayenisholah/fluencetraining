@@ -7,6 +7,7 @@ import {
   purgeTestTool,
   requestToBorrow,
   signedInPage,
+  watchCsp,
 } from "./helpers";
 import { BORROWER, LENDER } from "./users";
 
@@ -94,12 +95,14 @@ test("lender lists a tool with a photo", async () => {
   await expect(form.getByRole("img", { name: "Selected photo" })).toHaveCount(0);
 });
 
-test("the photo shows on the board, served from Convex", async () => {
+test("the photo shows on the board, served from Convex under the CSP", async () => {
+  const violations = await watchCsp(borrower);
   await borrower.goto("/tools");
   const img = toolCard(borrower).getByRole("img", { name: toolName });
   await expect(img).toBeVisible();
   await expect(img).toHaveAttribute("src", /\/api\/storage\//);
   await expect.poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBe(1);
+  expect(await violations()).toEqual([]);
 });
 
 test("the board switches between cards, tiles and list", async () => {
@@ -321,6 +324,23 @@ test("lender deletes the listing after confirming in a dialog", async () => {
   await borrower.goto("/tools");
   await expect(toolCard(borrower)).toHaveCount(0);
   await expect(await landingCard()).toHaveCount(0);
+});
+
+test("signed-in pages work under the CSP: Clerk, the Convex socket and the app all load", async ({ browser }) => {
+  test.setTimeout(90_000); // a fresh Clerk sign-in plus four pages
+  const page = await signedInPage(browser, LENDER.email);
+  const violations = await watchCsp(page);
+  for (const path of ["/tools", "/listings", "/requests", "/incoming"]) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    // Live data arrived over the Convex websocket.
+    await expect(page.getByRole("status")).toHaveCount(0);
+  }
+  await page.getByRole("button", { name: /open user (button|menu)/i }).first().click();
+  // Clerk's account popover (rendered by its own script) opened without being blocked.
+  await expect(page.locator(".cl-userButtonPopoverCard")).toBeVisible();
+  expect(await violations()).toEqual([]);
+  await page.context().close();
 });
 
 test("signed-in pages pass axe", async () => {

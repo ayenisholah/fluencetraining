@@ -1,5 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Poppins } from "next/font/google";
 import { Analytics } from "@/components/Analytics";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
@@ -43,16 +44,20 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Per-request CSP nonce set by Clerk in proxy.ts. Next nonces its own
+  // scripts; this inline one (theme before paint) needs it explicitly.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     // data-theme is set before paint by the inline script, so React's
     // first render may differ from the server HTML on this attribute.
     <html lang="en" className={`${poppins.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="flex min-h-full flex-col font-sans text-body">
-        <ClerkProvider>
+        {/* dynamic: Clerk reads the nonce for its own script tags. */}
+        <ClerkProvider dynamic>
           <ConvexClientProvider>
             {children}
             <CookieConsent />

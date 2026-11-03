@@ -17,6 +17,17 @@ describe("ToolForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  test("pasted control or bidi characters are caught before submitting", async () => {
+    const onSubmit = vi.fn();
+    render(<ToolForm submitLabel="List it" onSubmit={onSubmit} />);
+    const name = screen.getByLabelText("Name");
+    await userEvent.click(name);
+    await userEvent.paste("Drill\u202Eyrros");
+    await userEvent.click(screen.getByRole("button", { name: "List it" }));
+    expect(name).toHaveAccessibleDescription(/plain text/);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   test("typing into or leaving a field never shows an error; submitting does, then fixing clears it", async () => {
     render(<ToolForm submitLabel="List it" onSubmit={vi.fn()} />);
     const name = screen.getByLabelText("Name");

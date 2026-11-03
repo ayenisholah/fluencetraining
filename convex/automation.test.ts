@@ -397,6 +397,18 @@ describe("overdue endpoint selection and the signature window", () => {
     expect(await at(6 * 60 * 1000)).toBe(401);
   });
 
+  test("an oversized declared body is refused before the signature is even checked", async () => {
+    const t = setup();
+    const res = await t.fetch("/n8n/automation-events", {
+      method: "POST",
+      headers: { "content-length": String(1024 * 1024) },
+      body: "{}",
+    });
+    expect(res.status).toBe(413);
+    // Size is measured in bytes: 6,000 three-byte characters is ~18 KB, over the 16 KB limit.
+    expect((await signedPost(t, "/n8n/automation-events", { pad: "€".repeat(6_000) })).status).toBe(413);
+  });
+
   test("oversized, non-object and non-JSON bodies are refused", async () => {
     const t = setup();
     expect((await signedPost(t, "/n8n/automation-events", { pad: "x".repeat(17 * 1024) })).status).toBe(413);
