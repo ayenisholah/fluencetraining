@@ -18,7 +18,10 @@
     "check:contrast": "node scripts/contrast-check.mjs",
     "check:links": "node scripts/check-links.mjs",
     "test:ui": "vitest run --project ui",
-    "test:convex": "vitest run --project convex"
+    "test:convex": "vitest run --project convex",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test:storybook": "vitest run --project storybook"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.23",
@@ -39,6 +42,7 @@
     "@storybook/addon-vitest": "^10.6.5",
     "@storybook/nextjs-vite": "^10.6.5",
     "@tailwindcss/turbopack": "^4",
+    "@tailwindcss/vite": "^4.3.4",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",

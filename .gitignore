@@ -42,3 +42,8 @@ next-env.d.ts
 !.env.example
 !.env.local.example
 .clerk/
+storybook-static/
+*storybook.log
+test-results/
+playwright-report/
+e2e/.auth/

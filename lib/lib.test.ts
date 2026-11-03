@@ -94,3 +94,18 @@ describe("format", () => {
     expect(formatDate("2026-11-04")).toMatch(/Nov/);
   });
 });
+
+import { contrastRatio, toHex } from "./contrast";
+
+describe("contrast", () => {
+  test("matches known WCAG ratios", () => {
+    expect(contrastRatio("#ffffff", "#000000")).toBeCloseTo(21, 1);
+    expect(contrastRatio("#ffffff", "#7364db")).toBeCloseTo(4.59, 2);
+    expect(contrastRatio("#7e7e8f", "#ffffff")).toBeCloseTo(3.99, 2);
+  });
+  test("toHex", () => {
+    expect(toHex("rgb(115, 100, 219)")).toBe("#7364db");
+    expect(toHex("#FFF")).toBe("#ffffff");
+    expect(toHex("var(--x)")).toBeNull();
+  });
+});
