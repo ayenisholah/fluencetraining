@@ -24,14 +24,14 @@ export default function OpenGraphImage() {
         <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
           <Mark size={88} />
           <div style={{ display: "flex", fontSize: 56, fontWeight: 700 }}>
-            Lend<span style={{ color: brand.green }}>Loop</span>
+            Lend<span style={{ color: brand.violet }}>Loop</span>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div style={{ fontSize: 76, fontWeight: 700, lineHeight: 1.05, maxWidth: 980 }}>
             Borrow what you need. Lend what you don&apos;t.
           </div>
-          <div style={{ fontSize: 32, color: "#5f675f" }}>
+          <div style={{ fontSize: 32, color: brand.muted }}>
             A neighbourhood board for the tools that spend most of the year in a cupboard.
           </div>
         </div>

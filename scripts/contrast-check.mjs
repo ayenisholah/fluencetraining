@@ -1,49 +1,97 @@
-// WCAG 2.1 contrast check for the colour tokens in app/globals.css, in both
-// the light and dark themes. Exits non-zero if any pair the UI actually uses
-// falls below AA (4.5:1 for normal text, 3:1 for large text and UI borders).
+// WCAG 2.1 contrast check for the design-system tokens in app/globals.css,
+// in both themes. Resolves var() references, so it checks what components
+// actually render. Exits non-zero if any pair the UI uses fails AA.
 import { readFileSync } from "node:fs";
 
 const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
 
-function tokens(block) {
+function block(selector) {
+  const start = css.indexOf(selector);
+  if (start < 0) throw new Error(`missing ${selector}`);
+  const open = css.indexOf("{", start);
+  let depth = 0;
+  for (let i = open; i < css.length; i++) {
+    if (css[i] === "{") depth++;
+    if (css[i] === "}" && --depth === 0) return css.slice(open + 1, i);
+  }
+  throw new Error(`unclosed ${selector}`);
+}
+
+function vars(text) {
   return Object.fromEntries(
-    [...block.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})/g)].map((m) => [m[1], m[2]]),
+    [...text.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]),
   );
 }
-const light = tokens(css.match(/:root\s*{([^}]*)}/)[1]);
-const dark = tokens(css.match(/prefers-color-scheme:\s*dark\)\s*{\s*:root\s*{([^}]*)}/)[1]);
 
-function luminance(hex) {
-  const [r, g, b] = [1, 3, 5].map((i) => {
-    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+const day = vars(block(":root {"));
+const night = { ...day, ...vars(block(':root[data-theme="dark"] {')) };
+
+function resolve(theme, name, seen = new Set()) {
+  const raw = theme[name];
+  if (raw === undefined) throw new Error(`unknown token --${name}`);
+  const ref = raw.match(/^var\(--([\w-]+)\)$/);
+  if (!ref) return raw;
+  if (seen.has(name)) throw new Error(`cycle at --${name}`);
+  seen.add(name);
+  return resolve(theme, ref[1], seen);
+}
+
+function rgb(color) {
+  if (color.startsWith("#")) {
+    const h = color.length === 4 ? color.replace(/#(.)(.)(.)/, "#$1$1$2$2$3$3") : color;
+    return [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  }
+  throw new Error(`can't parse colour ${color}`);
+}
+function luminance(color) {
+  const [r, g, b] = rgb(color).map((v) => {
+    const c = v / 255;
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
-function ratio(a, b) {
+const ratio = (a, b) => {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
-}
+};
 
-// [text token, background token, minimum, where it's used]
+// [foreground, background, minimum, where it's used]. Literal colours start with #.
 const pairs = [
-  ["foreground", "background", 4.5, "body text"],
-  ["foreground", "surface", 4.5, "card text"],
-  ["muted", "background", 4.5, "secondary text, footer"],
-  ["muted", "surface", 4.5, "card metadata"],
-  ["accent", "surface", 4.5, "links, wordmark"],
-  ["accent", "accent-soft", 4.5, "Available / active nav badge"],
-  ["surface", "accent", 4.5, "primary button label"],
-  ["warn", "warn-soft", 4.5, "Requested / On loan badge, demo notice"],
-  ["danger", "danger-soft", 4.5, "Overdue badge"],
-  ["danger", "surface", 4.5, "field errors, Delete button"],
+  ["fg", "canvas", 4.5, "body text on page"],
+  ["fg", "surface", 4.5, "card text"],
+  ["fg-muted", "canvas", 4.5, "secondary text on page"],
+  ["fg-muted", "surface", 4.5, "card metadata"],
+  ["fg-muted", "surface-sunken", 4.5, "secondary text on sunken areas"],
+  ["fg-subtle", "surface", 3, "icons and large text only"],
+  ["brand-fg", "surface", 4.5, "links, active labels"],
+  ["brand-fg", "brand-soft", 4.5, "brand badge, count bubble"],
+  ["on-brand", "brand", 4.5, "solid button / active sidebar item"],
+  ["on-dim", "dim", 4.5, "dim button"],
+  ["#ffffff", "segmented-track", 4.5, "segmented control labels"],
+  ["fg", "field-bg", 4.5, "field value"],
+  ["field-placeholder", "field-bg", 4.5, "field placeholder"],
+  ["field-label", "field-bg", 4.5, "floating field label"],
+  ["fg", "surface", 4.5, "focused field value"],
+  ["#ffffff", "danger-solid", 4.5, "error caption bar, danger button"],
+  ["danger", "surface", 4.5, "error text"],
+  ["danger", "danger-soft", 4.5, "danger badge / alert"],
+  ["success", "success-soft", 4.5, "success badge / alert"],
+  ["success", "surface", 4.5, "positive delta"],
+  ["warning", "warning-soft", 4.5, "warning badge / notice"],
+  ["info", "info-soft", 4.5, "info badge / alert"],
+  ["focus-ring", "surface", 3, "keyboard focus ring (non-text, 3:1)"],
+  ["focus-ring", "canvas", 3, "keyboard focus ring on page"],
+  ["line-strong", "surface", 1.0, "(decorative border, not checked)"],
 ];
 
 let failed = 0;
-for (const [theme, t] of [["light", light], ["dark", dark]]) {
-  console.log(`\n${theme}`);
+for (const [label, theme] of [["day", day], ["night", night]]) {
+  console.log(`\n${label}`);
   for (const [fg, bg, min, use] of pairs) {
-    const r = ratio(t[fg], t[bg]);
+    if (min <= 1) continue;
+    const a = fg.startsWith("#") ? fg : resolve(theme, fg);
+    const b = bg.startsWith("#") ? bg : resolve(theme, bg);
+    const r = ratio(a, b);
     const ok = r >= min;
     if (!ok) failed++;
     console.log(`  ${ok ? "ok  " : "FAIL"} ${r.toFixed(2).padStart(5)}:1  ${fg} on ${bg}  (${use})`);

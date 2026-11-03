@@ -1,78 +1,80 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { BorrowForm } from "@/components/BorrowForm";
-import { Badge, Empty, Loading, PageHeader } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, PageHeader, Select, Spinner, ToolIcon } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { CATEGORIES, categoryLabel, conditionLabel, type Category } from "@/lib/format";
+
+const filterOptions = [{ value: "", label: "All categories" }, ...CATEGORIES.map(([value, label]) => ({ value, label }))];
 
 export function ToolsScreen() {
   const [category, setCategory] = useState<Category | "">("");
   const [borrowing, setBorrowing] = useState<Id<"tools">>();
   const [sent, setSent] = useState<Id<"tools">>();
   const tools = useQuery(api.tools.list, category ? { category } : {});
+  const request = useMutation(api.loans.request);
 
   return (
     <>
-      <PageHeader title="All tools">
-        <label className="flex items-center gap-2 text-sm">
-          <span className="text-muted">Category</span>
-          <select className="field w-auto" value={category}
-            onChange={(e) => setCategory(e.target.value as Category | "")}>
-            <option value="">All</option>
-            {CATEGORIES.map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </label>
-      </PageHeader>
+      <PageHeader
+        title="All tools"
+        description="Everything your neighbours are lending right now."
+        actions={
+          <Select
+            label="Category"
+            className="w-56"
+            options={filterOptions}
+            value={category}
+            onChange={(e) => setCategory(e.target.value as Category | "")}
+          />
+        }
+      />
       {tools === undefined ? (
-        <Loading />
+        <Spinner />
       ) : tools.length === 0 ? (
-        <Empty>Nothing here yet{category ? " in this category" : ""}.</Empty>
+        <EmptyState icon={<ToolIcon />} title={`Nothing here yet${category ? " in this category" : ""}`} />
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {tools.map((tool) => (
-            <li key={tool._id} className="card">
+            <Card as="li" key={tool._id} className="flex flex-col">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-medium">{tool.name}</h2>
-                  <p className="text-xs text-muted">
+                <div className="min-w-0">
+                  <h2 className="text-subtitle-semibold text-fg">{tool.name}</h2>
+                  <p className="mt-1 text-description text-fg-muted">
                     {categoryLabel(tool.category)} · {conditionLabel(tool.condition)} · lent by{" "}
                     {tool.isMine ? "you" : tool.lenderName}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  {tool.status === "available" ? (
-                    <Badge tone="good">Available</Badge>
-                  ) : (
-                    <Badge tone="warn">On loan</Badge>
-                  )}
-                  {tool.trustedLender && <Badge tone="good">Trusted lender</Badge>}
+                  {tool.status === "available" ? <Badge tone="success">Available</Badge> : <Badge tone="warning">On loan</Badge>}
+                  {tool.trustedLender && <Badge variant="ghost" tone="brand">Trusted lender</Badge>}
                 </div>
               </div>
-              {tool.description && <p className="mt-2 text-sm">{tool.description}</p>}
-              {sent === tool._id ? (
-                <p className="mt-3 text-sm text-accent">Request sent. The lender has been notified.</p>
-              ) : borrowing === tool._id ? (
-                <BorrowForm
-                  toolId={tool._id}
-                  onSent={() => {
-                    setBorrowing(undefined);
-                    setSent(tool._id);
-                  }}
-                  onCancel={() => setBorrowing(undefined)}
-                />
-              ) : (
-                !tool.isMine && (
-                  <button className="btn-ghost mt-3" onClick={() => setBorrowing(tool._id)}>
-                    Request to borrow
-                  </button>
-                )
-              )}
-            </li>
+              {tool.description && <p className="mt-3 text-body text-fg">{tool.description}</p>}
+              <div className="mt-auto">
+                {sent === tool._id ? (
+                  <p role="status" className="mt-4 text-body text-success">Request sent. The lender has been notified.</p>
+                ) : borrowing === tool._id ? (
+                  <BorrowForm
+                    onSubmit={(dates) => request({ toolId: tool._id, ...dates })}
+                    onSent={() => {
+                      setBorrowing(undefined);
+                      setSent(tool._id);
+                    }}
+                    onCancel={() => setBorrowing(undefined)}
+                  />
+                ) : (
+                  !tool.isMine && (
+                    <Button variant="ghost" size="sm" className="mt-4" onClick={() => setBorrowing(tool._id)}>
+                      Request to borrow
+                    </Button>
+                  )
+                )}
+              </div>
+            </Card>
           ))}
         </ul>
       )}

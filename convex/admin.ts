@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 import { badRequest, notFound, requireAdmin } from "./lib/auth";
+import { todayUtc } from "./lib/dates";
 import { describeLoan } from "./loans";
 import { removeTool } from "./tools";
 
@@ -120,5 +121,25 @@ export const retryDelivery = mutation({
       lastError: undefined,
     });
     await ctx.scheduler.runAfter(0, internal.webhooks.deliver, { deliveryId });
+  },
+});
+
+/** Headline numbers for the admin dashboard. */
+export const stats = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const today = todayUtc();
+    const [requested, approved, failed] = await Promise.all([
+      ctx.db.query("loans").withIndex("by_status_end", (q) => q.eq("status", "requested")).collect(),
+      ctx.db.query("loans").withIndex("by_status_end", (q) => q.eq("status", "approved")).collect(),
+      ctx.db.query("webhookDeliveries").withIndex("by_status", (q) => q.eq("status", "failed")).collect(),
+    ]);
+    return {
+      openRequests: requested.length,
+      activeLoans: approved.length,
+      overdueLoans: approved.filter((l) => l.endDate < today).length,
+      failedDeliveries: failed.length,
+    };
   },
 });

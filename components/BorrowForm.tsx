@@ -1,24 +1,26 @@
 "use client";
 
-import { useMutation } from "convex/react";
-import { useId, useState } from "react";
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { useState } from "react";
+import { Alert, Button, TextField } from "@/components/ui";
 import { loanDateError, MAX_LOAN_DAYS } from "@/convex/lib/rules";
 import { errorMessage, todayIso } from "@/lib/format";
-import { ErrorText, FieldError } from "./ui";
+
+/** Which date field a range error belongs to, so the message sits under it. */
+export function dateErrorField(message: string, startDate: string): "from" | "until" {
+  if (/start/i.test(message)) return "from";
+  if (/both/i.test(message) && !startDate) return "from";
+  return "until";
+}
 
 export function BorrowForm({
-  toolId,
+  onSubmit,
   onSent,
   onCancel,
 }: {
-  toolId: Id<"tools">;
+  onSubmit: (dates: { startDate: string; endDate: string }) => Promise<unknown>;
   onSent: () => void;
   onCancel: () => void;
 }) {
-  const id = useId();
-  const request = useMutation(api.loans.request);
   const [startDate, setStart] = useState(todayIso(1));
   const [endDate, setEnd] = useState(todayIso(3));
   const [interacted, setInteracted] = useState(false);
@@ -26,12 +28,12 @@ export function BorrowForm({
   const [pending, setPending] = useState(false);
 
   const dateError = loanDateError(startDate, endDate);
-  const shownDateError = interacted ? dateError : undefined;
-  const describedBy = `${id}-hint${shownDateError ? ` ${id}-error` : ""}`;
+  const shown = interacted ? dateError : undefined;
+  const field = shown ? dateErrorField(shown, startDate) : undefined;
 
   return (
     <form
-      className="mt-3 space-y-3 border-t border-border pt-3"
+      className="mt-4 space-y-3 border-t border-line pt-4"
       noValidate
       onSubmit={async (e) => {
         e.preventDefault();
@@ -40,7 +42,7 @@ export function BorrowForm({
         setPending(true);
         setError(undefined);
         try {
-          await request({ toolId, startDate, endDate });
+          await onSubmit({ startDate, endDate });
           onSent();
         } catch (err) {
           setError(errorMessage(err));
@@ -49,29 +51,40 @@ export function BorrowForm({
         }
       }}
     >
-      <fieldset className="grid grid-cols-2 gap-2">
+      <fieldset className="grid grid-cols-2 gap-3">
         <legend className="sr-only">Borrowing dates</legend>
-        <div>
-          <label htmlFor={`${id}-from`} className="label">From</label>
-          <input id={`${id}-from`} type="date" className="field" min={todayIso()} value={startDate}
-            aria-invalid={shownDateError ? true : undefined} aria-describedby={describedBy}
-            onChange={(e) => { setStart(e.target.value); setInteracted(true); }} />
-        </div>
-        <div>
-          <label htmlFor={`${id}-until`} className="label">Until</label>
-          <input id={`${id}-until`} type="date" className="field" min={startDate} value={endDate}
-            aria-invalid={shownDateError ? true : undefined} aria-describedby={describedBy}
-            onChange={(e) => { setEnd(e.target.value); setInteracted(true); }} />
-        </div>
+        <TextField
+          type="date"
+          label="From"
+          min={todayIso()}
+          value={startDate}
+          error={field === "from" ? shown : undefined}
+          onChange={(e) => {
+            setStart(e.target.value);
+            setInteracted(true);
+          }}
+        />
+        <TextField
+          type="date"
+          label="Until"
+          min={startDate}
+          value={endDate}
+          hint={`Up to ${MAX_LOAN_DAYS} days.`}
+          error={field === "until" ? shown : undefined}
+          onChange={(e) => {
+            setEnd(e.target.value);
+            setInteracted(true);
+          }}
+        />
       </fieldset>
-      <p id={`${id}-hint`} className="text-xs text-muted">Up to {MAX_LOAN_DAYS} days.</p>
-      <FieldError id={`${id}-error`}>{shownDateError}</FieldError>
-      <ErrorText>{error}</ErrorText>
+      <Alert tone="danger">{error}</Alert>
       <div className="flex gap-2">
-        <button className="btn-primary" disabled={pending}>
-          {pending ? "Sending…" : "Send request"}
-        </button>
-        <button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button>
+        <Button type="submit" size="sm" loading={pending}>
+          Send request
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
     </form>
   );

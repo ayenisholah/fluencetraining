@@ -9,7 +9,7 @@ export function IncomingScreen() {
   const loans = useQuery(api.loans.incoming);
   return (
     <>
-      <PageHeader title="Incoming requests" />
+      <PageHeader title="Incoming requests" description="Approve or decline requests for your tools." />
       <LoanList loans={loans} as="lender" empty="No one has asked to borrow your tools yet." />
     </>
   );

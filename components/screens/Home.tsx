@@ -3,52 +3,65 @@
 import { SignInButton } from "@clerk/nextjs";
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import Link from "next/link";
-import { Badge, Empty, Loading } from "@/components/ui";
+import { Badge, Button, buttonVariants, Card, EmptyState, Spinner, ToolIcon } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { categoryLabel } from "@/lib/format";
+
+const steps = [
+  { title: "List what you own", body: "Add the tools gathering dust: name, condition, anything borrowers should know." },
+  { title: "Request for dates", body: "Neighbours ask to borrow for up to 30 days. You approve or decline." },
+  { title: "Get reminders", body: "Everyone gets an email when something changes, and borrowers are nudged when a loan is overdue." },
+];
 
 export function HomeScreen() {
   const tools = useQuery(api.tools.listPublic);
   return (
-    <div className="space-y-10">
-      <section className="space-y-4 pt-6">
-        <h1 className="max-w-xl text-4xl font-semibold tracking-tight sm:text-5xl">
-          Borrow what you need. Lend what you don&apos;t.
-        </h1>
-        <p className="max-w-xl text-muted">
-          LendLoop is a neighbourhood board for the drills, ladders and tents that
-          spend most of the year in a cupboard.
+    <div className="space-y-14">
+      <section className="space-y-5 pt-4">
+        <Badge tone="brand">Neighbourhood tool library</Badge>
+        <h1 className="max-w-2xl text-h4 text-fg sm:text-h1">Borrow what you need. Lend what you don&apos;t.</h1>
+        <p className="max-w-xl text-subtitle font-normal tracking-normal leading-relaxed text-fg-muted">
+          LendLoop is a neighbourhood board for the drills, ladders and tents that spend most of the year in a cupboard.
         </p>
         <Unauthenticated>
           <SignInButton mode="modal">
-            <button className="btn-primary">Sign in to lend or borrow</button>
+            <Button size="lg">Sign in to lend or borrow</Button>
           </SignInButton>
         </Unauthenticated>
         <Authenticated>
-          <Link href="/tools" className="btn-primary">
+          <Link href="/tools" className={buttonVariants({ size: "lg" })}>
             Browse tools
           </Link>
         </Authenticated>
       </section>
 
-      <section>
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted">
-          Available now
-        </h2>
+      <section aria-labelledby="available">
+        <h2 id="available" className="mb-4 text-h7 text-fg">Available now</h2>
         {tools === undefined ? (
-          <Loading />
+          <Spinner />
         ) : tools.length === 0 ? (
-          <Empty>No tools listed yet. Be the first.</Empty>
+          <EmptyState icon={<ToolIcon />} title="No tools listed yet" description="Be the first to lend something." />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {tools.map((tool, i) => (
-              <li key={i} className="card flex items-center justify-between gap-3">
-                <span className="font-medium">{tool.name}</span>
+              <Card as="li" key={i} className="flex items-center justify-between gap-3">
+                <span className="text-body-bold text-fg">{tool.name}</span>
                 <Badge>{categoryLabel(tool.category)}</Badge>
-              </li>
+              </Card>
             ))}
           </ul>
         )}
+      </section>
+
+      <section aria-labelledby="how" className="grid gap-3 sm:grid-cols-3">
+        <h2 id="how" className="sr-only">How it works</h2>
+        {steps.map((step, i) => (
+          <Card key={step.title}>
+            <p className="text-description font-semibold text-brand-fg">Step {i + 1}</p>
+            <h3 className="mt-1 text-subtitle-semibold text-fg">{step.title}</h3>
+            <p className="mt-2 text-body text-fg-muted">{step.body}</p>
+          </Card>
+        ))}
       </section>
     </div>
   );

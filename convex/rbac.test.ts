@@ -187,6 +187,26 @@ describe("admin", () => {
     expect(loan?.status).toBe("declined");
   });
 
+  test("stats are admin-only and count open, active and overdue loans", async () => {
+    const t = setup();
+    const admin = await signIn(t, "Root", { role: "admin" });
+    const ada = await signIn(t, "Ada");
+    const bob = await signIn(t, "Bob");
+    await expect(bob.as.query(api.admin.stats, {})).rejects.toThrow(/Admins only/);
+    const one = await ada.as.mutation(api.tools.create, drill);
+    const two = await ada.as.mutation(api.tools.create, { ...drill, name: "Saw" });
+    await bob.as.mutation(api.loans.request, { toolId: one, startDate: isoDay(1), endDate: isoDay(2) });
+    const active = await bob.as.mutation(api.loans.request, { toolId: two, startDate: isoDay(1), endDate: isoDay(2) });
+    await ada.as.mutation(api.loans.approve, { loanId: active });
+    await t.run((ctx) => ctx.db.patch(active, { startDate: isoDay(-4), endDate: isoDay(-1) }));
+    expect(await admin.as.query(api.admin.stats, {})).toEqual({
+      openRequests: 1,
+      activeLoans: 1,
+      overdueLoans: 1,
+      failedDeliveries: 0,
+    });
+  });
+
   test("new users always start as role user", async () => {
     const t = setup();
     const as = t.withIdentity({ tokenIdentifier: "x|new", name: "New", email: "n@e.com" });

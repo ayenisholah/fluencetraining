@@ -9,7 +9,7 @@ export function RequestsScreen() {
   const loans = useQuery(api.loans.myRequests);
   return (
     <>
-      <PageHeader title="My requests" />
+      <PageHeader title="My requests" description="Tools you've asked to borrow." />
       <LoanList loans={loans} as="borrower" empty="You haven't asked to borrow anything yet." />
     </>
   );

@@ -1,16 +1,19 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Poppins } from "next/font/google";
 import { Analytics } from "@/components/Analytics";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
-import { CookieConsent, CookieSettingsButton } from "@/components/CookieConsent";
-import { Nav } from "@/components/Nav";
+import { CookieConsent } from "@/components/CookieConsent";
+import { themeInitScript } from "@/lib/theme";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-// Mono is only used on the admin page; don't preload it on every route.
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], preload: false });
+// Frox type: Poppins. Only the weights the type scale uses are loaded.
+const poppins = Poppins({
+  variable: "--font-poppins",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -35,30 +38,23 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f5f0" },
-    { media: "(prefers-color-scheme: dark)", color: "#141714" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f5fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#1f2128" },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="flex min-h-full flex-col font-sans">
+    // data-theme is set before paint by the inline script, so React's
+    // first render may differ from the server HTML on this attribute.
+    <html lang="en" className={`${poppins.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="flex min-h-full flex-col font-sans text-body">
         <ClerkProvider>
           <ConvexClientProvider>
-            <Nav />
-            <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
-            <footer className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-6 text-xs text-muted">
-              <span>LendLoop is a fictional neighbourhood lending board.</span>
-              <nav aria-label="Legal" className="flex flex-wrap gap-x-4 gap-y-2 sm:ml-auto">
-                <Link href="/privacy" className="underline-offset-2 hover:underline">Privacy</Link>
-                <Link href="/terms" className="underline-offset-2 hover:underline">Terms</Link>
-                <CookieSettingsButton />
-              </nav>
-            </footer>
+            {children}
             <CookieConsent />
             <Analytics />
           </ConvexClientProvider>
