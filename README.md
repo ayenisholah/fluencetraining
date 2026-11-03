@@ -166,6 +166,22 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 | n8n | http://localhost:5678 (create the local owner on first visit) |
 | Convex dashboard | http://localhost:6791 (admin key from `.env.local`) |
 
+### Sample data
+
+Fill the board with a believable neighbourhood: four neighbours and 19 tools covering every category. It's safe to re-run, because anything that already exists is skipped.
+
+```bash
+npx convex run dev:seedNeighbourhood
+```
+
+The seeded neighbours are `role: "user"` with `@lendloop.local` addresses, so their notifications land in Mailpit. They can't sign in, so they exist only to lend. Each e2e spec deletes its own "E2E …" tool when it finishes. If an interrupted run leaves some behind, this removes them along with their loans and activity:
+
+```bash
+npx convex run dev:purgeTestData '{"prefix":"E2E "}'
+```
+
+Both are `internalMutation`s, so only someone with the Convex admin key can run them.
+
 ### Trying the automations
 
 - **Notifications:** sign in as two users (one normal window, one private window). List a tool as one, request it as the other, and watch Mailpit.
