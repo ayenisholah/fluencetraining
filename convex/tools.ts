@@ -15,8 +15,9 @@ function cleanFields(fields: { name: string; description: string }) {
 }
 
 /**
- * Public, unauthenticated. Returns only name and category of listed tools:
- * no owner, condition, description or availability.
+ * Public, unauthenticated. Returns only id, name and category of listed tools:
+ * no owner, condition, description or availability. The id is a stable React
+ * key for live updates and reveals nothing about the lender.
  */
 export const listPublic = query({
   args: {},
@@ -26,7 +27,7 @@ export const listPublic = query({
       .withIndex("by_status", (q) => q.eq("status", "available"))
       .order("desc")
       .take(100);
-    return tools.map((tool) => ({ name: tool.name, category: tool.category }));
+    return tools.map((tool) => ({ _id: tool._id, name: tool.name, category: tool.category }));
   },
 });
 

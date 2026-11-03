@@ -50,8 +50,8 @@ export function HomeScreen() {
           <EmptyState icon={<ToolIcon />} title="No tools listed yet" description="Be the first to lend something." />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {tools.map((tool, i) => (
-              <Card as="li" key={i} className="flex items-center justify-between gap-3">
+            {tools.map((tool) => (
+              <Card as="li" key={tool._id} className="flex items-center justify-between gap-3">
                 <span className="text-body-bold text-fg">{tool.name}</span>
                 <Badge>{categoryLabel(tool.category)}</Badge>
               </Card>

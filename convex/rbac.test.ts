@@ -13,9 +13,23 @@ describe("public listing", () => {
   test("exposes only name and category", async () => {
     const t = setup();
     const ada = await signIn(t, "Ada Lovelace");
-    await ada.as.mutation(api.tools.create, drill);
+    const toolId = await ada.as.mutation(api.tools.create, drill);
     const list = await t.query(api.tools.listPublic, {});
-    expect(list).toEqual([{ name: "Cordless drill", category: "power_tools" }]);
+    expect(list).toEqual([{ _id: toolId, name: "Cordless drill", category: "power_tools" }]);
+  });
+
+  test("hides tools that are on loan", async () => {
+    const t = setup();
+    const ada = await signIn(t, "Ada");
+    const bob = await signIn(t, "Bob");
+    const toolId = await ada.as.mutation(api.tools.create, drill);
+    const loanId = await bob.as.mutation(api.loans.request, {
+      toolId,
+      startDate: isoDay(1),
+      endDate: isoDay(2),
+    });
+    await ada.as.mutation(api.loans.approve, { loanId });
+    expect(await t.query(api.tools.listPublic, {})).toEqual([]);
   });
 
   test("signed-out users cannot use authenticated queries", async () => {
