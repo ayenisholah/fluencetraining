@@ -4,7 +4,7 @@
 
 A neighbourhood tool-lending board. Neighbours list tools, request to borrow them for a date range, and approve, decline and close out loans. n8n handles the notifications and overdue reminders.
 
-**Stack:** Next.js 16 (App Router) · TypeScript · Clerk · Convex · n8n · Tailwind CSS 4 · Vitest + convex-test
+**Stack:** Next.js 16 (App Router) · TypeScript · Clerk · Convex · n8n · Tailwind CSS 4 · Frox design system · Vitest, Testing Library, Storybook 10, Playwright
 
 ---
 
@@ -17,9 +17,10 @@ A neighbourhood tool-lending board. Neighbours list tools, request to borrow the
 5. [Roles and access control](#roles-and-access-control)
 6. [n8n workflows](#n8n-workflows)
 7. [Security and data-minimisation decisions](#security-and-data-minimisation-decisions)
-8. [Testing](#testing)
-9. [What I would change for production](#what-i-would-change-for-production)
-10. [Launch checklist](LAUNCH_CHECKLIST.md)
+8. [Design system](#design-system)
+9. [Testing](#testing)
+10. [What I would change for production](#what-i-would-change-for-production)
+11. [Launch checklist](LAUNCH_CHECKLIST.md)
 
 ## What it does
 
@@ -84,8 +85,14 @@ flowchart LR
 Directory map:
 
 ```
-app/                 pages (public, tools, listings, requests, incoming, admin)
-components/          UI, Convex+Clerk provider
+app/(site)/          public pages: landing, privacy, terms
+app/(app)/           signed-in pages: tools, listings, requests, incoming, admin
+components/ui/       design-system components (each with tests and stories)
+components/shell/    app shell (sidebar), site header, footer
+components/          domain components: ToolForm, BorrowForm, LoanCard, screens
+lib/                 pure helpers: theme, nav, loan status, formatting, contrast
+e2e/                 Playwright suites
+.storybook/          Storybook config (theme toolbar, a11y as errors)
 convex/
   schema.ts          tables + indexes
   lib/auth.ts        requireUser / requireAdmin / requireToolOwner / requireLoanParty
@@ -278,20 +285,42 @@ To refresh the exported JSON after editing in the n8n UI, run `npm run n8n:expor
 - **Local stack binds to 127.0.0.1 only.** Mailpit's SMTP port isn't published at all.
 - **Baseline headers.** The app sends `X-Frame-Options: DENY`, `nosniff`, a strict referrer policy and a restrictive `Permissions-Policy`.
 
+## Design system
+
+The UI implements the **Frox dashboard design system**. The spec and implementation notes are in [docs/design-systems/design-system.md](docs/design-systems/design-system.md):
+- Tokens come straight from the Figma file and live in `app/globals.css`, exposed as Tailwind 4 theme values.
+- Day and night themes switch via `data-theme`, defaulting to the OS setting.
+- Poppins is the typeface.
+- A component library lives in `components/ui`: Button, Control, SegmentedControl, TextField, Select, Toggle, Checkbox, Radio, RangeSlider, Badge, Avatar, Card, StatWidget, DropdownMenu, SidebarItem, Alert, EmptyState, Spinner, PageHeader and icons.
+
+Where a Figma colour pairing failed WCAG AA, only the semantic alias the components use was adjusted. Each change is listed next to its Figma value in the doc.
+
+```bash
+npm run storybook        # http://localhost:6006: every component, variant and state
+npm run build-storybook  # static build in storybook-static/
+```
+
 ## Testing
 
 ```bash
-npm test          # Vitest + convex-test (32 tests)
-npm run typecheck
-npm run lint
+npm test                 # Vitest: Convex backend (edge-runtime) + components and lib (jsdom)
+npm run test:storybook   # every story in Chrome: render, play function, axe
+npm run test:e2e         # Playwright (builds and starts the app)
+npm run test:e2e:public  # signed-out suite only
+npm run typecheck && npm run lint
+npm run check:contrast   # WCAG AA for the design tokens in both themes
 ```
 
 | Suite | What it covers |
 |---|---|
-| `convex/rbac.test.ts` | Public list leaks only name and category; owner-only edit and delete; lender-only approve, decline and return; borrower-only cancel; admin-only functions; no self-borrowing; date validation; overlap rule; new users are never admins; each state change queues exactly one outbox row. |
+| `convex/rbac.test.ts` | Public list leaks only name and category; owner-only edit and delete; lender-only approve, decline and return; borrower-only cancel; admin-only functions and stats; no self-borrowing; date validation; overlap rule; new users are never admins; each state change queues exactly one outbox row; per-user hourly limits on listings and requests. |
 | `convex/automation.test.ts` | Rejects unsigned, wrongly signed and stale requests; overdue payload is minimal; idempotent write-back; reminded loans are hidden on re-run; a `failed`→`sent` upgrade; malformed input. Webhook signing, payload contents (no description, no other party's email), backoff retries, no retry on 4xx, admin retry, and failure when configuration is missing. |
-| `convex/rbac.test.ts` (spam protection) | Per-user hourly limits on listings and borrow requests. |
-| `convex/hmac.test.ts` | Signing round-trip, tamper and replay detection, and parity with the Node `crypto` implementation used inside n8n. |
+| `convex/hmac.test.ts`, `convex/rules.test.ts` | Signing round-trip, tamper and replay detection, parity with the Node `crypto` used in n8n; the shared validation rules. |
+| `components/**/*.test.tsx` | Every component's variants, states (disabled, loading, error), keyboard behaviour (segmented control, menu, toggle), ARIA wiring and an axe pass; LoanCard actions per viewer; ToolForm and BorrowForm validation, focus and submit. |
+| `lib/lib.test.ts` | Theme storage, nav by role, loan status mapping, formatting, contrast maths, class merging. |
+| `components/**/*.stories.tsx` | 49 stories run as browser tests with axe set to fail on violations, including colour contrast. |
+| `e2e/public.spec.ts` | Desktop and mobile: landing CTA, consent persistence, theme persistence, legal pages, real 404, auth redirect, no horizontal scroll, axe in light and dark. |
+| `e2e/signed-in.spec.ts` | With `@clerk/testing` and two Clerk test users: non-admins can't reach Admin, listing validation, then lend → request → approve → "On loan" on both sides → notification activity → returned. Then axe on every signed-in page. It needs the local stack (`npm run setup`) and Clerk keys in `.env.local`, and is skipped without them. |
 
 On the local stack I also ran each automation scenario end to end: request and approval emails, the overdue reminder and an idempotent re-run, a bad secret (401, failed, retried from Admin), n8n down (retried and delivered), and Mailpit down (error workflow fires and the delivery recovers).
 

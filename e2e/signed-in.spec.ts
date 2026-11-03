@@ -1,6 +1,6 @@
 import { clerk } from "@clerk/testing/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { acceptEssentialOnly, expectNoAxeViolations } from "./helpers";
+import { acceptEssentialOnly, expectNoAxeViolations, expectNoHorizontalScroll } from "./helpers";
 import { BORROWER, LENDER } from "./users";
 
 // Requires the local stack (docker compose: Convex, n8n, Mailpit) and Clerk
@@ -95,4 +95,17 @@ test("signed-in pages pass axe", async () => {
     await expect(lender.getByRole("heading", { level: 1 })).toBeVisible();
     await expectNoAxeViolations(lender);
   }
+});
+
+test("phone layout: menu, account button and no sideways scroll", async () => {
+  await lender.setViewportSize({ width: 390, height: 844 });
+  await lender.goto("/incoming");
+  await expect(lender.getByRole("heading", { level: 1 })).toBeVisible();
+  await expectNoHorizontalScroll(lender);
+  const account = lender.getByRole("button", { name: /open user (button|menu)/i });
+  await expect(account).toBeInViewport();
+  await lender.getByRole("button", { name: "Open navigation" }).click();
+  await lender.getByRole("menuitem", { name: "All tools" }).click();
+  await expect(lender).toHaveURL(/\/tools$/);
+  await expect(lender.getByRole("menu")).toHaveCount(0);
 });

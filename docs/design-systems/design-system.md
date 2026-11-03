@@ -353,3 +353,63 @@ module.exports = {
 | Widgets | `1112:2920` |
 
 Tip for Claude Code: when a component needs exact specs not listed here, call `get_design_context` on its node ID above rather than guessing.
+---
+
+## 9. Implementation in LendLoop
+
+Everything above is implemented in this repo. Browse it in Storybook (`npm run storybook` → http://localhost:6006). The **Foundations** page shows every token with live contrast ratios in both themes.
+
+| What | Where |
+|---|---|
+| Tokens: exact Figma scale, semantic aliases, Tailwind 4 `@theme` mapping, type scale | `app/globals.css` |
+| Theme switching (`data-theme` on `<html>`, defaults to the OS, set before first paint) | `lib/theme.ts`, `components/ui/ThemeToggle` |
+| Components (one folder each, with `*.test.tsx` and `*.stories.tsx`) | `components/ui/*`, exported from `components/ui/index.ts` |
+| Class merging that understands the type scale | `lib/cn.ts` |
+| App shell (sidebar ≥1024px, menu button below) | `components/shell/AppShell.tsx` |
+
+**Component map (spec §5 → code):**
+- Button → `Button` (`solid` / `dim` / `ghost`, plus `danger`; `lg` / `md` / `sm`; `loading`, icons). `buttonVariants()` styles links as buttons.
+- Control → `Control` (`body` / `caption` / `icon`) and `IconButton`.
+- Segmented control → `SegmentedControl`, an accessible radiogroup with arrow-key movement.
+- Text field → `TextField` (floating label, hint, red caption bar, counter, `multiline`, `type="date"`) and `Select`.
+- Toggle → `Toggle` (56×32, or the small "Toggle + Text" variant).
+- Checkbox / radio → `Checkbox`, `Radio`.
+- Slider → `RangeSlider`: two native range inputs, so both thumbs work with keyboard and screen readers.
+- Badge → `Badge` (`solid` / `dim` / `ghost` / `soft`, `tone`, `pill` / `bubble`).
+- Dropdown item → `DropdownMenu`, the WAI-ARIA menu-button pattern.
+- Left sidebar item → `SidebarItem`.
+- Avatar → `Avatar` (all nine sizes, initials fallback, status dot) and `AvatarGroup`.
+- Widgets → `Card` / `CardHeader`, `StatWidget`.
+- Also `Alert`, `EmptyState`, `Spinner`, `PageHeader` and an icon set in the Vuesax linear style (`components/ui/icons.tsx`).
+
+**Checked against Figma.** The Buttons & Form (`1109:9530`), Left sidebar item (`1155:2839`) and Widgets (`1112:2920`) frames were compared with screenshots from the Figma file on 2026-11-03.
+
+### AA adjustments
+
+The raw Figma scale in `globals.css` is unchanged. Where a Figma pairing fails WCAG 2.1 AA, only the **semantic alias** that components use was changed. `npm run check:contrast` (in CI) checks 24 pairs in each theme. Storybook story tests and Playwright also run axe, including colour contrast, on the rendered pages.
+
+| Use | Figma value | Value used (day) | Figma contrast | Now |
+|---|---|---|---|---|
+| Secondary text (`--fg-muted`) | neutral-500 #7E7E8F | #636373 | 3.99:1 (on white) | 5.89:1 |
+| Dim button fill (`--dim`) | neutral-500 #7E7E8F | #6B6B7B | 3.99:1 (white label) | 5.23:1 |
+| Field background (`--field-bg`) | #9A9AAF | neutral-100 #F5F5FA | white value text 2.76:1 | dark value text 16.55:1 |
+| Field placeholder | gray-6 #C4C4C4 | #66667A | 1.58:1 on #9A9AAF | 5.16:1 on #F5F5FA |
+| Field label | gray-5 #999999 | #636373 | 1.03:1 on #9A9AAF | 5.42:1 on #F5F5FA |
+| Error text (`--danger`) | accent-red #E23738 | #B8292B | 4.34:1 (on white) | 6.19:1 |
+| Error caption bar (`--danger-solid`) | accent-red #E23738 | #D42F30 | 4.34:1 (white text) | 4.94:1 |
+| Info text (`--info`) | accent-blue #2775FF | #1D5FD6 | 3.58:1 (on info tint) | 4.97:1 |
+| Keyboard focus ring (`--focus-ring`, day) | state-focus #B2A7FF | brand-1 #7364DB | 2.13:1 (on white, needs 3:1) | 4.59:1 |
+
+What these changes mean in the UI:
+- The rest/filled field is a light surface with dark text rather than the Figma mid-grey with white text. Hover still draws the 4px `#B2A7FF` border, and focus keeps the blue glow.
+- `#B2A7FF` is still used for hover, as specified, since hover has no contrast requirement. Keyboard focus uses `--focus-ring`, which is `#B2A7FF` again in the night theme (6.71:1 on the dark card).
+- `neutral-500` is still used as `--fg-subtle` for icons and large text, where 3:1 is enough.
+- The night-theme card surface (`#282A33`) and the status colours on dark tints are marked **(approx)**: the file has no variables for them.
+
+### Testing
+
+| Layer | Command | What runs |
+|---|---|---|
+| Unit and component | `npm run test:ui` | Vitest + Testing Library + axe-core (jsdom): every component's variants, states, keyboard behaviour and ARIA wiring, plus `lib/*` logic |
+| Stories | `npm run test:storybook` | Every story renders in Chrome, runs its play function, then axe at `a11y: "error"` |
+| End to end | `npm run test:e2e` | Playwright: signed-out pages on desktop and mobile in both themes; with Clerk keys and the local stack, the full lend → borrow → approve → return flow |

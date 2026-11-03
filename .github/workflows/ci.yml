@@ -4,6 +4,14 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  # Placeholder publishable key (decodes to a non-existent instance) so the
+  # app builds without real credentials.
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIuY2xlcmsuYWNjb3VudHMuZGV2JA
+  NEXT_PUBLIC_CONVEX_URL: https://ci-placeholder.convex.cloud
+  # CI has no system Chrome: use Playwright's bundled Chromium.
+  PLAYWRIGHT_CHANNEL: ""
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -16,26 +24,65 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - name: Unit, component and Convex tests
+        run: npm test
       - name: Colour contrast (WCAG AA)
         run: npm run check:contrast
+      - name: Workflow exports contain no credential data
+        run: |
+          ! grep -rniE '"(password|apiKey|secret|token)"\s*:\s*"[^"]+"' n8n/workflows
       - name: Build
         run: npm run build
-        env:
-          # Placeholder publishable key (decodes to a non-existent instance);
-          # the real keys never enter CI.
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIuY2xlcmsuYWNjb3VudHMuZGV2JA
-          NEXT_PUBLIC_CONVEX_URL: https://ci-placeholder.convex.cloud
       - name: No secrets in the client bundle
         run: npm run check:bundle
       - name: No broken links on public pages
         env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIuY2xlcmsuYWNjb3VudHMuZGV2JA
           CLERK_SECRET_KEY: sk_test_ci_placeholder
         run: |
           npm start -- --port 3000 &
           npx wait-on@8 http://localhost:3000/robots.txt
           npm run check:links
-      - name: Workflow exports contain no credential data
-        run: |
-          ! grep -rniE '"(password|apiKey|secret|token)"\s*:\s*"[^"]+"' n8n/workflows
+
+  storybook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build Storybook
+        run: npm run build-storybook -- --quiet
+      - name: Story tests (render, play functions, axe)
+        run: npm run test:storybook
+
+  e2e:
+    # Needs a Clerk development instance and a Convex deployment, provided as
+    # repository secrets. Skipped (not failed) when they're absent.
+    runs-on: ubuntu-latest
+    env:
+      CLERK_SECRET_KEY: ${{ secrets.E2E_CLERK_SECRET_KEY }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.E2E_CLERK_PUBLISHABLE_KEY }}
+      NEXT_PUBLIC_CONVEX_URL: ${{ secrets.E2E_CONVEX_URL }}
+      E2E_PORT: "3100"
+      E2E_SIGNED_IN: "0"
+    steps:
+      - uses: actions/checkout@v4
+        if: env.CLERK_SECRET_KEY != ''
+      - uses: actions/setup-node@v4
+        if: env.CLERK_SECRET_KEY != ''
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.CLERK_SECRET_KEY != ''
+        run: npm ci && npx playwright install --with-deps chromium && npm run build
+      - name: Signed-out end-to-end suite
+        if: env.CLERK_SECRET_KEY != ''
+        run: npm run test:e2e:public
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/

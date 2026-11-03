@@ -84,10 +84,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           </div>
           <div className="lg:hidden">
-            <Logo href="/tools" />
+            <Logo href="/tools" compact />
           </div>
           <p className="hidden text-subtitle-semibold text-fg lg:block">{current?.label}</p>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-3">
             <ThemeToggle className="lg:hidden" />
             <UserButton />
           </div>

@@ -3,7 +3,7 @@
 import { SignInButton } from "@clerk/nextjs";
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import Link from "next/link";
-import { Badge, Button, buttonVariants, Card, EmptyState, Spinner, ToolIcon } from "@/components/ui";
+import { Badge, Button, buttonVariants, Card, EmptyState, ToolIcon } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { categoryLabel } from "@/lib/format";
 
@@ -23,22 +23,29 @@ export function HomeScreen() {
         <p className="max-w-xl text-subtitle font-normal tracking-normal leading-relaxed text-fg-muted">
           LendLoop is a neighbourhood board for the drills, ladders and tents that spend most of the year in a cupboard.
         </p>
-        <Unauthenticated>
-          <SignInButton mode="modal">
-            <Button size="lg">Sign in to lend or borrow</Button>
-          </SignInButton>
-        </Unauthenticated>
-        <Authenticated>
-          <Link href="/tools" className={buttonVariants({ size: "lg" })}>
-            Browse tools
-          </Link>
-        </Authenticated>
+        {/* Fixed-height slot: the button appears once auth resolves, without shifting the page. */}
+        <div className="min-h-14">
+          <Unauthenticated>
+            <SignInButton mode="modal">
+              <Button size="lg">Sign in to lend or borrow</Button>
+            </SignInButton>
+          </Unauthenticated>
+          <Authenticated>
+            <Link href="/tools" className={buttonVariants({ size: "lg" })}>
+              Browse tools
+            </Link>
+          </Authenticated>
+        </div>
       </section>
 
       <section aria-labelledby="available">
         <h2 id="available" className="mb-4 text-h7 text-fg">Available now</h2>
         {tools === undefined ? (
-          <Spinner />
+          <ul aria-busy="true" aria-label="Loading tools" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="h-[68px] animate-pulse rounded-md border border-line bg-surface" />
+            ))}
+          </ul>
         ) : tools.length === 0 ? (
           <EmptyState icon={<ToolIcon />} title="No tools listed yet" description="Be the first to lend something." />
         ) : (

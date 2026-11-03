@@ -1,6 +1,6 @@
 # Launch checklist
 
-The status of each launch item, what was done, and how it was checked. Checked on 3 November 2026 against a local production build (`npm run build && npm start`).
+The status of each launch item, what was done, and how it was checked. Checked on 3 November 2026 against a local production build (`npm run build && npm start`), and re-checked after the Frox design system was applied.
 
 **Status key:**
 - ✅ done and verified
@@ -20,9 +20,9 @@ The status of each launch item, what was done, and how it was checked. Checked o
 | 9 | Sitemap and robots.txt | ✅ | `app/sitemap.ts` lists only the public pages (`/`, `/privacy`, `/terms`). `app/robots.ts` disallows the signed-in app routes and points to the sitemap. | `/robots.txt` and `/sitemap.xml` return 200 with the expected content |
 | 10 | Image alt text | ➖ | The app ships no `<img>` elements. Icons are SVG/CSS, and the Clerk avatar sets its own alt. The OG image's alt is set via `opengraph-image.alt`. | `grep -rn "<img" app components` finds nothing. Lighthouse accessibility scores 100 on every public page. |
 | 11 | Image compression | ➖ | There are no raster assets: the icon is a 0.3 KB SVG, and the OG and Apple icons are generated PNGs. The empty `public/` folder was removed. | Total page weight is about 300 KB, almost all JS and fonts (Lighthouse `total-byte-weight`) |
-| 12 | Page load speed check | ✅ | Lighthouse 12 on mobile, results in [`docs/lighthouse/summary.md`](docs/lighthouse/summary.md). Fixed during the audit: the mono font is no longer preloaded on every page. The remaining cost is Clerk's dev-instance handshake and `clerk-js`. | With Clerk's dev domain blocked: Performance 75–82, observed LCP 0.9–1.1 s. As shipped with dev keys: Performance 62–69, observed LCP 1.0–1.9 s. Accessibility and SEO score 100 everywhere. |
-| 13 | Color contrast fixes | ✅ | `scripts/contrast-check.mjs` reads the tokens in `app/globals.css` and checks every text/background pair the UI uses, in both light and dark themes. No token needed changing; the closest pair is the light "Requested" badge at 4.73:1. | `npm run check:contrast`: all 20 pairs pass AA. Runs in CI. Lighthouse contrast audit passes. |
-| 14 | Mobile responsiveness | ✅ / 👤 | Public pages were checked at 390 px and 1280 px. Layout is single-column on phones and the grid becomes 2–3 columns wider up. The nav wraps, the banner stacks its buttons, and there's no horizontal scroll. | Headless Chrome screenshots of `/`, `/privacy` and the 404 page. 👤 Signed-in pages need a session: check them in a narrow window. |
+| 12 | Page load speed check | ✅ | Lighthouse 12 on mobile, re-run after the design system; results in [`docs/lighthouse/summary.md`](docs/lighthouse/summary.md). Fixes: no mono-font preload on every page (first audit); home layout shift 0.124 → 0.005 after the restyle, using a fixed-height CTA slot and skeleton cards. Poppins (4 weights) and the component library cost a few performance points. The remaining cost is Clerk's dev-instance handshake and `clerk-js`. | With Clerk's dev domain blocked: Performance 70–79, observed LCP 1.0–2.0 s, CLS ≤ 0.005. As shipped with dev keys: Performance 59–65. Accessibility and SEO score 100 everywhere. |
+| 13 | Color contrast fixes | ✅ | The Frox palette is applied with AA fixes in semantic aliases only (table in [docs/design-systems/design-system.md](docs/design-systems/design-system.md#aa-adjustments)): secondary text, dim button, field colours, error and info text, and a keyboard focus ring (the Figma `#B2A7FF` is 2.13:1 on white). `scripts/contrast-check.mjs` resolves `var()` references and checks 24 pairs per theme. | `npm run check:contrast`: 48/48 pass, in CI. Axe colour-contrast passes in all 49 Storybook stories and in Playwright on public and signed-in pages, light and dark. |
+| 14 | Mobile responsiveness | ✅ | Sidebar on ≥1024px, menu button with the same links below that. Public pages stack to one column. | Playwright `public-mobile` project (Pixel 7) asserts no horizontal scroll and runs every public test. Screenshots at 390 px in both themes. |
 | 15 | Custom 404 page | ✅ | `app/not-found.tsx`: on-brand copy, links home and to tools, `noindex`. | `/does-not-exist` returns **404** (not 200) and renders the page |
 | 16 | Broken link fixes | ✅ | Added footer links (Privacy, Terms, Cookie settings). `scripts/check-links.mjs` crawls the public pages and every same-origin link and asset. | `npm run check:links`: 25 URLs, 0 broken. Runs in CI against the built app. |
 | 17 | Form validation | ✅ | Rules live in one place (`convex/lib/rules.ts`), used by both the server checks and the forms. Fields show inline messages after blur or submit, with `aria-invalid` / `aria-describedby`, a description character counter, and focus moved to the first invalid field. Borrow dates are checked before sending: real dates, not in the past, end after start, at most 30 days. The server stays authoritative. | `npm test` covers the server rules, including invalid dates. The UI messages use the same functions. |
@@ -33,7 +33,9 @@ The status of each launch item, what was done, and how it was checked. Checked o
 ## Commands
 
 ```bash
-npm test                 # 32 tests incl. rate limits
+npm test                 # Convex + component + lib tests
+npm run test:storybook   # 49 stories with axe
+npm run test:e2e         # Playwright
 npm run typecheck && npm run lint
 npm run check:contrast   # WCAG AA token check
 npm run build
