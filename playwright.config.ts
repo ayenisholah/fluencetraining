@@ -14,7 +14,6 @@ const channel = process.env.PLAYWRIGHT_CHANNEL === "" ? undefined : (process.env
 const signedIn = Boolean(process.env.CLERK_SECRET_KEY) && process.env.E2E_SIGNED_IN !== "0";
 
 export default defineConfig({
-  globalSetup: "./e2e/mail-provider-guard.ts",
   testDir: "e2e",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
@@ -28,12 +27,13 @@ export default defineConfig({
     timeout: 300_000,
   },
   projects: [
-    { name: "concurrency", testMatch: /concurrency-backend\.spec\.ts/, use: { trace: "off" } },
+    { name: "mail-provider-setup", testMatch: /mail-provider\.setup\.ts/ },
+    { name: "concurrency", testMatch: /concurrency-backend\.spec\.ts/, dependencies: ["mail-provider-setup"], use: { trace: "off" } },
     { name: "public", testMatch: /public\.spec\.ts/, use: { ...devices["Desktop Chrome"], channel } },
     { name: "public-mobile", testMatch: /public\.spec\.ts/, use: { ...devices["Pixel 7"], channel } },
     ...(signedIn
       ? [
-          { name: "clerk-setup", testMatch: /global\.setup\.ts/ },
+          { name: "clerk-setup", testMatch: /global\.setup\.ts/, dependencies: ["mail-provider-setup"] },
           { name: "responsive", testMatch: /responsive\.spec\.ts/, dependencies: ["clerk-setup"], use: { ...devices["Desktop Chrome"], channel } },
           { name: "concurrency-ui", testMatch: /concurrency-ui\.spec\.ts/, dependencies: ["clerk-setup"], use: { ...devices["Desktop Chrome"], channel, trace: "off" as const } },
           {

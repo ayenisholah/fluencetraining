@@ -33,7 +33,7 @@ npm test
 npm run test:automation
 ```
 
-Playwright checks the running container's provider marker before non-public tests. It rejects SES, unknown providers, and incomplete imports. Do not manually change the marker or run provider imports concurrently with tests. Imports are an operational action: pause application activity while switching providers. The SMTP outage test stops Mailpit and must only run against the local provider.
+Playwright's `mail-provider-setup` project checks the running container's provider marker before non-public tests through project dependencies. Public desktop/mobile tests have no dependency on Docker or Mailpit. The guard rejects SES, unknown providers, and incomplete imports. Do not bypass dependencies with `--no-deps`, manually change the marker, or run provider imports concurrently with tests. Imports are an operational action: pause application activity while switching providers. The SMTP outage test stops Mailpit and must only run against the local provider.
 
 Repository workflow exports are normalized to Mailpit, including the local sender and environment-based ops address. SES imports apply the live sender and ops address without modifying those source files. Local setup refuses to overwrite an external/incomplete provider configuration. If an import fails, fix the error and rerun with an explicit provider (and CSV for SES) to complete recovery.
 

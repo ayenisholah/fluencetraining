@@ -1,8 +1,6 @@
 import { execFileSync } from "node:child_process";
-import type { FullConfig } from "@playwright/test";
 
-export default function guard(config: FullConfig) {
-  if (config.projects.every((project) => project.name.startsWith("public"))) return;
+export default function guard() {
   let provider: string;
   try {
     provider = execFileSync("docker", ["compose", "exec", "-T", "n8n", "cat",
