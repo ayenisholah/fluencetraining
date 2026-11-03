@@ -126,6 +126,7 @@ npm run setup
 
 1. In the [Clerk dashboard](https://dashboard.clerk.com), create an application (email sign-in is enough).
 2. Copy the **Publishable key** and **Secret key** into `.env.local`.
+   Under **Configure → User & authentication**, turn on **First and last name** and make it required. Otherwise email-code sign-ups have no name and appear as "Neighbour".
 3. Go to **Configure → JWT templates → New template → Convex**. Keep the name `convex`. The template's default claims include `email` and `name`; LendLoop needs `email` to send notifications.
 
 ### 3. Point Convex at Clerk
