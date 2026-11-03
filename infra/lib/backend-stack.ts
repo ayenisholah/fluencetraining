@@ -94,8 +94,15 @@ export class BackendStack extends Stack {
     }
 
     const eip = new ec2.CfnEIP(this, "Eip", { domain: "vpc", tags: [{ key: "Name", value: "lendloop-prod" }] });
-    this.baseDomain = `${eip.attrPublicIp}.sslip.io`;
+    this.baseDomain = config.domain;
     this.convexUrl = `https://convex.${this.baseDomain}`;
+    // Kept so stacks that imported it before the custom domain can drop it first.
+    this.exportValue(eip.attrPublicIp);
+    // Read by bootstrap.sh on every run (user-data only runs on first boot).
+    const domainParam = new ssm.StringParameter(this, "BaseDomainParam", {
+      parameterName: "/lendloop/prod/base-domain",
+      stringValue: this.baseDomain,
+    });
 
     // ── Instance role: least privilege for what the host does ───────────────
     const role = new iam.Role(this, "InstanceRole", {
@@ -121,6 +128,7 @@ export class BackendStack extends Stack {
     n8nBundle.grantRead(role);
     bundleParam.grantRead(role);
     n8nBundleParam.grantRead(role);
+    domainParam.grantRead(role);
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: ["ssm:GetParameter"],
@@ -160,13 +168,15 @@ CWA`,
       // Settings bootstrap.sh needs, kept for later re-runs via SSM.
       `cat > /etc/lendloop.env <<ENV
 AWS_REGION=${this.region}
-BASE_DOMAIN=${this.baseDomain}
+BASE_DOMAIN=${eip.attrPublicIp}.sslip.io
 SECRET_PREFIX=${config.secretPrefix}
 BUNDLE_PARAM=${bundleParam.parameterName}
 N8N_BUNDLE_PARAM=${n8nBundleParam.parameterName}
 ENV`,
-      // bootstrap.sh comes from the bundle; fetch it once to run it.
-      `aws s3 cp --region ${this.region} ${bundle.s3ObjectUrl} /tmp/ec2.zip --only-show-errors`,
+      // bootstrap.sh comes from the bundle; fetch it once to run it. The URL is
+      // read from SSM so user-data (and so the instance) never changes when the
+      // bundle does: later deploys refresh the host through SSM Run Command.
+      `aws s3 cp --region ${this.region} "$(aws ssm get-parameter --region ${this.region} --name ${bundleParam.parameterName} --query Parameter.Value --output text)" /tmp/ec2.zip --only-show-errors`,
       "mkdir -p /opt/lendloop && unzip -oq /tmp/ec2.zip -d /opt/lendloop && chmod +x /opt/lendloop/*.sh",
       "set -a; . /etc/lendloop.env; set +a; /opt/lendloop/bootstrap.sh",
     );
