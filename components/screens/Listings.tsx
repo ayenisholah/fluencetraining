@@ -3,10 +3,12 @@
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { ToolForm } from "@/components/ToolForm";
-import { Alert, Badge, Button, Card, CardHeader, EmptyState, BoxIcon, PageHeader, Spinner } from "@/components/ui";
+import { ToolStatusBadge } from "@/components/ToolStatusBadge";
+import { useRowAction } from "@/components/useRowAction";
+import { Alert, Button, Card, CardHeader, EmptyState, BoxIcon, PageHeader, Spinner } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { categoryLabel, conditionLabel, errorMessage } from "@/lib/format";
+import { categoryLabel, conditionLabel } from "@/lib/format";
 
 export function ListingsScreen() {
   const tools = useQuery(api.tools.mine);
@@ -15,7 +17,7 @@ export function ListingsScreen() {
   const remove = useMutation(api.tools.remove);
   const [editing, setEditing] = useState<Id<"tools">>();
   const [confirming, setConfirming] = useState<Id<"tools">>();
-  const [error, setError] = useState<{ id: Id<"tools">; message: string }>();
+  const { run, errorFor } = useRowAction();
 
   return (
     <>
@@ -49,7 +51,7 @@ export function ListingsScreen() {
                             {categoryLabel(tool.category)} · {conditionLabel(tool.condition)}
                           </p>
                         </div>
-                        {tool.status === "available" ? <Badge tone="success">Available</Badge> : <Badge tone="warning">On loan</Badge>}
+                        <ToolStatusBadge status={tool.status} />
                       </div>
                       {tool.description && <p className="mt-3 text-body text-fg">{tool.description}</p>}
                       {confirming === tool._id ? (
@@ -58,15 +60,9 @@ export function ListingsScreen() {
                           <Button
                             variant="danger"
                             size="sm"
-                            onClick={async () => {
-                              setError(undefined);
-                              try {
-                                await remove({ toolId: tool._id });
-                              } catch (err) {
-                                setError({ id: tool._id, message: errorMessage(err) });
-                              } finally {
-                                setConfirming(undefined);
-                              }
+                            onClick={() => {
+                              setConfirming(undefined);
+                              void run(tool._id, () => remove({ toolId: tool._id }));
                             }}
                           >
                             Confirm delete
@@ -79,7 +75,7 @@ export function ListingsScreen() {
                           <Button variant="danger" size="sm" onClick={() => setConfirming(tool._id)}>Delete</Button>
                         </div>
                       )}
-                      {error?.id === tool._id && <Alert tone="danger" className="mt-3">{error.message}</Alert>}
+                      {errorFor(tool._id) && <Alert tone="danger" className="mt-3">{errorFor(tool._id)}</Alert>}
                     </>
                   )}
                 </Card>

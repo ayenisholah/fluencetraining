@@ -1,12 +1,11 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { useState } from "react";
 import { EmptyState, InboxIcon, Spinner } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { errorMessage } from "@/lib/format";
 import { LoanCard, type LoanView } from "./LoanCard";
+import { useRowAction } from "./useRowAction";
 
 /** Connects LoanCard to the Convex loan mutations. */
 export function LoanList({
@@ -22,19 +21,13 @@ export function LoanList({
   const decline = useMutation(api.loans.decline);
   const cancel = useMutation(api.loans.cancel);
   const markReturned = useMutation(api.loans.markReturned);
-  const [error, setError] = useState<{ id: string; message: string }>();
+  const { run, errorFor } = useRowAction();
 
   if (loans === undefined) return <Spinner />;
   if (loans.length === 0) return <EmptyState icon={<InboxIcon />} title={empty} />;
 
-  const run = (id: string, fn: (args: { loanId: Id<"loans"> }) => Promise<unknown>) => async () => {
-    setError(undefined);
-    try {
-      await fn({ loanId: id as Id<"loans"> });
-    } catch (err) {
-      setError({ id, message: errorMessage(err) });
-    }
-  };
+  const act = (id: string, fn: (args: { loanId: Id<"loans"> }) => Promise<unknown>) => () =>
+    void run(id, () => fn({ loanId: id as Id<"loans"> }));
 
   return (
     <ul className="space-y-3">
@@ -43,12 +36,12 @@ export function LoanList({
           key={loan._id}
           loan={loan}
           viewer={as}
-          error={error?.id === loan._id ? error.message : undefined}
+          error={errorFor(loan._id)}
           actions={{
-            onApprove: run(loan._id, approve),
-            onDecline: run(loan._id, decline),
-            onCancel: run(loan._id, cancel),
-            onMarkReturned: run(loan._id, markReturned),
+            onApprove: act(loan._id, approve),
+            onDecline: act(loan._id, decline),
+            onCancel: act(loan._id, cancel),
+            onMarkReturned: act(loan._id, markReturned),
           }}
         />
       ))}

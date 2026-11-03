@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { BorrowForm } from "@/components/BorrowForm";
+import { ToolStatusBadge } from "@/components/ToolStatusBadge";
 import { Badge, Button, Card, EmptyState, PageHeader, Select, Spinner, ToolIcon } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -50,7 +51,7 @@ export function ToolsScreen() {
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
-                  {tool.status === "available" ? <Badge tone="success">Available</Badge> : <Badge tone="warning">On loan</Badge>}
+                  <ToolStatusBadge status={tool.status} />
                   {tool.trustedLender && <Badge variant="ghost" tone="brand">Trusted lender</Badge>}
                 </div>
               </div>
