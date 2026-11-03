@@ -25,7 +25,7 @@ export function usePopover({ estimatedHeight = 280 }: { estimatedHeight?: number
     if (!open || !triggerRef.current || typeof window === "undefined") return;
     const rect = triggerRef.current.getBoundingClientRect();
     const below = window.innerHeight - rect.bottom;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- measured layout after opening
+    // Placement depends on measured layout after opening, so it is set here.
     setPlacement(below < estimatedHeight && rect.top > below ? "top" : "bottom");
   }, [open, estimatedHeight]);
 

@@ -68,7 +68,6 @@ export function DatePicker({
 }: DatePickerProps) {
   const autoId = useId();
   const id = idProp ?? autoId;
-  const labelId = `${id}-label`;
   const dialogId = `${id}-dialog`;
   const headingId = `${id}-month`;
   const { open, setOpen, close, placement, rootRef, triggerRef } = usePopover({ estimatedHeight: 360 });
@@ -125,9 +124,6 @@ export function DatePicker({
   return (
     <FieldShell id={id} hint={hint} error={error} invalid={invalid} bare className={className}>
       <div ref={rootRef} className="relative">
-        <span id={labelId} className="sr-only">
-          {label}
-        </span>
         <button
           ref={triggerRef}
           id={id}
@@ -135,8 +131,10 @@ export function DatePicker({
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={open ? dialogId : undefined}
-          aria-labelledby={`${labelId} ${id}-value`}
-          aria-invalid={invalid || undefined}
+          // Named by its own content ("From 4 Nov 2026"), so the accessible name
+          // always contains the visible text.
+          // aria-invalid isn't valid on a button; the error is announced through
+          // aria-describedby and the field is styled by FieldShell.
           aria-describedby={describedBy(id, { hint, error })}
           disabled={disabled}
           onClick={() => (open ? close(false) : openCalendar())}
@@ -149,13 +147,8 @@ export function DatePicker({
           className={cn(outlineFieldClass, invalid && "border-danger", error && "rounded-b-none")}
         >
           <span className="flex min-w-0 flex-1 flex-col">
-            {!hideLabel && (
-              <span aria-hidden className="text-description text-field-label">
-                {label}
-              </span>
-            )}
+            <span className={hideLabel ? "sr-only" : "text-description text-field-label"}>{label}</span>{" "}
             <span
-              id={`${id}-value`}
               className={cn("truncate text-body", hasValue ? (hideLabel ? "text-fg-muted" : "text-fg") : "text-field-placeholder")}
             >
               {hasValue ? formatCompact(value) : placeholder}
@@ -246,7 +239,7 @@ export function DatePicker({
                             onClick={() => select(iso)}
                             className={cn(
                               "mx-auto flex size-9 items-center justify-center rounded-pill text-body outline-none transition-colors focus-visible:ring-4 focus-visible:ring-focus-ring",
-                              inMonth ? "text-fg" : "text-fg-subtle",
+                              inMonth ? "text-fg" : "text-fg-muted", // fg-subtle is for icons and large text only
                               !unavailable && !isSelected && "hover:bg-surface-sunken",
                               inRange && !isSelected && "text-brand-fg",
                               isRangeEdge && !isSelected && "bg-brand-soft font-semibold",
