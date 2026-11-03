@@ -10,6 +10,38 @@ test.describe("signed-out visitor", () => {
     await expect(page.getByRole("heading", { name: "Available now" })).toBeVisible();
   });
 
+  test("sign-in call to action opens the Clerk modal", async ({ page }) => {
+    await page.goto("/");
+    await acceptEssentialOnly(page);
+    await page.getByRole("button", { name: "Sign in to lend or borrow" }).click();
+    await expect(page.locator(".cl-modalContent .cl-signIn-root")).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test("brand, tagline and the public tools section", async ({ page }) => {
+    await page.goto("/");
+    await acceptEssentialOnly(page);
+    const logo = page.getByRole("link", { name: "LendLoop home" });
+    await expect(logo).toBeVisible();
+    await expect(logo).toHaveText("LendLoop");
+    await expect(page).toHaveTitle("LendLoop · Borrow what you need. Lend what you don't.");
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /Borrow what you need/);
+    const section = page.getByRole("region", { name: "Available now" });
+    await expect(section).toBeVisible();
+    // Read-only: whatever has loaded (skeleton, empty state or tools), nothing in it is actionable.
+    await expect(section.getByRole("button")).toHaveCount(0);
+    await expect(section.getByRole("link")).toHaveCount(0);
+  });
+
+  test("the header Sign in also opens Clerk, and there is no app link while signed out", async ({ page }) => {
+    await page.goto("/");
+    await acceptEssentialOnly(page);
+    await expect(page.getByRole("link", { name: "Browse tools" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Open app" })).toHaveCount(0);
+    await page.getByRole("banner").getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page.locator(".cl-modalContent .cl-signIn-root")).toBeVisible();
+  });
+
   test("cookie choice is remembered and can be reopened", async ({ page }) => {
     await page.goto("/");
     const banner = page.getByRole("dialog", { name: "Cookie preferences" });
@@ -52,8 +84,10 @@ test.describe("signed-out visitor", () => {
   });
 
   test("app pages send signed-out visitors to sign in", async ({ page }) => {
-    await page.goto("/listings");
-    await expect(page).toHaveURL(/sign-in/);
+    for (const path of ["/tools", "/listings", "/requests", "/incoming", "/admin"]) {
+      await page.goto(path);
+      await expect(page, `${path} should redirect`).toHaveURL(/sign-in/);
+    }
   });
 
   test("no horizontal scrolling", async ({ page }) => {
