@@ -1,4 +1,7 @@
-export type LoanStatus = "requested" | "approved" | "declined" | "cancelled" | "returned";
+import type { Doc } from "@/convex/_generated/dataModel";
+
+/** The schema's loan status union; a new status must be handled below. */
+export type LoanStatus = Doc<"loans">["status"];
 export type BadgeTone = "neutral" | "brand" | "success" | "warning" | "danger" | "info";
 
 /** How a loan's state is shown: label and badge tone. Overdue wins. */

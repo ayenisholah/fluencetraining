@@ -1,31 +1,35 @@
 import { ConvexError } from "convex/values";
+import type { Doc } from "@/convex/_generated/dataModel";
 
-export const CATEGORIES = [
-  ["power_tools", "Power tools"],
-  ["hand_tools", "Hand tools"],
-  ["garden", "Garden"],
-  ["kitchen", "Kitchen"],
-  ["camping", "Camping"],
-  ["cleaning", "Cleaning"],
-  ["other", "Other"],
-] as const;
+export type Category = Doc<"tools">["category"];
+export type Condition = Doc<"tools">["condition"];
 
-export type Category = (typeof CATEGORIES)[number][0];
+// Keyed by the schema's own unions, so adding a category or condition in
+// convex/schema.ts is a type error here until it has a label. Insertion order
+// is display order.
+const categoryLabels: Record<Category, string> = {
+  power_tools: "Power tools",
+  hand_tools: "Hand tools",
+  garden: "Garden",
+  kitchen: "Kitchen",
+  camping: "Camping",
+  cleaning: "Cleaning",
+  other: "Other",
+};
 
-export const CONDITIONS = [
-  ["new", "Like new"],
-  ["good", "Good"],
-  ["fair", "Fair"],
-  ["worn", "Well used"],
-] as const;
+const conditionLabels: Record<Condition, string> = {
+  new: "Like new",
+  good: "Good",
+  fair: "Fair",
+  worn: "Well used",
+};
 
-export type Condition = (typeof CONDITIONS)[number][0];
+/** [value, label] pairs in display order, for selects and filters. */
+export const CATEGORIES = Object.entries(categoryLabels) as [Category, string][];
+export const CONDITIONS = Object.entries(conditionLabels) as [Condition, string][];
 
-const categoryLabels = Object.fromEntries(CATEGORIES) as Record<string, string>;
-const conditionLabels = Object.fromEntries(CONDITIONS) as Record<string, string>;
-
-export const categoryLabel = (c?: string) => (c ? categoryLabels[c] ?? c : "");
-export const conditionLabel = (c: string) => conditionLabels[c] ?? c;
+export const categoryLabel = (c?: string) => (c ? categoryLabels[c as Category] ?? c : "");
+export const conditionLabel = (c: string) => conditionLabels[c as Condition] ?? c;
 
 export function errorMessage(err: unknown): string {
   if (err instanceof ConvexError) {
