@@ -17,6 +17,8 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - name: Colour contrast (WCAG AA)
+        run: npm run check:contrast
       - name: Build
         run: npm run build
         env:
@@ -26,6 +28,14 @@ jobs:
           NEXT_PUBLIC_CONVEX_URL: https://ci-placeholder.convex.cloud
       - name: No secrets in the client bundle
         run: npm run check:bundle
+      - name: No broken links on public pages
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2ktcGxhY2Vob2xkZXIuY2xlcmsuYWNjb3VudHMuZGV2JA
+          CLERK_SECRET_KEY: sk_test_ci_placeholder
+        run: |
+          npm start -- --port 3000 &
+          npx wait-on@8 http://localhost:3000/robots.txt
+          npm run check:links
       - name: Workflow exports contain no credential data
         run: |
           ! grep -rniE '"(password|apiKey|secret|token)"\s*:\s*"[^"]+"' n8n/workflows

@@ -19,6 +19,7 @@ A neighbourhood tool-lending board. Neighbours list tools, request to borrow the
 7. [Security and data-minimisation decisions](#security-and-data-minimisation-decisions)
 8. [Testing](#testing)
 9. [What I would change for production](#what-i-would-change-for-production)
+10. [Launch checklist](LAUNCH_CHECKLIST.md)
 
 ## What it does
 
@@ -192,6 +193,9 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 | `CONVEX_SELF_HOSTED_URL`, `CONVEX_SELF_HOSTED_ADMIN_KEY` | Convex CLI target |
 | `NEXT_PUBLIC_CONVEX_URL` | Convex client URL |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | Clerk |
+| `NEXT_PUBLIC_SITE_URL` | Canonical URLs, sitemap, social previews (default `http://localhost:3000`) |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`, `NEXT_PUBLIC_PLAUSIBLE_SRC` | Optional cookie-free analytics, loaded only after consent |
+| `ENFORCE_HTTPS` | `true` behind a TLS proxy to redirect http → https (not needed on Vercel) |
 
 **Convex deployment env** (`npx convex env set`; set by `npm run setup` except Clerk):
 
@@ -277,7 +281,7 @@ To refresh the exported JSON after editing in the n8n UI, run `npm run n8n:expor
 ## Testing
 
 ```bash
-npm test          # Vitest + convex-test (29 tests)
+npm test          # Vitest + convex-test (32 tests)
 npm run typecheck
 npm run lint
 ```
@@ -286,9 +290,12 @@ npm run lint
 |---|---|
 | `convex/rbac.test.ts` | Public list leaks only name and category; owner-only edit and delete; lender-only approve, decline and return; borrower-only cancel; admin-only functions; no self-borrowing; date validation; overlap rule; new users are never admins; each state change queues exactly one outbox row. |
 | `convex/automation.test.ts` | Rejects unsigned, wrongly signed and stale requests; overdue payload is minimal; idempotent write-back; reminded loans are hidden on re-run; a `failed`→`sent` upgrade; malformed input. Webhook signing, payload contents (no description, no other party's email), backoff retries, no retry on 4xx, admin retry, and failure when configuration is missing. |
+| `convex/rbac.test.ts` (spam protection) | Per-user hourly limits on listings and borrow requests. |
 | `convex/hmac.test.ts` | Signing round-trip, tamper and replay detection, and parity with the Node `crypto` implementation used inside n8n. |
 
 On the local stack I also ran each automation scenario end to end: request and approval emails, the overdue reminder and an idempotent re-run, a bad secret (401, failed, retried from Admin), n8n down (retried and delivered), and Mailpit down (error workflow fires and the delivery recovers).
+
+Launch-readiness items (legal pages, consent, SEO, contrast, links, performance) are tracked in [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md), with Lighthouse results in [docs/lighthouse/summary.md](docs/lighthouse/summary.md).
 
 ## What I would change for production
 

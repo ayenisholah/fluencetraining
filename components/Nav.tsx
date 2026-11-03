@@ -54,7 +54,7 @@ export function Nav() {
         <Unauthenticated>
           <div className="ml-auto">
             <SignInButton mode="modal">
-              <button className="btn-primary">Sign in</button>
+              <button className="btn-ghost">Sign in</button>
             </SignInButton>
           </div>
         </Unauthenticated>

@@ -28,6 +28,9 @@ export function CookieConsent() {
   };
 
   return (
+    <>
+    {/* Reserves space so the fixed banner never hides the footer links. */}
+    <div aria-hidden className="h-44 sm:h-24" />
     <div
       role="dialog"
       aria-live="polite"
@@ -39,7 +42,7 @@ export function CookieConsent() {
           We use essential cookies to keep you signed in. With your permission we&apos;d also
           count page views with cookie-free, privacy-friendly analytics.{" "}
           <Link href="/privacy#cookies" className="underline underline-offset-2">
-            Learn more
+            How we use cookies
           </Link>
         </p>
         <div className="flex gap-2">
@@ -52,6 +55,7 @@ export function CookieConsent() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
