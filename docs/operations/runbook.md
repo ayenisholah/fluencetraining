@@ -46,7 +46,7 @@ The local Convex data is in the `convex-data` Docker volume. `docker compose dow
 Run `npm run test:automation` from the repo root. It uses the existing Playwright
 Clerk setup, local Convex, published n8n workflows and Mailpit. Configure `.env`
 and `.env.local` as described in the README; start the Docker stack and app first.
-If the workflows have not been installed, run `npm run n8n:import` once.
+If the workflows have not been installed, run `npm run n8n:import -- --provider mailpit` once. For SES setup and provider switching, see [SES SMTP](ses-smtp.md).
 The test command requires Clerk dev credentials, a local Docker engine and Chrome
 (or `PLAYWRIGHT_CHANNEL=""` with Playwright Chromium installed).
 

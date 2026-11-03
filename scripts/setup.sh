@@ -19,6 +19,12 @@ set -a; . ./.env; set +a
 
 echo "Starting Convex, n8n and Mailpit"
 docker compose up -d
+# Read the persisted marker after startup, including when the stack was stopped.
+provider=$(docker compose exec -T n8n sh -c 'if [ -f /home/node/.n8n/lendloop-mail-provider ]; then cat /home/node/.n8n/lendloop-mail-provider; else printf mailpit; fi')
+if [ "$provider" != mailpit ]; then
+  echo "An external or incomplete email provider is configured. Switch explicitly to Mailpit before local setup." >&2
+  exit 1
+fi
 until curl -sf http://127.0.0.1:3210/version >/dev/null; do sleep 2; done
 
 [ -f .env.local ] || { cp .env.local.example .env.local; chmod 600 .env.local; }
@@ -46,7 +52,7 @@ npx convex dev --once
 # Derived search/phase fields for rows created before they existed (idempotent).
 npx convex run migrations:backfillSearch >/dev/null
 
-bash scripts/n8n-import.sh
+bash scripts/n8n-import.sh --provider mailpit
 
 cat <<'MSG'
 

@@ -16,6 +16,13 @@ TMP="$tmp" node -e '
     if (!names[wf.id]) continue;
     for (const key of drop) delete wf[key];
     wf.active = false;
+    // Keep repository exports portable and local by default.
+    for (const node of wf.nodes) {
+      if (node.type !== "n8n-nodes-base.emailSend") continue;
+      node.credentials.smtp = { id: "LendLoopSmtp0001", name: "Mailpit SMTP (local)" };
+      node.parameters.fromEmail = "LendLoop <no-reply@lendloop.local>";
+      if (wf.id === "LendLoopErrorWf1") node.parameters.toEmail = "={{ $env.LENDLOOP_OPS_EMAIL }}";
+    }
     fs.writeFileSync(`n8n/workflows/${names[wf.id]}.json`, JSON.stringify(wf, null, 2) + "\n");
   }'
 rm -rf "$tmp"

@@ -31,7 +31,8 @@
     "test:concurrency": "playwright test --project concurrency --workers=1",
     "test:concurrency:ui": "playwright test --project concurrency-ui --workers=1",
     "test:responsive": "playwright test --project responsive --workers=1 --output=playwright-responsive-results",
-    "test:e2e:public": "playwright test --project public --project public-mobile"
+    "test:e2e:public": "playwright test --project public --project public-mobile",
+    "test:n8n:provider": "python3 scripts/test_n8n_provider.py"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.23",

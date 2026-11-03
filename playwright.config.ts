@@ -14,6 +14,7 @@ const channel = process.env.PLAYWRIGHT_CHANNEL === "" ? undefined : (process.env
 const signedIn = Boolean(process.env.CLERK_SECRET_KEY) && process.env.E2E_SIGNED_IN !== "0";
 
 export default defineConfig({
+  globalSetup: "./e2e/mail-provider-guard.ts",
   testDir: "e2e",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
