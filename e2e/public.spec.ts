@@ -28,9 +28,11 @@ test.describe("signed-out visitor", () => {
     await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /Borrow what you need/);
     const section = page.getByRole("region", { name: "Available now" });
     await expect(section).toBeVisible();
-    // Read-only: whatever has loaded (skeleton, empty state or tools), nothing in it is actionable.
-    await expect(section.getByRole("button")).toHaveCount(0);
-    await expect(section.getByRole("link")).toHaveCount(0);
+    // Read-only tools: the section has search, category chips and pagination, but the
+    // tool cards themselves carry no buttons or links (name and category only).
+    const cards = section.getByRole("listitem");
+    await expect(cards.getByRole("button")).toHaveCount(0);
+    await expect(cards.getByRole("link")).toHaveCount(0);
   });
 
   test("How it works sits between the hero and the tool list, as three ordered steps", async ({ page }) => {
