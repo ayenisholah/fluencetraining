@@ -22,5 +22,6 @@ The [README](../README.md) is the quick start: local setup, environment variable
 | | [Changelog](CHANGELOG.md) | You want to know what changed |
 | Operate | [Deployment](operations/deployment.md) | You're setting up an environment |
 | | [Runbook](operations/runbook.md) | Something is broken, or you need to do an operator task |
+| | [SES SMTP](operations/ses-smtp.md) | You're configuring notification email, rotating credentials, or switching to Mailpit |
 | | [Lighthouse summary](lighthouse/summary.md) | You want the latest performance and accessibility audit |
 | Reference | [Glossary](glossary.md) | A term is unfamiliar |
