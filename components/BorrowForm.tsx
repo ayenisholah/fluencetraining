@@ -7,7 +7,7 @@ import { errorMessage, todayIso } from "@/lib/format";
 
 /** Which date field a range error belongs to, so the message sits under it. */
 export function dateErrorField(message: string, startDate: string): "from" | "until" {
-  if (/start/i.test(message)) return "from";
+  if (/in the past/i.test(message)) return "from";
   if (/both/i.test(message) && !startDate) return "from";
   return "until";
 }

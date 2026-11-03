@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --project convex --project ui",
     "test:watch": "vitest",
     "convex": "convex dev",
     "setup": "bash scripts/setup.sh",
@@ -16,7 +16,9 @@
     "n8n:export": "bash scripts/n8n-export.sh",
     "check:bundle": "bash scripts/check-client-bundle.sh",
     "check:contrast": "node scripts/contrast-check.mjs",
-    "check:links": "node scripts/check-links.mjs"
+    "check:links": "node scripts/check-links.mjs",
+    "test:ui": "vitest run --project ui",
+    "test:convex": "vitest run --project convex"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.23",
