@@ -1,0 +1,144 @@
+{
+  "id": "LendLoopErrorWf1",
+  "name": "LendLoop – Error handler",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "On workflow error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "id": "a2dd1113-d581-4da1-a039-9e4fb7a81abf"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nfunction signed(bodyObject) {\n  const body = JSON.stringify(bodyObject);\n  const timestamp = String(Date.now());\n  const signature = 'sha256=' + crypto\n    .createHmac('sha256', $env.N8N_TO_LENDLOOP_SECRET)\n    .update(`${timestamp}.${body}`)\n    .digest('hex');\n  return { body, timestamp, signature };\n}\n\n// Summarise the failed execution without copying item data (which may contain\n// email addresses) into the alert or the database.\nconst { execution = {}, workflow = {} } = $input.first().json;\nconst message = String(execution.error?.message || 'Unknown error').slice(0, 300);\nconst detail = `${workflow.name || 'Unknown workflow'} › ${execution.lastNodeExecuted || '?'}: ${message}`;\nreturn [{ json: {\n  ...signed({\n    idempotencyKey: `error:${execution.id || Date.now()}`,\n    kind: 'workflow_error',\n    status: 'failed',\n    detail,\n  }),\n  detail,\n  url: execution.url || '',\n} }];"
+      },
+      "name": "Describe and sign",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "id": "e62355d6-0053-4ecd-a253-865b3c5c72a6"
+    },
+    {
+      "parameters": {
+        "fromEmail": "LendLoop <no-reply@lendloop.local>",
+        "toEmail": "={{ $env.LENDLOOP_OPS_EMAIL }}",
+        "subject": "=[LendLoop] Automation failed",
+        "emailFormat": "text",
+        "text": "={{ $json.detail }}\n\n{{ $json.url }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "name": "Alert ops",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "LendLoopSmtp0001",
+          "name": "Mailpit SMTP (local)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "id": "81332b64-537a-43a0-9c5e-e9faea5a6a13"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LENDLOOP_CONVEX_SITE_URL }}/n8n/automation-events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-lendloop-timestamp",
+              "value": "={{ $('Describe and sign').item.json.timestamp }}"
+            },
+            {
+              "name": "x-lendloop-signature",
+              "value": "={{ $('Describe and sign').item.json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $('Describe and sign').item.json.body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "name": "Record error in Convex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "id": "331560f4-7ad6-4bea-9edf-e214ccd2776c"
+    }
+  ],
+  "connections": {
+    "On workflow error": {
+      "main": [
+        [
+          {
+            "node": "Describe and sign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Describe and sign": {
+      "main": [
+        [
+          {
+            "node": "Alert ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert ops": {
+      "main": [
+        [
+          {
+            "node": "Record error in Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  },
+  "nodeGroups": [],
+  "pinData": {},
+  "tags": []
+}
