@@ -102,6 +102,8 @@ export const approve = mutation({
   handler: async (ctx, { loanId }) => {
     const { loan } = await requireLoanParty(ctx, loanId, "lender");
     if (loan.status !== "requested") badRequest("This request is not open.");
+    // A stale request would start life as an overdue loan; decline it instead.
+    if (loan.endDate < todayUtc()) badRequest("This request's dates have passed.");
     const tool = await ctx.db.get(loan.toolId);
     if (!tool || tool.status === "removed") notFound("Tool");
     if (await activeLoanFor(ctx, loan.toolId)) {

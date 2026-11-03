@@ -14,6 +14,7 @@ export function ListingsScreen() {
   const update = useMutation(api.tools.update);
   const remove = useMutation(api.tools.remove);
   const [editing, setEditing] = useState<Id<"tools">>();
+  const [confirming, setConfirming] = useState<Id<"tools">>();
   const [error, setError] = useState<{ id: Id<"tools">; message: string }>();
 
   return (
@@ -51,23 +52,33 @@ export function ListingsScreen() {
                         {tool.status === "available" ? <Badge tone="success">Available</Badge> : <Badge tone="warning">On loan</Badge>}
                       </div>
                       {tool.description && <p className="mt-3 text-body text-fg">{tool.description}</p>}
-                      <div className="mt-4 flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setEditing(tool._id)}>Edit</Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={async () => {
-                            setError(undefined);
-                            try {
-                              await remove({ toolId: tool._id });
-                            } catch (err) {
-                              setError({ id: tool._id, message: errorMessage(err) });
-                            }
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </div>
+                      {confirming === tool._id ? (
+                        <div role="group" aria-label={`Delete ${tool.name}?`} className="mt-4 flex flex-wrap items-center gap-2">
+                          <span className="text-body text-fg">Delete this listing? Open requests will be declined.</span>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={async () => {
+                              setError(undefined);
+                              try {
+                                await remove({ toolId: tool._id });
+                              } catch (err) {
+                                setError({ id: tool._id, message: errorMessage(err) });
+                              } finally {
+                                setConfirming(undefined);
+                              }
+                            }}
+                          >
+                            Confirm delete
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setConfirming(undefined)}>Keep</Button>
+                        </div>
+                      ) : (
+                        <div className="mt-4 flex gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => setEditing(tool._id)}>Edit</Button>
+                          <Button variant="danger" size="sm" onClick={() => setConfirming(tool._id)}>Delete</Button>
+                        </div>
+                      )}
                       {error?.id === tool._id && <Alert tone="danger" className="mt-3">{error.message}</Alert>}
                     </>
                   )}
