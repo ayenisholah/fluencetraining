@@ -5,6 +5,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { internalMutation } from "./_generated/server";
 import { todayUtc } from "./lib/dates";
 import { toolFieldErrors } from "./lib/rules";
+import { vLoanStatus } from "./schema";
 
 const DAY = 86_400_000;
 
@@ -59,7 +60,7 @@ export const purgeTestData = internalMutation({
     );
     const counts = { tools: 0, loans: 0, deliveries: 0, events: 0 };
     for (const tool of tools) {
-      for (const status of ["requested", "approved", "declined", "cancelled", "returned"] as const) {
+      for (const { value: status } of vLoanStatus.members) {
         const loans = await ctx.db
           .query("loans")
           .withIndex("by_tool_status", (q) => q.eq("toolId", tool._id).eq("status", status))

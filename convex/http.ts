@@ -1,11 +1,15 @@
 import { httpRouter } from "convex/server";
+import type { Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
 import { todayUtc } from "./lib/dates";
 import { SIGNATURE_HEADER, TIMESTAMP_HEADER, verify } from "./lib/hmac";
+import { vAutomationKind } from "./schema";
 
 const MAX_BODY_BYTES = 16 * 1024;
-const KINDS = ["request_notification", "overdue_reminder", "workflow_error"];
+type AutomationKind = Infer<typeof vAutomationKind>;
+const KINDS: readonly string[] = vAutomationKind.members.map((m) => m.value);
+const isKind = (value: unknown): value is AutomationKind => typeof value === "string" && KINDS.includes(value);
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -70,8 +74,7 @@ http.route({
       typeof idempotencyKey !== "string" ||
       idempotencyKey.length < 3 ||
       idempotencyKey.length > 200 ||
-      typeof kind !== "string" ||
-      !KINDS.includes(kind) ||
+      !isKind(kind) ||
       (status !== "sent" && status !== "failed") ||
       (loanId !== undefined && loanId !== null && typeof loanId !== "string") ||
       (detail !== undefined && detail !== null && typeof detail !== "string")
@@ -81,7 +84,7 @@ http.route({
     const result = await ctx.runMutation(internal.automation.recordEvent, {
       idempotencyKey,
       loanId: loanId ?? undefined,
-      kind: kind as "request_notification" | "overdue_reminder" | "workflow_error",
+      kind,
       status,
       detail: detail ?? undefined,
     });
