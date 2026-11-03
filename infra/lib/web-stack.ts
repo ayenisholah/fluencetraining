@@ -1,4 +1,4 @@
-import { CfnOutput, Fn, SecretValue, Stack, Tags, type StackProps } from "aws-cdk-lib";
+import { CfnOutput, SecretValue, Stack, Tags, type StackProps } from "aws-cdk-lib";
 import * as amplify from "aws-cdk-lib/aws-amplify";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
@@ -82,9 +82,11 @@ export class WebStack extends Stack {
     });
 
     this.appId = app.attrAppId;
-    this.appUrl = Fn.join("", ["https://", config.productionBranch, ".", app.attrDefaultDomain]);
+    this.appUrl = `https://${config.domain}`;
+    // Kept so stacks that imported the default domain before the custom domain can drop it first.
+    this.exportValue(app.attrDefaultDomain);
 
-    new amplify.CfnBranch(this, "Main", {
+    const main = new amplify.CfnBranch(this, "Main", {
       appId: app.attrAppId,
       branchName: config.productionBranch,
       stage: "PRODUCTION",
@@ -92,6 +94,17 @@ export class WebStack extends Stack {
       enableAutoBuild: true,
       environmentVariables: [{ name: "NEXT_PUBLIC_SITE_URL", value: this.appUrl }],
     });
+
+    // lendloop.sholaayeni.xyz -> main. DNS is in Namecheap, so the certificate
+    // and CloudFront records Amplify asks for are added by hand: run
+    // scripts/aws/dns-records.sh while this is pending verification.
+    const domain = new amplify.CfnDomain(this, "Domain", {
+      appId: app.attrAppId,
+      domainName: config.domain,
+      enableAutoSubDomain: false,
+      subDomainSettings: [{ branchName: config.productionBranch, prefix: "" }],
+    });
+    domain.addResourceDependency(main);
 
     // The host reads this for links in emails (bootstrap.sh → LENDLOOP_APP_URL).
     new ssm.StringParameter(this, "AppUrlParam", { parameterName: "/lendloop/prod/app-url", stringValue: this.appUrl });
