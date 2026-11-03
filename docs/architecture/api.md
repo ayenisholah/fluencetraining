@@ -56,7 +56,7 @@ Responses: `401` bad or stale signature (±5 min), `413` body over 16 KB, `400` 
 
 | Path | Body | Response |
 |---|---|---|
-| `/n8n/overdue-loans` | any (e.g. `{"request":"overdue-loans"}`) | `{ asOf, loans: [{ loanId, idempotencyKey, toolName, endDate, daysOverdue, borrower: { email, firstName } }] }`, excluding loans reminded today |
+| `/n8n/overdue-loans` | any (e.g. `{"request":"overdue-loans"}`) | `{ asOf, loans: [{ loanId, idempotencyKey, toolName, endDate, daysOverdue, borrower: { email, firstName }, lender: { firstName }, email: { subject, html, text } }] }`, excluding loans reminded today |
 | `/n8n/automation-events` | `{ idempotencyKey, loanId?, kind, status: "sent"\|"failed", detail? }` | `{ ok: true, duplicate }`; a repeat key is a no-op, `failed` → `sent` upgrades |
 
 ## Webhook (Convex → n8n)
@@ -69,10 +69,13 @@ Responses: `401` bad or stale signature (±5 min), `413` body over 16 KB, `400` 
   "event": "loan.requested",
   "occurredAt": "2026-11-03T10:00:00.000Z",
   "loan": { "id": "…", "status": "requested", "startDate": "2026-11-04", "endDate": "2026-11-06" },
-  "tool": { "name": "Ladder" },
+  "tool": { "name": "Ladder", "category": "hand_tools" },
   "recipient": { "role": "lender", "email": "olu@example.com", "firstName": "Olu" },
-  "otherParty": { "firstName": "Remi" }
+  "otherParty": { "firstName": "Remi" },
+  "email": { "subject": "Remi wants to borrow your Ladder", "html": "<!DOCTYPE html>…", "text": "Hi Olu,…" }
 }
 ```
+
+`email` is rendered by `convex/lib/email/loanEmails.ts` from the fields above (no other personal data). n8n's "Check payload" node refuses a payload without it, so a malformed delivery reaches the error workflow.
 
 A `2xx` marks the delivery delivered. `5xx`, `408` and `429` are retried (30 s, 2 m, 8 m, 32 m), then marked failed. Other `4xx` codes fail immediately.

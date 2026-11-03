@@ -47,7 +47,8 @@ flowchart LR
 
 | Threat | Mitigation | Residual risk |
 |---|---|---|
-| Header injection through tool names or display names | Control and bidi characters refused or stripped server-side; n8n sends plain text | — |
+| Header injection through tool names or display names | Control and bidi characters refused or stripped server-side | — |
+| HTML injection into emails through tool names or names | Every user value is HTML-escaped by the Convex templates (`convex/lib/email/layout.ts`); emails contain no scripts or styles blocks | `convex/lib/email/email.test.ts` |
 | Credential leakage | SMTP credentials in n8n credentials; the export stub has no password; CI fails on secrets in exports | Self-hosted n8n with env access in Code nodes (production: `N8N_BLOCK_ENV_ACCESS_IN_NODE=true` with credentials) |
 
 ## Supply chain

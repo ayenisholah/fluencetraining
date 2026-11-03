@@ -18,7 +18,7 @@ Most rules are checked once, at the cheapest level that can prove them: authoris
 
 | Suite | Command | Environment | What it covers |
 |---|---|---|---|
-| Convex | `npm run test:convex` | edge-runtime, `convex-test` | Guards and the coverage guard, validation, loan workflow, search and pagination, photos, HTTP endpoints, outbox, seed and purge |
+| Convex | `npm run test:convex` | edge-runtime, `convex-test` | Guards and the coverage guard, validation, loan workflow, search and pagination, photos, HTTP endpoints, outbox, email templates, seed and purge |
 | UI | `npm run test:ui` | jsdom; `test/convex-mock.ts` and `test/next-navigation-mock.ts` | Every screen and design-system component, URL state, dialogs, axe |
 | n8n | `npm run test:n8n` | Node | Exported workflow JSON and Code nodes; Convex ⇄ n8n round trips |
 | Storybook | `npm run test:storybook` | real Chromium | Every story renders, play functions pass, axe |

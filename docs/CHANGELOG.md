@@ -5,6 +5,7 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 ## Unreleased: `audit-tests-and-fixes`
 
 ### Added
+- **Branded HTML emails** for every loan event and the overdue reminder: rendered and unit-tested in Convex (`convex/lib/email/`), sent by n8n as HTML plus text, with a preview command (`npm run email:preview`).
 - Server-side search and **numbered pagination** (10/25/50/100 per page, with totals) on every list and table: landing, board, My listings, My requests, Incoming, and Admin loans, listings and members. Filters are kept in the URL (bd33bd1, 5a4db0e).
 - **Tool photos**: upload on create and edit, shown on the board, My listings and Admin; server-side type and size checks; orphan clean-up cron (bd33bd1).
 - Board **views**: Cards, Tiles and List (bd33bd1).

@@ -16,7 +16,7 @@ Full variable list: [README › Environment variables](../../README.md#environme
 | Where | Variables |
 |---|---|
 | Next.js host (Vercel env) | `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `NEXT_PUBLIC_SITE_URL`, optional `NEXT_PUBLIC_PLAUSIBLE_*`, `ENFORCE_HTTPS` (only behind a non-Vercel TLS proxy) |
-| Convex deployment env | `CLERK_JWT_ISSUER_DOMAIN`, `N8N_WEBHOOK_URL`, `LENDLOOP_TO_N8N_SECRET`, `N8N_TO_LENDLOOP_SECRET` |
+| Convex deployment env | `CLERK_JWT_ISSUER_DOMAIN`, `N8N_WEBHOOK_URL`, `LENDLOOP_TO_N8N_SECRET`, `N8N_TO_LENDLOOP_SECRET`, `LENDLOOP_APP_URL` (links and logo in emails) |
 | n8n (credentials / env) | `LENDLOOP_TO_N8N_SECRET`, `N8N_TO_LENDLOOP_SECRET`, `LENDLOOP_CONVEX_SITE_URL`, `LENDLOOP_APP_URL`, `LENDLOOP_OPS_EMAIL`, the SMTP credential |
 
 Secrets are generated per environment (`openssl rand -hex 32`) and never shared between them.

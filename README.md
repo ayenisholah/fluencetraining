@@ -228,6 +228,7 @@ Both are `internalMutation`s, so only someone with the Convex admin key can run 
 |---|---|
 | `CLERK_JWT_ISSUER_DOMAIN` | Issuer Convex trusts for Clerk JWTs |
 | `N8N_WEBHOOK_URL` | n8n production webhook URL |
+| `LENDLOOP_APP_URL` | Public app URL for links and the logo in emails (set by `npm run setup`) |
 | `LENDLOOP_TO_N8N_SECRET`, `N8N_TO_LENDLOOP_SECRET` | Same values as `.env` |
 
 ## Roles and access control
@@ -258,9 +259,11 @@ The Next.js `proxy.ts` redirects signed-out visitors away from app pages. That i
 
 | File | Trigger | What it does |
 |---|---|---|
-| `01-request-notifications.json` | Webhook `POST /webhook/lendloop-loan-events` | Verifies the HMAC over the raw body, responds 401 if invalid, and acknowledges duplicate deliveries without re-sending. Then composes and sends the email, responds 200, and writes a signed `request_notification` event to Convex. |
-| `02-overdue-reminders.json` | Schedule (daily 08:00 UTC) + manual | Makes a signed fetch of overdue loans, then sends one reminder per loan. Write-backs are signed and idempotent, recording `sent`/`failed` per loan. Finally it fails the run if any reminder failed, so the error workflow fires. |
+| `01-request-notifications.json` | Webhook `POST /webhook/lendloop-loan-events` | Verifies the HMAC over the raw body, responds 401 if invalid, and acknowledges duplicate deliveries without re-sending. Then checks the payload carries its rendered email, sends it (HTML + text), responds 200, and writes a signed `request_notification` event to Convex. |
+| `02-overdue-reminders.json` | Schedule (daily 08:00 UTC) + manual | Makes a signed fetch of overdue loans (each with its rendered reminder), then sends one reminder per loan (HTML + text). Write-backs are signed and idempotent, recording `sent`/`failed` per loan. Finally it fails the run if any reminder failed, so the error workflow fires. |
 | `03-error-handler.json` | Error Trigger (set as the error workflow of the other two) | Emails ops a summary (workflow, node, message; no item data) and records a `workflow_error` in Convex, shown in Admin. |
+
+**Email templates.** Messages are rendered in Convex, not in n8n: `convex/lib/email/` holds a table-based, inline-styled branded layout (LendLoop header, coloured status banner, a loan-details card with the category in its preset colour, call-to-action buttons, footer) and one template per event plus the overdue reminder, each with a plain-text alternative. They are typed and unit-tested, every piece of user text is HTML-escaped, and the colours are checked against the app's tokens. Convex sends `{ subject, html, text }` with the signed payload, so n8n only verifies and sends. Preview them all with `npm run email:preview` (writes `email-previews/`).
 
 Reliability measures:
 - **Convex → n8n:**

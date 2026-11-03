@@ -16,7 +16,7 @@
 ## Minimisation rules (enforced in code)
 - `firstName()` (`convex/lib/people.ts`) is the only way a person is shown to another user.
 - `tools.listPublic` projects `{ _id, name, category }` on the server.
-- `webhooks.buildPayload` builds the payload at send time with exactly the fields an email needs; the outbox stores ids only.
+- `webhooks.buildPayload` builds the payload at send time with exactly the fields an email needs; the outbox stores ids only. The rendered email (`convex/lib/email`) is a view of those same fields: first names, tool, dates, and no addresses in the body.
 - The n8n error workflow summarises failures without copying item data.
 - Display names are cleaned and capped before storage.
 
