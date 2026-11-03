@@ -15,6 +15,10 @@ cd "$APP_DIR"
 secret() { aws secretsmanager get-secret-value --region "$AWS_REGION" --secret-id "$SECRET_PREFIX/$1" --query SecretString --output text; }
 param() { aws ssm get-parameter --region "$AWS_REGION" --name "$1" --query Parameter.Value --output text; }
 
+# The public domain lives in SSM so a change reaches the host on the next run;
+# BASE_DOMAIN from user-data (<ip>.sslip.io) is only the first-boot fallback.
+BASE_DOMAIN=$(param /lendloop/prod/base-domain 2>/dev/null || echo "$BASE_DOMAIN")
+
 # 1. Code bundle (compose file, Caddyfile, scripts) and the n8n workflows, both
 #    CDK assets in the bootstrap bucket; the S3 URLs are published as SSM params.
 aws s3 cp --region "$AWS_REGION" "$(param "$BUNDLE_PARAM")" /tmp/ec2.zip --only-show-errors
@@ -34,7 +38,7 @@ umask 077
 cat > .env <<ENV
 AWS_REGION=$AWS_REGION
 BASE_DOMAIN=$BASE_DOMAIN
-CONVEX_INSTANCE_SECRET=$(secret CONVEX_INSTANCE_SECRET)
+CONVEX_INSTANCE_SECRET=$(secret CONVEX_INSTANCE_SECRET | tr -d '\n' | sha256sum | cut -c1-64)
 N8N_ENCRYPTION_KEY=$(secret N8N_ENCRYPTION_KEY)
 LENDLOOP_TO_N8N_SECRET=$(secret LENDLOOP_TO_N8N_SECRET)
 N8N_TO_LENDLOOP_SECRET=$(secret N8N_TO_LENDLOOP_SECRET)
@@ -50,7 +54,7 @@ docker compose -f docker-compose.prod.yml up -d --remove-orphans
 until curl -sf http://127.0.0.1:3210/version >/dev/null; do sleep 3; done
 
 # 4. Convex admin key: generated once on the host and stored for CI (the
-#    deploy workflow reads it with its OIDC role). Never printed.
+#    deploy workflow reads it as the scoped deploy user). Never printed.
 if [ "$(secret CONVEX_ADMIN_KEY)" = "pending" ]; then
   key=$(docker compose -f docker-compose.prod.yml exec -T convex ./generate_admin_key.sh | tail -1)
   aws secretsmanager put-secret-value --region "$AWS_REGION" --secret-id "$SECRET_PREFIX/CONVEX_ADMIN_KEY" --secret-string "$key" >/dev/null

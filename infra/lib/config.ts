@@ -7,6 +7,12 @@ export const config = {
   /** GitHub repository Amplify builds from (main is the production branch). */
   repository: "https://github.com/ayenisholah/fluencetraining",
   productionBranch: "main",
+  /**
+   * Public hostname. DNS is in Namecheap (records added by hand; see
+   * scripts/aws/dns-records.sh): the app is the apex, the host serves
+   * convex., site. and n8n. under it.
+   */
+  domain: "lendloop.sholaayeni.xyz",
   /** Secrets Manager names live under this prefix. */
   secretPrefix: "lendloop/prod",
   /** CloudWatch namespace for the custom metrics published by deploy/ec2/metrics.sh. */
@@ -16,7 +22,10 @@ export const config = {
   tags: { project: "lendloop", environment: "production", managedBy: "cdk" },
 } as const;
 
-/** Secrets CloudFormation generates (random 64-char values). */
+/**
+ * Secrets CloudFormation generates (random 64-char alphanumerics). Convex needs
+ * a hex INSTANCE_SECRET, which bootstrap.sh derives as sha256(CONVEX_INSTANCE_SECRET).
+ */
 export const GENERATED_SECRETS = [
   "CONVEX_INSTANCE_SECRET",
   "N8N_ENCRYPTION_KEY",
