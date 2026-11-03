@@ -1,0 +1,56 @@
+name: Deploy
+# Production deploys from main, after CI passes, with a manual approval
+# (environment "production"). The organisation's SCP forbids GitHub OIDC, so
+# AWS access uses the scoped `lendloop-github-deployer` IAM user, whose only
+# power is to assume the CDK roles and run the deploy steps
+# (infra/lib/deployer-stack.ts). Rotate its key with scripts/aws/create-deploy-key.sh.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_JWT_ISSUER_DOMAIN: ${{ vars.CLERK_JWT_ISSUER_DOMAIN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: npm ci
+      - name: Infrastructure (CDK)
+        run: (cd infra && npm ci) && bash scripts/aws/deploy-infra.sh
+      - name: Convex functions and environment
+        run: bash scripts/aws/configure-backend.sh
+      - name: Refresh the host (bundle, n8n workflows)
+        run: |
+          id=$(aws cloudformation describe-stacks --stack-name LendLoop-Backend --query "Stacks[0].Outputs[?OutputKey=='InstanceId'].OutputValue" --output text)
+          cmd=$(aws ssm send-command --instance-ids "$id" --document-name AWS-RunShellScript \
+            --parameters 'commands=["set -a; . /etc/lendloop.env; set +a; /opt/lendloop/bootstrap.sh"]' \
+            --query Command.CommandId --output text)
+          aws ssm wait command-executed --command-id "$cmd" --instance-id "$id" || \
+            { aws ssm get-command-invocation --command-id "$cmd" --instance-id "$id" --query StandardErrorContent --output text; exit 1; }
