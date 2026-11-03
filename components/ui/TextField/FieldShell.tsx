@@ -39,7 +39,7 @@ export function FieldShell({
 }) {
   const over = counter ? counter.length > counter.max : false;
   return (
-    <div className={className}>
+    <div className={cn("min-w-0", className)}>
       {bare ? (
         children
       ) : (

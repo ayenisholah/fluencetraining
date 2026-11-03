@@ -35,7 +35,7 @@ export function BorrowForm({
 
   return (
     <form
-      className="mt-4 space-y-3 border-t border-line pt-4"
+      className="@container mt-4 space-y-3 border-t border-line pt-4"
       noValidate
       onSubmit={async (e) => {
         e.preventDefault();
@@ -56,7 +56,7 @@ export function BorrowForm({
         }
       }}
     >
-      <fieldset className="grid grid-cols-2 gap-3">
+      <fieldset className="grid grid-cols-1 gap-3 @[40rem]:grid-cols-2">
         <legend className="sr-only">Borrowing dates</legend>
         <DatePicker
           label="From"
@@ -88,7 +88,7 @@ export function BorrowForm({
         />
       </fieldset>
       <Alert tone="danger">{error}</Alert>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" loading={pending}>
           Send request
         </Button>

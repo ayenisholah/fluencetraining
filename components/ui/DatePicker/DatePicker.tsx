@@ -166,8 +166,8 @@ export function DatePicker({
             aria-labelledby={headingId}
             className={cn(
               popoverCardClass,
-              "w-[300px] p-4",
-              placement === "bottom" ? "top-full mt-2" : "bottom-full mb-2",
+              "fixed inset-x-4 top-1/2 max-h-[calc(100dvh-2rem)] -translate-y-1/2 overflow-y-auto p-2 md:absolute md:inset-x-auto md:w-[300px] md:translate-y-0 md:p-3",
+              placement === "bottom" ? "md:top-full md:mt-2" : "md:top-auto md:bottom-full md:mb-2",
             )}
             onKeyDown={(e) => {
               if (e.key === "Escape") {
@@ -238,7 +238,7 @@ export function DatePicker({
                             aria-disabled={unavailable || undefined}
                             onClick={() => select(iso)}
                             className={cn(
-                              "mx-auto flex size-9 items-center justify-center rounded-pill text-body outline-none transition-colors focus-visible:ring-4 focus-visible:ring-focus-ring",
+                              "mx-auto flex size-8 items-center justify-center rounded-pill text-body outline-none transition-colors focus-visible:ring-4 focus-visible:ring-focus-ring",
                               inMonth ? "text-fg" : "text-fg-muted", // fg-subtle is for icons and large text only
                               !unavailable && !isSelected && "hover:bg-surface-sunken",
                               inRange && !isSelected && "text-brand-fg",

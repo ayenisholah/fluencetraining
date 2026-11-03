@@ -13,7 +13,7 @@ export function Card({ as = "div", padding = "md", className, ...props }: CardPr
   return (
     <Tag
       className={cn(
-        "rounded-md border border-line bg-surface",
+        "min-w-0 [overflow-wrap:anywhere] rounded-md border border-line bg-surface",
         padding === "md" && "p-5",
         padding === "lg" && "p-6",
         className,

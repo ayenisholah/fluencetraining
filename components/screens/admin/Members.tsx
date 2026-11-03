@@ -41,7 +41,7 @@ export function Members({ actions }: { actions: RowActions }) {
         <ul className="divide-y divide-line">
           {users.map((u) => (
             <li key={u._id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <span className="flex min-w-0 items-center gap-3">
+              <span className="flex min-w-0 max-w-full items-center gap-3">
                 <Avatar name={u.name} size={36} />
                 <span className="min-w-0">
                   <span className="block truncate text-body-bold text-fg">

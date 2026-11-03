@@ -70,10 +70,10 @@ export function ListingsModeration() {
       ) : (
         <ul className="divide-y divide-line">
           {listings.map((t) => (
-            <li key={t._id} className="flex items-center gap-3 py-3 text-body">
+            <li key={t._id} className="grid grid-cols-[20px_1fr_auto] items-center gap-3 py-3 text-body sm:grid-cols-[20px_56px_1fr_auto]">
               <Checkbox label={<span className="sr-only">Select {t.name}</span>} checked={selected.includes(t._id)}
                 onChange={(event) => select(event.target.checked ? [...selected, t._id] : selected.filter((id) => id !== t._id))} />
-              <ToolImage src={t.imageUrl} name={t.name} category={t.category} iconSize={18} className="w-14 shrink-0 rounded-sm" />
+              <ToolImage src={t.imageUrl} name={t.name} category={t.category} iconSize={18} className="hidden w-14 shrink-0 rounded-sm sm:block" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold">{t.name}</span>
                 <span className="mt-1 flex flex-wrap items-center gap-2 text-description text-fg-muted">

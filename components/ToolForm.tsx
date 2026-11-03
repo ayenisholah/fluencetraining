@@ -56,7 +56,7 @@ export function ToolForm({
 
   return (
     <form
-      className="space-y-4"
+      className="@container space-y-4"
       noValidate
       onSubmit={async (e) => {
         e.preventDefault();
@@ -91,7 +91,7 @@ export function ToolForm({
         error={show("name")}
         onChange={(e) => set("name", e.target.value)}
       />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 @[24rem]:grid-cols-2">
         <Select
           label="Category"
           options={categoryOptions}
@@ -117,7 +117,7 @@ export function ToolForm({
       />
       {uploadImage && <PhotoPicker value={photo} onChange={setPhoto} />}
       <Alert tone="danger">{error}</Alert>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" loading={pending}>
           {submitLabel}
         </Button>

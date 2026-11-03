@@ -33,7 +33,7 @@ export function Pagination({ pagination: p, noun = "items", label = `${noun} pag
           <button type="button" className={`${navigationClass} justify-self-start`} onClick={p.previous} disabled={p.loading || !p.hasPrevious}>
             <ArrowUpIcon className="size-4 -rotate-90" aria-hidden />Previous
           </button>
-          <div className="col-span-2 row-start-1 flex items-center gap-1">
+          <div className="col-span-2 row-start-1 flex flex-wrap items-center gap-1">
             {pageNumbers(p.page, p.totalPages).map((number) => typeof number === "string" ? <span key={number} aria-hidden="true" className="w-6 text-center text-fg-muted">…</span> : <button key={number} type="button"
               aria-label={`Page ${number}`} aria-current={number === p.page ? "page" : undefined}
               disabled={p.loading} onClick={() => p.goToPage(number)}

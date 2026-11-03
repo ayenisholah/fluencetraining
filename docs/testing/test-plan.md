@@ -71,3 +71,9 @@ The run took about five minutes; recovery follows real retry backoff.
 Historical DNS/SMTP errors remain in Admin after recovery. This result verifies
 local Mailpit delivery, not delivery to an external email provider or exactly-once
 email under overlapping executions.
+
+## Responsive layouts
+
+Run `npm run test:responsive` for the Tailwind breakpoint sweep and interactive
+phone/tablet/desktop checks. See [responsive verification](responsive.md) for
+viewport coverage, fixture cleanup and layout rules.

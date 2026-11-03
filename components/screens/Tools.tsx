@@ -31,7 +31,7 @@ const asCategory = (value: string): Category | "" => (value in CATEGORY_STYLES ?
 export type BoardView = "cards" | "tiles" | "list";
 const VIEWS = {
   cards: { Item: ToolCard, label: "Cards", Icon: CardsIcon, grid: "grid gap-5 md:grid-cols-2 xl:grid-cols-3" },
-  tiles: { Item: ToolTile, label: "Tiles", Icon: TilesIcon, grid: "grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5" },
+  tiles: { Item: ToolTile, label: "Tiles", Icon: TilesIcon, grid: "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" },
   list: { Item: ToolRow, label: "List", Icon: ListIcon, grid: "space-y-2" },
 } as const;
 const asView = (value: string): BoardView => (value in VIEWS ? (value as BoardView) : "cards");
@@ -70,7 +70,7 @@ export function ToolsScreen() {
       <div className="mb-6 space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <SearchField label="Search tools" placeholder="Search by name or description" value={search} onChange={onSearch} className="sm:max-w-md sm:flex-1" />
-          <div className="flex items-center justify-between gap-4 sm:ml-auto">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:ml-auto">
             <Toggle label="Available only" checked={availableOnly} onCheckedChange={(on) => setUrl({ available: on ? "1" : "" })} />
             <SegmentedControl<BoardView>
               aria-label="View"

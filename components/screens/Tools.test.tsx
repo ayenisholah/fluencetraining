@@ -75,7 +75,7 @@ describe("ToolsScreen (the board)", () => {
     await userEvent.click(within(switcher).getByRole("radio", { name: "Tiles" }));
     expect(navigation.href).toBe("/?view=tiles");
     expect(list()).toHaveAttribute("data-view", "tiles");
-    expect(list().className).toContain("lg:grid-cols-4");
+    expect(list().className).toContain("2xl:grid-cols-4");
 
     await userEvent.click(within(switcher).getByRole("radio", { name: "List" }));
     expect(navigation.href).toBe("/?view=list");

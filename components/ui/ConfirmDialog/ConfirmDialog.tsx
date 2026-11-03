@@ -74,7 +74,7 @@ export function ConfirmDialog({
       onClick={(e) => {
         if (e.target === ref.current && !pending) finish();
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-[420px] rounded-lg border border-line bg-surface p-0 text-fg shadow-popover backdrop:bg-neutral-1000/40 backdrop:backdrop-blur-[2px] motion-safe:open:animate-[dialog-in_150ms_ease-out]"
+      className="m-auto max-h-[calc(100dvh-2rem)] overflow-y-auto [overflow-wrap:anywhere] w-[calc(100%-2rem)] max-w-[420px] rounded-lg border border-line bg-surface p-0 text-fg shadow-popover backdrop:bg-neutral-1000/40 backdrop:backdrop-blur-[2px] motion-safe:open:animate-[dialog-in_150ms_ease-out]"
     >
       <div className="p-6">
         <div className="flex gap-4">

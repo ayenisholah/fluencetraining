@@ -58,7 +58,7 @@ export function PhotoPicker({ value, onChange }: { value: PhotoValue; onChange: 
         onChange={(e) => pick(e.target.files?.[0])}
       />
       {src ? (
-        <div className="mt-2 flex items-center gap-4">
+        <div className="mt-2 flex flex-wrap items-center gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview or Convex storage URL */}
           <img src={src} alt="Selected photo" className="size-24 rounded-md border border-line object-cover" />
           <div className="flex flex-col gap-2">

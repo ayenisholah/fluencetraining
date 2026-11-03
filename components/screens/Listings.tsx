@@ -52,8 +52,8 @@ export function ListingsScreen() {
   return (
     <>
       <PageHeader title="My listings" description="Tools you're lending to the neighbourhood." />
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
-        <section className="space-y-4" aria-label="Your tools">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="min-w-0 space-y-4" aria-label="Your tools">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <SearchField
               label="Search your listings"
@@ -102,10 +102,10 @@ export function ListingsScreen() {
                         }}
                       />
                     ) : (
-                      <div className="flex gap-4">
+                      <div className="flex flex-col gap-4 sm:flex-row">
                         <ToolImage src={tool.imageUrl} name={tool.name} category={tool.category} iconSize={28} className="w-24 shrink-0 rounded-md sm:w-32" />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
                             <h2 className="text-subtitle-semibold text-fg">{tool.name}</h2>
                             <ToolStatusBadge status={tool.status} />
                           </div>
@@ -114,7 +114,7 @@ export function ListingsScreen() {
                             <span className="text-description text-fg-muted">{conditionLabel(tool.condition)}</span>
                           </div>
                           {tool.description && <p className="mt-2 line-clamp-2 text-body text-fg-muted">{tool.description}</p>}
-                          <div className="mt-3 flex gap-2">
+                          <div className="mt-3 flex flex-wrap gap-2">
                             <Button variant="ghost" size="sm" onClick={() => setEditing(tool._id)}>Edit</Button>
                             <Button
                               variant="danger"

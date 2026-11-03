@@ -33,6 +33,7 @@ export default defineConfig({
     ...(signedIn
       ? [
           { name: "clerk-setup", testMatch: /global\.setup\.ts/ },
+          { name: "responsive", testMatch: /responsive\.spec\.ts/, dependencies: ["clerk-setup"], use: { ...devices["Desktop Chrome"], channel } },
           { name: "concurrency-ui", testMatch: /concurrency-ui\.spec\.ts/, dependencies: ["clerk-setup"], use: { ...devices["Desktop Chrome"], channel, trace: "off" as const } },
           {
             name: "signed-in",
