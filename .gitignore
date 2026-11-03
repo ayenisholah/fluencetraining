@@ -53,3 +53,5 @@ email-previews/
 
 # isolated responsive browser artifacts
 playwright-responsive-results/
+__pycache__/
+*_accessKeys.csv
