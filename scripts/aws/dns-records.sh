@@ -25,11 +25,11 @@ if assoc=$(aws amplify get-domain-association --region "$REGION" --app-id "$app"
   status=$(jq -r '.domainAssociation.domainStatus' <<<"$assoc")
   read -r h _ v <<<"$(jq -r '.domainAssociation.certificateVerificationDNSRecord // empty' <<<"$assoc")"
   [ -n "${h:-}" ] && add CNAME "$h" "$v" "Amplify certificate"
-  while read -r prefix rec; do
-    read -r h t v <<<"$rec"
-    [ "$t" = CNAME ] || { v=$t; }
-    add CNAME "${prefix:+$prefix.}$DOMAIN" "$v" "web app (Amplify)"
-  done < <(jq -r '.domainAssociation.subDomains[] | "\(.subDomainSetting.prefix) \(.dnsRecord)"' <<<"$assoc" | sed 's/^ //')
+  # dnsRecord is "<prefix> CNAME <target>", with an empty prefix for the apex.
+  # "|" rather than a tab: read collapses leading whitespace, losing the empty prefix.
+  while IFS='|' read -r prefix target; do
+    add CNAME "${prefix:+$prefix.}$DOMAIN" "$target" "web app (Amplify)"
+  done < <(jq -r '.domainAssociation.subDomains[] | [(.subDomainSetting.prefix // ""), (.dnsRecord | split(" ") | last)] | join("|")' <<<"$assoc")
   echo "Amplify domain status: $status"
 else
   echo "Amplify domain association not created yet (deploy LendLoop-Web first)."
