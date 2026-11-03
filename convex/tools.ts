@@ -1,4 +1,4 @@
-import { paginationOptsValidator } from "convex/server";
+import { pageArgs, numberedPage } from "./lib/pagination";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
@@ -35,28 +35,26 @@ function ownerLoader(ctx: QueryCtx) {
  * id is a stable React key and reveals nothing about the lender.
  */
 export const listPublic = query({
-  args: { paginationOpts: paginationOptsValidator, search: vSearch, category: v.optional(vCategory) },
-  handler: async (ctx, { paginationOpts, search, category }) => {
+  args: { ...pageArgs, search: vSearch, category: v.optional(vCategory) },
+  handler: async (ctx, { pageNumber, pageSize, search, category }) => {
     const term = searchTerm(search);
-    const result = term
-      ? await ctx.db
+    const source = term
+      ? ctx.db
           .query("tools")
           .withSearchIndex("search", (q) => {
             const base = q.search("searchText", term).eq("status", "available");
             return category ? base.eq("category", category) : base;
           })
-          .paginate(paginationOpts)
       : category
-        ? await ctx.db
+        ? ctx.db
             .query("tools")
             .withIndex("by_category_status", (q) => q.eq("category", category).eq("status", "available"))
             .order("desc")
-            .paginate(paginationOpts)
-        : await ctx.db
+        : ctx.db
             .query("tools")
             .withIndex("by_status", (q) => q.eq("status", "available"))
-            .order("desc")
-            .paginate(paginationOpts);
+            .order("desc");
+    const result = await numberedPage(source, { pageNumber, pageSize });
     return { ...result, page: result.page.map((tool) => ({ _id: tool._id, name: tool.name, category: tool.category })) };
   },
 });
@@ -67,16 +65,16 @@ export const listPublic = query({
  */
 export const list = query({
   args: {
-    paginationOpts: paginationOptsValidator,
+    ...pageArgs,
     search: vSearch,
     category: v.optional(vCategory),
     availableOnly: v.optional(v.boolean()),
   },
-  handler: async (ctx, { paginationOpts, search, category, availableOnly }) => {
+  handler: async (ctx, { pageNumber, pageSize, search, category, availableOnly }) => {
     const user = await requireUser(ctx);
     const term = searchTerm(search);
-    const result = term
-      ? await ctx.db
+    const source = term
+      ? ctx.db
           .query("tools")
           .withSearchIndex("search", (q) => {
             let s = q.search("searchText", term).eq("listed", true);
@@ -84,30 +82,26 @@ export const list = query({
             if (category) s = s.eq("category", category);
             return s;
           })
-          .paginate(paginationOpts)
       : availableOnly
         ? category
-          ? await ctx.db
+          ? ctx.db
               .query("tools")
               .withIndex("by_category_status", (q) => q.eq("category", category).eq("status", "available"))
               .order("desc")
-              .paginate(paginationOpts)
-          : await ctx.db
+          : ctx.db
               .query("tools")
               .withIndex("by_status", (q) => q.eq("status", "available"))
               .order("desc")
-              .paginate(paginationOpts)
         : category
-          ? await ctx.db
+          ? ctx.db
               .query("tools")
               .withIndex("by_listed_category", (q) => q.eq("listed", true).eq("category", category))
               .order("desc")
-              .paginate(paginationOpts)
-          : await ctx.db
+          : ctx.db
               .query("tools")
               .withIndex("by_listed", (q) => q.eq("listed", true))
-              .order("desc")
-              .paginate(paginationOpts);
+              .order("desc");
+    const result = await numberedPage(source, { pageNumber, pageSize });
     const ownerOf = ownerLoader(ctx);
     const page = await Promise.all(
       result.page.map(async (tool) => {
@@ -134,32 +128,30 @@ export const list = query({
 /** The caller's own listings, searchable, optionally by status. */
 export const mine = query({
   args: {
-    paginationOpts: paginationOptsValidator,
+    ...pageArgs,
     search: vSearch,
     status: v.optional(v.union(v.literal("available"), v.literal("on_loan"))),
   },
-  handler: async (ctx, { paginationOpts, search, status }) => {
+  handler: async (ctx, { pageNumber, pageSize, search, status }) => {
     const user = await requireUser(ctx);
     const term = searchTerm(search);
-    const result = term
-      ? await ctx.db
+    const source = term
+      ? ctx.db
           .query("tools")
           .withSearchIndex("search", (q) => {
             const base = q.search("searchText", term).eq("ownerId", user._id).eq("listed", true);
             return status ? base.eq("status", status) : base;
           })
-          .paginate(paginationOpts)
       : status
-        ? await ctx.db
+        ? ctx.db
             .query("tools")
             .withIndex("by_owner_status", (q) => q.eq("ownerId", user._id).eq("status", status))
             .order("desc")
-            .paginate(paginationOpts)
-        : await ctx.db
+        : ctx.db
             .query("tools")
             .withIndex("by_owner_listed", (q) => q.eq("ownerId", user._id).eq("listed", true))
-            .order("desc")
-            .paginate(paginationOpts);
+            .order("desc");
+    const result = await numberedPage(source, { pageNumber, pageSize });
     const page = await Promise.all(
       result.page.map(async (tool) => ({
         _id: tool._id,

@@ -39,4 +39,4 @@ export function isoDay(offsetDays: number): string {
 }
 
 /** Pagination args that fetch everything in one page, for tests. */
-export const ALL = { paginationOpts: { numItems: 1000, cursor: null } };
+export const ALL = { pageNumber: 1, pageSize: 100 };

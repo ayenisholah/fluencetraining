@@ -10,6 +10,7 @@ import {
 } from "react";
 import { cn } from "@/lib/cn";
 import chevron from "../assets/chevron-down.svg";
+import { controlVariants } from "../Control/Control";
 import { CheckIcon } from "../icons";
 import { popoverCardClass, usePopover } from "../Popover/usePopover";
 import { describedBy, FieldShell, outlineFieldClass } from "../TextField/FieldShell";
@@ -18,11 +19,15 @@ export type SelectOption = { value: string; label: string; icon?: ReactNode };
 
 export type SelectProps = {
   label: string;
+  /** Use an existing visible label instead of rendering a hidden duplicate. */
+  "aria-labelledby"?: string;
   options: readonly SelectOption[];
   value: string;
   onValueChange: (value: string) => void;
   /** Hide the visible label (toolbar filters, like Figma's "All Category"). Still announced. */
   hideLabel?: boolean;
+  /** Compact single-line pill for toolbars; fields keep their floating label. */
+  appearance?: "field" | "control";
   placeholder?: string;
   hint?: ReactNode;
   error?: ReactNode;
@@ -51,10 +56,12 @@ export function typeaheadMatch(options: readonly SelectOption[], query: string, 
  */
 export function Select({
   label,
+  "aria-labelledby": labelledBy,
   options,
   value,
   onValueChange,
   hideLabel = false,
+  appearance = "field",
   placeholder = "Select…",
   hint,
   error,
@@ -65,7 +72,7 @@ export function Select({
 }: SelectProps) {
   const autoId = useId();
   const id = idProp ?? autoId;
-  const labelId = `${id}-label`;
+  const labelId = labelledBy ?? `${id}-label`;
   const listId = `${id}-listbox`;
   const { open, setOpen, close, placement, rootRef, triggerRef } = usePopover({
     estimatedHeight: Math.min(options.length, 6) * 46 + 16,
@@ -148,9 +155,9 @@ export function Select({
   return (
     <FieldShell id={id} hint={hint} error={error} invalid={invalid} bare className={className}>
       <div ref={rootRef} className="relative">
-        <span id={labelId} className="sr-only">
+        {!labelledBy && <span id={labelId} className="sr-only">
           {label}
-        </span>
+        </span>}
         <button
           ref={triggerRef}
           id={id}
@@ -166,10 +173,15 @@ export function Select({
           disabled={disabled}
           onClick={() => (open ? close(false) : openList())}
           onKeyDown={onKeyDown}
-          className={cn(outlineFieldClass, invalid && "border-danger", error && "rounded-b-none")}
+          className={cn(
+            appearance === "control"
+              ? cn(controlVariants({ variant: "ghost", kind: "body" }), "w-full justify-between gap-2 bg-surface text-left")
+              : outlineFieldClass,
+            invalid && "border-danger", error && "rounded-b-none",
+          )}
         >
           <span className="flex min-w-0 flex-1 flex-col">
-            {!hideLabel && (
+            {!hideLabel && appearance === "field" && (
               <span aria-hidden className="text-description text-field-label">
                 {label}
               </span>
@@ -177,7 +189,7 @@ export function Select({
             <span
               className={cn(
                 "flex items-center gap-2 truncate text-body",
-                hideLabel ? "text-fg-muted" : selected ? "text-fg" : "text-field-placeholder",
+                appearance === "control" ? "font-semibold tabular-nums text-inherit" : hideLabel ? "text-fg-muted" : selected ? "text-fg" : "text-field-placeholder",
               )}
             >
               {selected?.icon}

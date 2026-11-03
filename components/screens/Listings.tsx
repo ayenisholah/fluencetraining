@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useState } from "react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { ToolForm, type ToolSubmit } from "@/components/ToolForm";
@@ -13,7 +13,7 @@ import {
   Card,
   CardHeader,
   EmptyState,
-  LoadMore,
+  Pagination,
   PageHeader,
   SearchField,
   SegmentedControl,
@@ -21,12 +21,12 @@ import {
   useConfirm,
 } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useNumberedPage } from "@/lib/useNumberedPage";
 import type { Id } from "@/convex/_generated/dataModel";
 import { conditionLabel } from "@/lib/format";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useUrlState } from "@/lib/useUrlState";
 
-export const LISTINGS_PAGE_SIZE = 25;
 type StatusFilter = "" | "available" | "on_loan";
 
 /** Convex ids are strings on the client; the form hands back a plain string. */
@@ -37,10 +37,9 @@ export function ListingsScreen() {
   const [search, setSearch] = useState(url.q);
   const term = useDebouncedValue(search.trim());
   const status: StatusFilter = url.status === "available" || url.status === "on_loan" ? url.status : "";
-  const { results: tools, status: pageStatus, loadMore } = usePaginatedQuery(
+  const { results: tools, status: pageStatus, pagination } = useNumberedPage(
     api.tools.mine,
     { search: term || undefined, status: status || undefined },
-    { initialNumItems: LISTINGS_PAGE_SIZE },
   );
   const create = useMutation(api.tools.create);
   const update = useMutation(api.tools.update);
@@ -138,9 +137,9 @@ export function ListingsScreen() {
                   </Card>
                 ))}
               </ul>
-              <LoadMore status={pageStatus} count={tools.length} noun="listings" onLoadMore={() => loadMore(LISTINGS_PAGE_SIZE)} />
             </>
           )}
+          <Pagination pagination={pagination} noun="listings" />
         </section>
         <Card as="section" aria-labelledby="new-listing">
           <CardHeader title={<span id="new-listing">List a tool</span>} description="It appears on the board straight away." />

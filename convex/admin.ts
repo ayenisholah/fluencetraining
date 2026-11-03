@@ -1,4 +1,4 @@
-import { paginationOptsValidator } from "convex/server";
+import { pageArgs, numberedPage } from "./lib/pagination";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
@@ -12,7 +12,7 @@ import { removeTool } from "./tools";
 
 /** Every loan across all users, newest first, a page at a time; searchable by tool name. */
 export const allLoans = query({
-  args: { paginationOpts: paginationOptsValidator, search: vSearch, phase: v.optional(vLoanPhase) },
+  args: { ...pageArgs, search: vSearch, phase: v.optional(vLoanPhase) },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     const result = await pageLoans(ctx, args);
@@ -23,26 +23,26 @@ export const allLoans = query({
 /** Members, searchable by name or email, filterable to admins or trusted lenders. */
 export const users = query({
   args: {
-    paginationOpts: paginationOptsValidator,
+    ...pageArgs,
     search: vSearch,
     filter: v.optional(v.union(v.literal("admins"), v.literal("trusted"))),
   },
-  handler: async (ctx, { paginationOpts, search, filter }) => {
+  handler: async (ctx, { pageNumber, pageSize, search, filter }) => {
     await requireAdmin(ctx);
     const term = searchTerm(search);
     const users = ctx.db.query("users");
-    const result = term
-      ? await users
+    const source = term
+      ? users
           .withSearchIndex("search", (q) => {
             const s = q.search("searchText", term);
             return filter === "admins" ? s.eq("role", "admin") : filter === "trusted" ? s.eq("trustedLender", true) : s;
           })
-          .paginate(paginationOpts)
       : filter === "admins"
-        ? await users.withIndex("by_role", (q) => q.eq("role", "admin")).order("desc").paginate(paginationOpts)
+        ? users.withIndex("by_role", (q) => q.eq("role", "admin")).order("desc")
         : filter === "trusted"
-          ? await users.withIndex("by_trusted", (q) => q.eq("trustedLender", true)).order("desc").paginate(paginationOpts)
-          : await users.order("desc").paginate(paginationOpts);
+          ? users.withIndex("by_trusted", (q) => q.eq("trustedLender", true)).order("desc")
+          : users.order("desc");
+    const result = await numberedPage(source, { pageNumber, pageSize });
     return {
       ...result,
       page: result.page.map((u) => ({
@@ -58,21 +58,21 @@ export const users = query({
 
 /** Every live listing with its owner, searchable, by category. */
 export const listings = query({
-  args: { paginationOpts: paginationOptsValidator, search: vSearch, category: v.optional(vCategory) },
-  handler: async (ctx, { paginationOpts, search, category }) => {
+  args: { ...pageArgs, search: vSearch, category: v.optional(vCategory) },
+  handler: async (ctx, { pageNumber, pageSize, search, category }) => {
     await requireAdmin(ctx);
     const term = searchTerm(search);
     const tools = ctx.db.query("tools");
-    const result = term
-      ? await tools
+    const source = term
+      ? tools
           .withSearchIndex("search", (q) => {
             const s = q.search("searchText", term).eq("listed", true);
             return category ? s.eq("category", category) : s;
           })
-          .paginate(paginationOpts)
       : category
-        ? await tools.withIndex("by_listed_category", (q) => q.eq("listed", true).eq("category", category)).order("desc").paginate(paginationOpts)
-        : await tools.withIndex("by_listed", (q) => q.eq("listed", true)).order("desc").paginate(paginationOpts);
+        ? tools.withIndex("by_listed_category", (q) => q.eq("listed", true).eq("category", category)).order("desc")
+        : tools.withIndex("by_listed", (q) => q.eq("listed", true)).order("desc");
+    const result = await numberedPage(source, { pageNumber, pageSize });
     return {
       ...result,
       page: await Promise.all(

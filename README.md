@@ -168,10 +168,10 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 
 ### Sample data
 
-Fill the board with a believable neighbourhood: four neighbours and 19 tools covering every category. It's safe to re-run, because anything that already exists is skipped.
+Fill the board with a believable neighbourhood: four neighbours and 100 tools covering every category. It's safe to re-run, because anything that already exists is skipped.
 
 ```bash
-npx convex run dev:seedNeighbourhood
+npm run seed
 ```
 
 The seeded neighbours are `role: "user"` with `@lendloop.local` addresses, so their notifications land in Mailpit. They can't sign in, so they exist only to lend. Each e2e spec deletes its own "E2E …" tool when it finishes. If an interrupted run leaves some behind, this removes them along with their loans and activity:
@@ -179,6 +179,8 @@ The seeded neighbours are `role: "user"` with `@lendloop.local` addresses, so th
 ```bash
 npx convex run dev:purgeTestData '{"prefix":"E2E "}'
 ```
+
+The seed adds missing sample tools without changing existing listings or user data. Lists fetch one page at a time from the server, with Previous/Next controls and page sizes of 10 (default), 25, 50 or 100. Changing search, filters or page size returns to page 1.
 
 Both are `internalMutation`s, so only someone with the Convex admin key can run them.
 

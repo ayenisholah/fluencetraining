@@ -12,9 +12,8 @@ import { vi, type Mock } from "vitest";
 export const queryResults: Record<string, unknown> = {};
 export const queryArgs: Record<string, unknown[]> = {};
 export const mutations: Record<string, Mock> = {};
-/** usePaginatedQuery results by function name; `loadMore` is shared and inspectable. */
+/** Page fixtures by function name, returned by the regular useQuery mock. */
 export const paginated: Record<string, { results: unknown[]; status: string }> = {};
-export const loadMore = vi.fn();
 
 function nameOf(ref: FunctionReference<"query" | "mutation">): string {
   return getFunctionName(ref);
@@ -29,19 +28,17 @@ export const convexReactMock = {
   useQuery: (ref: FunctionReference<"query">, args?: unknown) => {
     const name = nameOf(ref);
     (queryArgs[name] ??= []).push(args);
-    return queryResults[name];
-  },
-  usePaginatedQuery: (ref: FunctionReference<"query">, args: unknown) => {
-    const name = nameOf(ref);
-    (queryArgs[name] ??= []).push(args);
-    return { ...(paginated[name] ?? { results: [], status: "LoadingFirstPage" }), isLoading: false, loadMore };
+    if (Object.hasOwn(queryResults, name)) return queryResults[name];
+    const fixture = paginated[name];
+    if (!fixture || fixture.status === "LoadingFirstPage") return undefined;
+    const request = args as { pageNumber: number; pageSize: number };
+    return { page: fixture.results, ...request, totalPages: fixture.status === "Exhausted" ? request.pageNumber : 5, totalCount: fixture.status === "Exhausted" ? fixture.results.length : 50 };
   },
   useMutation: (ref: FunctionReference<"mutation">) => (mutations[nameOf(ref)] ??= vi.fn().mockResolvedValue(null)),
 };
 
 export function resetConvexMock() {
   auth.signedIn = false;
-  loadMore.mockReset();
   for (const store of [queryResults, queryArgs, mutations, paginated]) {
     for (const key of Object.keys(store)) delete store[key];
   }

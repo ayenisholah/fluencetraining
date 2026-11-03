@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useState } from "react";
 import { BorrowForm } from "@/components/BorrowForm";
 import { CategoryChips } from "@/components/CategoryChips";
@@ -10,7 +10,7 @@ import {
   CardsIcon,
   EmptyState,
   ListIcon,
-  LoadMore,
+  Pagination,
   PageHeader,
   SearchField,
   SegmentedControl,
@@ -19,12 +19,11 @@ import {
   ToolIcon,
 } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useNumberedPage } from "@/lib/useNumberedPage";
 import type { Id } from "@/convex/_generated/dataModel";
 import { CATEGORY_STYLES, type Category } from "@/lib/categories";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useUrlState } from "@/lib/useUrlState";
-
-export const BOARD_PAGE_SIZE = 24;
 
 const asCategory = (value: string): Category | "" => (value in CATEGORY_STYLES ? (value as Category) : "");
 
@@ -47,10 +46,9 @@ export function ToolsScreen() {
   const category = asCategory(url.category);
   const availableOnly = url.available === "1";
 
-  const { results: tools, status, loadMore } = usePaginatedQuery(
+  const { results: tools, status, pagination } = useNumberedPage(
     api.tools.list,
     { search: term || undefined, category: category || undefined, availableOnly: availableOnly || undefined },
-    { initialNumItems: BOARD_PAGE_SIZE },
   );
   const request = useMutation(api.loans.request);
   const [borrowing, setBorrowing] = useState<Id<"tools">>();
@@ -135,9 +133,9 @@ export function ToolsScreen() {
               </Item>
             ))}
           </ul>
-          <LoadMore status={status} count={tools.length} noun="tools" onLoadMore={() => loadMore(BOARD_PAGE_SIZE)} />
         </>
       )}
+      <Pagination pagination={pagination} noun="tools" />
     </>
   );
 }

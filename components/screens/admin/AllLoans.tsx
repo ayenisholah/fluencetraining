@@ -1,27 +1,25 @@
 "use client";
 
-import { usePaginatedQuery } from "convex/react";
 import { useState } from "react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { activityText } from "@/components/LoanCard";
-import { Badge, LoadMore, SearchField, SegmentedControl, Spinner } from "@/components/ui";
+import { Badge, Pagination, SearchField, SegmentedControl, Spinner } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useNumberedPage } from "@/lib/useNumberedPage";
 import { formatDate } from "@/lib/format";
 import { loanStatusBadge } from "@/lib/loanStatus";
 import { Section } from "./shared";
 import { useSectionSearch } from "./useSectionSearch";
 
-export const LOANS_PAGE_SIZE = 25;
 type Phase = "" | "open" | "active" | "closed";
 
 /** Every loan across all users, newest first, searchable by tool name, by phase. */
 export function AllLoans() {
   const { search, setSearch, term } = useSectionSearch();
   const [phase, setPhase] = useState<Phase>("");
-  const { results: loans, status, loadMore } = usePaginatedQuery(
+  const { results: loans, status, pagination } = useNumberedPage(
     api.admin.allLoans,
     { search: term, phase: phase || undefined },
-    { initialNumItems: LOANS_PAGE_SIZE },
   );
   return (
     <Section title="All loans">
@@ -64,7 +62,7 @@ export function AllLoans() {
           })}
         </ul>
       )}
-      <LoadMore status={status} count={loans.length} noun="loans" onLoadMore={() => loadMore(LOANS_PAGE_SIZE)} />
+      <Pagination pagination={pagination} noun="loans" />
     </Section>
   );
 }

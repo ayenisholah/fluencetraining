@@ -134,6 +134,87 @@ export const SEED_TOOLS: SeedTool[] = [
   { owner: "tom", name: "Steam mop", category: "cleaning", condition: "fair", description: "Two washable pads. Fine on tiles and sealed wood." },
   { owner: "sam", name: "Sack truck", category: "other", condition: "good", description: "Folding, 150 kg load. Handy for moving day." },
   { owner: "maria", name: "Projector and screen", category: "other", condition: "good", description: "1080p projector, HDMI, and a 100 inch pull-up screen for garden films." },
+  { owner: "priya", name: "Cordless hammer drill", category: "power_tools", condition: "good", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "tom", name: "Jigsaw with blade set", category: "power_tools", condition: "good", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "maria", name: "Belt sander", category: "power_tools", condition: "fair", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "sam", name: "Electric planer", category: "power_tools", condition: "new", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "priya", name: "Palm router", category: "power_tools", condition: "good", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "tom", name: "Heat gun", category: "power_tools", condition: "good", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "maria", name: "Rotary multitool", category: "power_tools", condition: "fair", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "sam", name: "Cordless nail gun", category: "power_tools", condition: "new", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "priya", name: "Angle grinder", category: "power_tools", condition: "good", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "tom", name: "Bench drill press", category: "power_tools", condition: "good", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "maria", name: "Oscillating multitool", category: "power_tools", condition: "fair", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "sam", name: "Electric tile cutter", category: "power_tools", condition: "new", description: "Includes the required accessories. Please wipe clean before returning." },
+  { owner: "priya", name: "Socket wrench set", category: "hand_tools", condition: "good", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "tom", name: "Precision screwdriver kit", category: "hand_tools", condition: "good", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "maria", name: "Claw hammer", category: "hand_tools", condition: "fair", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "sam", name: "Rubber mallet", category: "hand_tools", condition: "new", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "priya", name: "Wood chisel set", category: "hand_tools", condition: "good", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "tom", name: "Hand plane", category: "hand_tools", condition: "good", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "maria", name: "Coping saw", category: "hand_tools", condition: "fair", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "sam", name: "Bolt cutters", category: "hand_tools", condition: "new", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "priya", name: "Rivet gun", category: "hand_tools", condition: "good", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "tom", name: "Adjustable spanner set", category: "hand_tools", condition: "good", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "maria", name: "Torque wrench", category: "hand_tools", condition: "fair", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "sam", name: "Woodworking clamp set", category: "hand_tools", condition: "new", description: "Stored together in a carry case. Please check all pieces are returned." },
+  { owner: "priya", name: "Hedge trimmer", category: "garden", condition: "good", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "tom", name: "Leaf blower", category: "garden", condition: "good", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "maria", name: "Garden fork", category: "garden", condition: "fair", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "sam", name: "Border spade", category: "garden", condition: "new", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "priya", name: "Leaf rake", category: "garden", condition: "good", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "tom", name: "Lawn aerator", category: "garden", condition: "good", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "maria", name: "Grass seed spreader", category: "garden", condition: "fair", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "sam", name: "Garden hose reel", category: "garden", condition: "new", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "priya", name: "Secateurs", category: "garden", condition: "good", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "tom", name: "Post hole digger", category: "garden", condition: "good", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "maria", name: "Garden roller", category: "garden", condition: "fair", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "sam", name: "Compost sieve", category: "garden", condition: "new", description: "For weekend garden jobs. Please brush off soil before returning." },
+  { owner: "priya", name: "Bread maker", category: "kitchen", condition: "good", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "tom", name: "Food processor", category: "kitchen", condition: "good", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "maria", name: "Ice cream maker", category: "kitchen", condition: "fair", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "sam", name: "Slow cooker", category: "kitchen", condition: "new", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "priya", name: "Electric griddle", category: "kitchen", condition: "good", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "tom", name: "Waffle maker", category: "kitchen", condition: "good", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "maria", name: "Juicer", category: "kitchen", condition: "fair", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "sam", name: "Food dehydrator", category: "kitchen", condition: "new", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "priya", name: "Digital kitchen scales", category: "kitchen", condition: "good", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "tom", name: "Jam funnel set", category: "kitchen", condition: "good", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "maria", name: "Cake decorating kit", category: "kitchen", condition: "fair", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "sam", name: "Large roasting tray", category: "kitchen", condition: "new", description: "Clean and ready to use. Please wash and dry before returning." },
+  { owner: "priya", name: "Two-person hiking tent", category: "camping", condition: "good", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "tom", name: "Sleeping bag", category: "camping", condition: "good", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "maria", name: "Self-inflating sleeping mat", category: "camping", condition: "fair", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "sam", name: "Camping stove", category: "camping", condition: "new", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "priya", name: "Folding camp table", category: "camping", condition: "good", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "tom", name: "Folding camp chair", category: "camping", condition: "good", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "maria", name: "Rechargeable lantern", category: "camping", condition: "fair", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "sam", name: "Hiking backpack", category: "camping", condition: "new", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "priya", name: "Picnic blanket", category: "camping", condition: "good", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "tom", name: "Camping kettle", category: "camping", condition: "good", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "maria", name: "Portable hammock", category: "camping", condition: "fair", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "sam", name: "Trekking poles", category: "camping", condition: "new", description: "Packed for a weekend outdoors. Please return dry with all parts." },
+  { owner: "priya", name: "Pressure washer", category: "cleaning", condition: "good", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "tom", name: "Wet and dry vacuum", category: "cleaning", condition: "good", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "maria", name: "Window cleaning pole", category: "cleaning", condition: "fair", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "sam", name: "Handheld steam cleaner", category: "cleaning", condition: "new", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "priya", name: "Upholstery spot cleaner", category: "cleaning", condition: "good", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "tom", name: "Floor polishing machine", category: "cleaning", condition: "good", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "maria", name: "Drain auger", category: "cleaning", condition: "fair", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "sam", name: "Gutter cleaning kit", category: "cleaning", condition: "new", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "priya", name: "Car vacuum", category: "cleaning", condition: "good", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "tom", name: "Long-handled scrubbing brush", category: "cleaning", condition: "good", description: "For household cleaning. Bring any consumables and empty after use." },
+  { owner: "maria", name: "Sewing machine", category: "other", condition: "fair", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "sam", name: "Wallpaper steamer", category: "other", condition: "new", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "priya", name: "Digital luggage scales", category: "other", condition: "good", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "tom", name: "Folding workbench", category: "other", condition: "good", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "maria", name: "Furniture moving dollies", category: "other", condition: "fair", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "sam", name: "Cable reel", category: "other", condition: "new", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "priya", name: "Laser distance meter", category: "other", condition: "good", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "tom", name: "Metal detector", category: "other", condition: "good", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "maria", name: "Bike repair stand", category: "other", condition: "fair", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "sam", name: "Bicycle track pump", category: "other", condition: "new", description: "Available for occasional home projects. Please return with its accessories." },
+  { owner: "priya", name: "Portable gazebo", category: "other", condition: "good", description: "Available for occasional home projects. Please return with its accessories." },
 ];
 
 /**
@@ -164,11 +245,15 @@ export const seedNeighbourhood = internalMutation({
       });
       users++;
     }
+    const existingNames = new Map<Id<"users">, Set<string>>();
+    for (const ownerId of Object.values(ids)) {
+      const mine = await ctx.db.query("tools").withIndex("by_owner", (q) => q.eq("ownerId", ownerId)).collect();
+      existingNames.set(ownerId, new Set(mine.map((tool) => tool.name)));
+    }
     let tools = 0;
     for (const tool of SEED_TOOLS) {
       const ownerId = ids[tool.owner];
-      const mine = await ctx.db.query("tools").withIndex("by_owner", (q) => q.eq("ownerId", ownerId)).collect();
-      if (mine.some((t) => t.name === tool.name)) continue;
+      if (existingNames.get(ownerId)!.has(tool.name)) continue;
       const errors = toolFieldErrors(tool);
       if (errors.name || errors.description) throw new Error(`Bad seed tool ${tool.name}: ${JSON.stringify(errors)}`);
       const fields = {

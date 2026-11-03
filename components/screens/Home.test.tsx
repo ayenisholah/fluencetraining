@@ -57,12 +57,12 @@ describe("HomeScreen (public landing)", () => {
 
   test("search and category go to the server and into the URL", async () => {
     render(<HomeScreen />);
-    expect(lastArgs()).toEqual({ search: undefined, category: undefined });
+    expect(lastArgs()).toMatchObject({ search: undefined, category: undefined });
     await userEvent.type(screen.getByRole("searchbox", { name: "Search available tools" }), "drill");
-    await vi.waitFor(() => expect(lastArgs()).toEqual({ search: "drill", category: undefined }));
+    await vi.waitFor(() => expect(lastArgs()).toMatchObject({ search: "drill", category: undefined }));
     expect(navigation.href).toBe("/?q=drill");
     await userEvent.click(within(list()).getByRole("radio", { name: "Garden" }));
-    expect(lastArgs()).toEqual({ search: "drill", category: "garden" });
+    expect(lastArgs()).toMatchObject({ search: "drill", category: "garden" });
     expect(navigation.href).toContain("category=garden");
   });
 
@@ -71,16 +71,15 @@ describe("HomeScreen (public landing)", () => {
     render(<HomeScreen />);
     expect(screen.getByRole("searchbox", { name: "Search available tools" })).toHaveValue("rake");
     expect(within(list()).getByRole("radio", { name: "Garden" })).toHaveAttribute("aria-checked", "true");
-    expect(lastArgs()).toEqual({ search: "rake", category: "garden" });
+    expect(lastArgs()).toMatchObject({ search: "rake", category: "garden" });
   });
 
-  test("Load more appears while the server has more", async () => {
+  test("Next is available while the server has more", async () => {
     paginated["tools:listPublic"].status = "CanLoadMore";
-    const { loadMore } = await import("@/test/convex-mock");
     render(<HomeScreen />);
-    expect(screen.getByText("Showing 3 tools")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Load more tools" }));
-    expect(loadMore).toHaveBeenCalledWith(24);
+    expect(screen.getByText("Showing 1–3 of 50 tools")).toHaveTextContent("Page 1 · Showing 1–3 of 50 tools");
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(lastArgs()).toMatchObject({ pageNumber: 2, pageSize: 10 });
   });
 
   test("loading skeleton, and empty states with and without filters", () => {

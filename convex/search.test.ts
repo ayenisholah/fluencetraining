@@ -9,14 +9,14 @@ const tool = (name: string, extra: Partial<{ category: "garden" | "power_tools" 
   description: extra.description ?? "",
 });
 
-async function pageAll<T>(fetch: (cursor: string | null) => Promise<{ page: T[]; isDone: boolean; continueCursor: string }>) {
+async function pageAll<T>(fetch: (pageNumber: number) => Promise<{ page: T[]; totalPages: number }>) {
   const all: T[] = [];
-  let cursor: string | null = null;
+  let pageNumber = 1;
   for (;;) {
-    const r = await fetch(cursor);
+    const r = await fetch(pageNumber);
     all.push(...r.page);
-    if (r.isDone) return all;
-    cursor = r.continueCursor;
+    if (pageNumber >= r.totalPages) return all;
+    pageNumber++;
   }
 }
 
@@ -57,7 +57,7 @@ describe("board search, filters and pagination (tools.list)", () => {
     const t = setup();
     await board(t);
     const bob = await signIn(t, "Viewer");
-    const names = await pageAll((cursor) => bob.as.query(api.tools.list, { paginationOpts: { numItems: 3, cursor } }));
+    const names = await pageAll((pageNumber) => bob.as.query(api.tools.list, { pageNumber, pageSize: 10 }));
     expect(names.map((r) => r.name)).toEqual(["Tent", "Hedge trimmer", "Leaf rake", "Cordless drill"]);
   });
 

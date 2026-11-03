@@ -85,8 +85,46 @@ describe("dev:seedNeighbourhood", () => {
   });
 
   test("covers every category with valid, distinct tools", () => {
+    expect(SEED_TOOLS).toHaveLength(100);
     expect(new Set(SEED_TOOLS.map((s) => s.category))).toEqual(new Set(categories));
     expect(new Set(SEED_TOOLS.map((s) => s.name)).size).toBe(SEED_TOOLS.length);
     for (const s of SEED_TOOLS) expect(toolFieldErrors(s), s.name).toEqual({});
+  });
+
+  test("preserves user data and existing seed edits while adding missing tools", async () => {
+    const t = setup();
+    const owner = await signIn(t, "Real owner");
+    const realId = await owner.as.mutation(api.tools.create, tool("Personal rake"));
+    await t.mutation(internal.dev.seedNeighbourhood, {});
+    const seeded = await t.run(async (ctx) => (await ctx.db.query("tools").collect()).filter((row) => row._id !== realId));
+    await t.run(async (ctx) => {
+      await ctx.db.patch(seeded[0]._id, { description: "Owner edited this", status: "on_loan" });
+      await ctx.db.delete(seeded[1]._id);
+    });
+    expect(await t.mutation(internal.dev.seedNeighbourhood, {})).toEqual({ users: 0, tools: 1 });
+    expect(await t.run((ctx) => ctx.db.get(realId))).toMatchObject({ name: "Personal rake" });
+    expect(await t.run((ctx) => ctx.db.get(seeded[0]._id))).toMatchObject({ description: "Owner edited this", status: "on_loan" });
+    expect(await count(t, "tools")).toBe(101);
+  });
+
+  test.each([10, 25, 50, 100])("server pages traverse the 100-tool catalogue at size %i", async (numItems) => {
+    const t = setup();
+    await t.mutation(internal.dev.seedNeighbourhood, {});
+    const reader = await signIn(t, "Reader");
+    for (const filters of [{}, { category: "garden" as const }, { search: "garden" }]) {
+      const expected = await reader.as.query(api.tools.list, { ...ALL, ...filters });
+      const seen: string[] = [];
+      let pageNumber = 1;
+      do {
+        const result: typeof expected = await reader.as.query(api.tools.list, { ...filters, pageNumber, pageSize: numItems });
+        expect(result.page.length).toBeLessThanOrEqual(numItems);
+        seen.push(...result.page.map((row) => row._id));
+        if (pageNumber >= result.totalPages) break;
+        pageNumber++;
+      } while (true);
+      expect(seen).toEqual(expected.page.map((row) => row._id));
+      expect(new Set(seen).size).toBe(seen.length);
+      if (Object.keys(filters).length === 0) expect(seen).toHaveLength(100);
+    }
   });
 });

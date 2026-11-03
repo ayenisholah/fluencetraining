@@ -1,4 +1,4 @@
-import type { PaginationOptions } from "convex/server";
+import { numberedPage, type NumberedPageArgs } from "./pagination";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { QueryCtx } from "../_generated/server";
 import { todayUtc } from "./dates";
@@ -46,8 +46,7 @@ export async function describeLoan(
   };
 }
 
-export type LoanListArgs = {
-  paginationOpts: PaginationOptions;
+export type LoanListArgs = NumberedPageArgs & {
   search?: string;
   phase?: LoanPhase;
   /** Restrict to one party's loans; omitted only for the admin view. */
@@ -58,30 +57,33 @@ export type LoanListArgs = {
  * One page of loans, newest first (or by relevance when searching by tool
  * name), filtered by party and phase on the server.
  */
-export async function pageLoans(ctx: QueryCtx, { paginationOpts, search, phase, party }: LoanListArgs) {
+function loanQuery(ctx: QueryCtx, { search, phase, party }: LoanListArgs) {
   const term = searchTerm(search);
   const loans = ctx.db.query("loans");
   if (term) {
-    return await loans
+    return loans
       .withSearchIndex("search", (q) => {
         let s = q.search("toolName", term);
         if (party) s = s.eq(party.field, party.userId);
         if (phase) s = s.eq("phase", phase);
         return s;
-      })
-      .paginate(paginationOpts);
+      });
   }
   if (party?.field === "borrowerId") {
     return phase
-      ? await loans.withIndex("by_borrower_phase", (q) => q.eq("borrowerId", party.userId).eq("phase", phase)).order("desc").paginate(paginationOpts)
-      : await loans.withIndex("by_borrower", (q) => q.eq("borrowerId", party.userId)).order("desc").paginate(paginationOpts);
+      ? loans.withIndex("by_borrower_phase", (q) => q.eq("borrowerId", party.userId).eq("phase", phase)).order("desc")
+      : loans.withIndex("by_borrower", (q) => q.eq("borrowerId", party.userId)).order("desc");
   }
   if (party?.field === "lenderId") {
     return phase
-      ? await loans.withIndex("by_lender_phase", (q) => q.eq("lenderId", party.userId).eq("phase", phase)).order("desc").paginate(paginationOpts)
-      : await loans.withIndex("by_lender", (q) => q.eq("lenderId", party.userId)).order("desc").paginate(paginationOpts);
+      ? loans.withIndex("by_lender_phase", (q) => q.eq("lenderId", party.userId).eq("phase", phase)).order("desc")
+      : loans.withIndex("by_lender", (q) => q.eq("lenderId", party.userId)).order("desc");
   }
   return phase
-    ? await loans.withIndex("by_phase", (q) => q.eq("phase", phase)).order("desc").paginate(paginationOpts)
-    : await loans.order("desc").paginate(paginationOpts);
+    ? loans.withIndex("by_phase", (q) => q.eq("phase", phase)).order("desc")
+    : loans.order("desc");
+}
+
+export async function pageLoans(ctx: QueryCtx, args: LoanListArgs) {
+  return numberedPage(loanQuery(ctx, args), args);
 }

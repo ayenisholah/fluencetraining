@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   acceptEssentialOnly,
   cardFor,
+  cli,
   expectNoAxeViolations,
   expectNoHorizontalScroll,
   purgeTestTool,
@@ -63,6 +64,76 @@ test("non-admins don't get the admin area", async () => {
   await expect(lender.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Admin" })).toHaveCount(0);
   await lender.goto("/admin");
   await expect(lender.getByText("Admins only")).toBeVisible();
+});
+
+test("server pagination replaces pages, preserves the view, and applies page size", async () => {
+  test.setTimeout(120_000);
+  cli("npm", ["run", "seed"]);
+  await borrower.goto("/tools?view=list");
+  const rows = borrower.locator("ul[data-view] > li");
+  const controls = borrower.getByRole("navigation", { name: "tools pagination" });
+  await expect(rows).toHaveCount(10);
+  const firstNames = await rows.locator("h2").allTextContents();
+  await borrower.screenshot({ path: "test-results/screens/pagination-list.png", fullPage: true });
+  for (const theme of ["light", "dark"] as const) {
+    await borrower.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    for (const width of [1920, 1280, 375]) {
+      await borrower.setViewportSize({ width, height: 812 });
+      await expectNoHorizontalScroll(borrower);
+      await expect(controls.getByRole("combobox")).toHaveCSS("height", "36px");
+      await expect(controls.getByRole("button", { name: "Next" })).toHaveCSS("height", "40px");
+      await expect(controls.locator('[aria-current="page"]')).toHaveAttribute("aria-label", "Page 1");
+      await expect(controls.locator('[aria-current="page"]')).toHaveCSS("border-radius", "8px");
+      await expect(controls.getByRole("button", { name: "Next" })).toHaveCSS("border-radius", "8px");
+      await controls.screenshot({ path: `test-results/screens/pagination-${theme}-${width}.png` });
+    }
+  }
+  await borrower.setViewportSize({ width: 1280, height: 720 });
+  await borrower.evaluate(() => document.documentElement.removeAttribute("data-theme"));
+  await expect(controls.getByRole("button", { name: "Previous" })).toBeDisabled();
+  await controls.getByRole("button", { name: "Next" }).click();
+  await expect(controls).toContainText("Page 2 · Showing 11–20 of");
+  await controls.getByRole("button", { name: "Page 5", exact: true }).click();
+  await expect(controls.locator('[aria-current="page"]')).toHaveAttribute("aria-label", "Page 5");
+  await expect(controls).toContainText("Showing 41–50 of");
+  await borrower.setViewportSize({ width: 375, height: 812 });
+  await expectNoHorizontalScroll(borrower);
+  await expect(controls.getByRole("button", { name: "Page 1", exact: true })).toBeVisible();
+  await controls.screenshot({ path: "test-results/screens/pagination-middle-mobile.png" });
+  await borrower.setViewportSize({ width: 1280, height: 720 });
+  const lastPage = controls.getByRole("button", { name: /^Page / }).last();
+  const lastPageLabel = await lastPage.getAttribute("aria-label");
+  await lastPage.click();
+  await expect(controls.locator('[aria-current="page"]')).toHaveAttribute("aria-label", lastPageLabel!);
+  await expect(controls.getByRole("button", { name: "Next" })).toBeDisabled();
+  await controls.getByRole("button", { name: "Page 1", exact: true }).click();
+  await expect(controls).toContainText("Showing 1–10 of");
+  await controls.getByRole("button", { name: "Page 2", exact: true }).click();
+  const secondNames = await rows.locator("h2").allTextContents();
+  expect(secondNames.some((name) => firstNames.includes(name))).toBe(false);
+  await borrower.getByRole("radio", { name: "Tiles", exact: true }).click();
+  await expect(controls).toContainText("Page 2");
+  await expect(borrower.locator("ul[data-view]")).toHaveAttribute("data-view", "tiles");
+  await controls.getByRole("button", { name: "Previous" }).click();
+  await expect(controls).toContainText("Page 1 · Showing 1–10 of");
+  expect(await rows.locator("h2").allTextContents()).toEqual(firstNames);
+  await controls.getByRole("button", { name: "Next" }).click();
+  await expect(controls).toContainText("Page 2 · Showing 11–20 of");
+  await controls.getByRole("combobox", { name: "Items per page" }).click();
+  await borrower.getByRole("option", { name: "25", exact: true }).click();
+  await expect(rows).toHaveCount(25);
+  await expect(controls).toContainText("Page 1 · Showing 1–25 of");
+  await controls.getByRole("button", { name: "Next" }).click();
+  await expect(controls).toContainText("Page 2 · Showing 26–50 of");
+  await borrower.getByRole("searchbox", { name: "Search tools", exact: true }).fill("qqzzxxnomatch");
+  await expect(controls).toContainText("Page 1 · 0 tools");
+  await expect(controls.getByRole("button", { name: "Next" })).toBeDisabled();
+
+  await visitor.goto("/");
+  const publicControls = visitor.getByRole("navigation", { name: "tools pagination" });
+  await expect(publicControls).toContainText("Page 1 · Showing 1–10 of");
+  await publicControls.getByRole("button", { name: "Next" }).click();
+  await expect(publicControls).toContainText("Page 2 · Showing 11–20 of");
 });
 
 test("listing form validates before submitting", async () => {

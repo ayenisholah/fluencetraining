@@ -23,7 +23,7 @@ const loans: LoanView[] = [
 
 const card = (name: string) => screen.getByRole("heading", { name }).closest("li") as HTMLElement;
 const list = (as: "lender" | "borrower", over: Partial<Parameters<typeof LoanList>[0]> = {}) => (
-  <LoanList loans={loans} status="Exhausted" onLoadMore={() => {}} as={as} empty="none" {...over} />
+  <LoanList loans={loans} status="Exhausted" as={as} empty="none" {...over} />
 );
 
 beforeEach(resetConvexMock);
@@ -66,14 +66,10 @@ describe("LoanList", () => {
     expect(within(card("Drill")).queryByText(/already lent out/)).toBeNull();
   });
 
-  test("loading, empty, and Load more", async () => {
-    const onLoadMore = vi.fn();
+  test("loading and empty states", async () => {
     const { rerender } = render(list("lender", { loans: [], status: "LoadingFirstPage" }));
     expect(screen.getByRole("status")).toBeInTheDocument();
     rerender(list("lender", { loans: [], empty: "Nothing yet" }));
     expect(screen.getByText("Nothing yet")).toBeInTheDocument();
-    rerender(list("lender", { status: "CanLoadMore", onLoadMore }));
-    await userEvent.click(screen.getByRole("button", { name: "Load more requests" }));
-    expect(onLoadMore).toHaveBeenCalled();
   });
 });

@@ -21,6 +21,7 @@ import type * as lib_images from "../lib/images.js";
 import type * as lib_loanRecord from "../lib/loanRecord.js";
 import type * as lib_loanView from "../lib/loanView.js";
 import type * as lib_outbox from "../lib/outbox.js";
+import type * as lib_pagination from "../lib/pagination.js";
 import type * as lib_people from "../lib/people.js";
 import type * as lib_rateLimit from "../lib/rateLimit.js";
 import type * as lib_rules from "../lib/rules.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "lib/loanRecord": typeof lib_loanRecord;
   "lib/loanView": typeof lib_loanView;
   "lib/outbox": typeof lib_outbox;
+  "lib/pagination": typeof lib_pagination;
   "lib/people": typeof lib_people;
   "lib/rateLimit": typeof lib_rateLimit;
   "lib/rules": typeof lib_rules;

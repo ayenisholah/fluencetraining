@@ -1,13 +1,13 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { EmptyState, InboxIcon, LoadMore, Spinner, useConfirm, type PaginationStatus } from "@/components/ui";
+import { EmptyState, InboxIcon, Spinner, useConfirm } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { LoanCard, type LoanView } from "./LoanCard";
 import { useRowAction } from "./useRowAction";
 
-export const LOANS_PAGE_SIZE = 25;
+import type { PageStatus } from "@/lib/useNumberedPage";
 
 /**
  * Connects LoanCard to the Convex loan mutations for one page-able list.
@@ -17,13 +17,11 @@ export const LOANS_PAGE_SIZE = 25;
 export function LoanList({
   loans,
   status,
-  onLoadMore,
   as,
   empty,
 }: {
   loans: LoanView[];
-  status: PaginationStatus;
-  onLoadMore: () => void;
+  status: PageStatus;
   as: "lender" | "borrower";
   empty: string;
 }) {
@@ -70,7 +68,6 @@ export function LoanList({
           />
         ))}
       </ul>
-      <LoadMore status={status} count={loans.length} noun="requests" onLoadMore={onLoadMore} />
       {dialog}
     </>
   );

@@ -14,7 +14,7 @@ const drill = {
   condition: "good" as const,
   description: "18V",
 };
-const page = (numItems = 50, cursor: string | null = null) => ({ paginationOpts: { numItems, cursor } });
+const page = (pageSize = 50, pageNumber = 1) => ({ pageNumber, pageSize });
 
 // ---------------------------------------------------------------------------
 // Coverage guard: every public function must be listed with the guard it uses.
@@ -306,13 +306,13 @@ describe("admin abilities", () => {
       }
     });
     const seen = new Set<string>();
-    let cursor: string | null = null;
+    let pageNumber = 1;
     for (;;) {
-      const result: { page: { _id: string }[]; isDone: boolean; continueCursor: string } =
-        await w.admin.as.query(api.admin.allLoans, page(100, cursor));
+      const result: { page: { _id: string }[]; totalPages: number } =
+        await w.admin.as.query(api.admin.allLoans, page(100, pageNumber));
       for (const loan of result.page) seen.add(loan._id);
-      if (result.isDone) break;
-      cursor = result.continueCursor;
+      if (pageNumber >= result.totalPages) break;
+      pageNumber++;
     }
     expect(seen.size).toBe(231);
   });

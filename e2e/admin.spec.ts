@@ -94,6 +94,7 @@ test("admin views all loans, with both parties", async () => {
 
 test("admin marks the owner a trusted lender, and can undo it", async () => {
   await admin.goto("/admin");
+  await admin.getByRole("searchbox", { name: "Search members by name or email" }).fill(ownerName);
   const trusted = admin.getByRole("switch", { name: `${ownerName}: Trusted` });
   // Start from a known state in case an earlier run was interrupted.
   if ((await trusted.getAttribute("aria-checked")) === "true") await trusted.click();

@@ -10,8 +10,6 @@ import { AutomationHealth } from "./admin/AutomationHealth";
 import { ListingsModeration } from "./admin/ListingsModeration";
 import { Members } from "./admin/Members";
 
-export { LOANS_PAGE_SIZE } from "./admin/AllLoans";
-
 /**
  * Admin dashboard. The role check here only decides what to render: every
  * admin query and mutation re-checks the role on the server (requireAdmin),

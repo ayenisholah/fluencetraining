@@ -1,20 +1,20 @@
 "use client";
 
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useState } from "react";
-import { Avatar, Badge, LoadMore, SearchField, SegmentedControl, Spinner, Toggle } from "@/components/ui";
+import { Avatar, Badge, Pagination, SearchField, SegmentedControl, Spinner, Toggle } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useNumberedPage } from "@/lib/useNumberedPage";
 import { RowError, Section, type RowActions } from "./shared";
 import { useSectionSearch } from "./useSectionSearch";
 
-const PAGE = 25;
 type Filter = "" | "admins" | "trusted";
 
 /** Members, searchable by name or email, with the Trusted Lender switch. */
 export function Members({ actions }: { actions: RowActions }) {
   const { search, setSearch, term } = useSectionSearch();
   const [filter, setFilter] = useState<Filter>("");
-  const { results: users, status, loadMore } = usePaginatedQuery(api.admin.users, { search: term, filter: filter || undefined }, { initialNumItems: PAGE });
+  const { results: users, status, pagination } = useNumberedPage(api.admin.users, { search: term, filter: filter || undefined });
   const setTrusted = useMutation(api.admin.setTrustedLender);
   return (
     <Section title="Members" description="Trusted lenders get a badge on their listings.">
@@ -62,7 +62,7 @@ export function Members({ actions }: { actions: RowActions }) {
           ))}
         </ul>
       )}
-      <LoadMore status={status} count={users.length} noun="members" onLoadMore={() => loadMore(PAGE)} />
+      <Pagination pagination={pagination} noun="members" />
     </Section>
   );
 }

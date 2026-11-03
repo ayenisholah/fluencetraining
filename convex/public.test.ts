@@ -79,14 +79,14 @@ describe("tools.listPublic (landing page)", () => {
       }
     });
     const seen: string[] = [];
-    let cursor: string | null = null;
+    let pageNumber = 1;
     for (;;) {
-      const result: { page: { name: string }[]; isDone: boolean; continueCursor: string } = await t.query(api.tools.listPublic, {
-        paginationOpts: { numItems: 7, cursor },
+      const result: { page: { name: string }[]; totalPages: number } = await t.query(api.tools.listPublic, {
+        pageNumber, pageSize: 10,
       });
       seen.push(...result.page.map((r) => r.name));
-      if (result.isDone) break;
-      cursor = result.continueCursor;
+      if (pageNumber >= result.totalPages) break;
+      pageNumber++;
     }
     expect(seen).toHaveLength(30);
     expect(new Set(seen).size).toBe(30);

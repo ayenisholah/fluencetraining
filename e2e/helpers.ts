@@ -44,6 +44,7 @@ export function cardFor(page: Page, name: string, status?: string) {
 /** Opens the borrow form for `name` on /tools, picks today+1 → today+2 and sends it. */
 export async function requestToBorrow(page: Page, name: string) {
   await page.goto("/tools");
+  await page.getByRole("searchbox", { name: "Search tools", exact: true }).fill(name);
   const card = cardFor(page, name);
   await card.getByRole("button", { name: "Request to borrow" }).click();
   await card.getByRole("button", { name: /^From/ }).click();

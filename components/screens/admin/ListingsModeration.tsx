@@ -1,27 +1,26 @@
 "use client";
 
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useState } from "react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { ToolImage } from "@/components/ToolImage";
 import { ToolStatusBadge } from "@/components/ToolStatusBadge";
-import { Button, LoadMore, SearchField, Select, Spinner, useConfirm } from "@/components/ui";
+import { Button, Pagination, SearchField, Select, Spinner, useConfirm } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useNumberedPage } from "@/lib/useNumberedPage";
 import { CATEGORIES, type Category } from "@/lib/format";
 import { Section } from "./shared";
 import { useSectionSearch } from "./useSectionSearch";
 
-const PAGE = 25;
 const categoryOptions = [{ value: "", label: "All categories" }, ...CATEGORIES.map(([value, label]) => ({ value, label }))];
 
 /** Every live listing with its owner; admins can remove any of them, even mid-loan. */
 export function ListingsModeration() {
   const { search, setSearch, term } = useSectionSearch();
   const [category, setCategory] = useState<Category | "">("");
-  const { results: listings, status, loadMore } = usePaginatedQuery(
+  const { results: listings, status, pagination } = useNumberedPage(
     api.admin.listings,
     { search: term, category: category || undefined },
-    { initialNumItems: PAGE },
   );
   const removeListing = useMutation(api.admin.removeListing);
   const { confirm, dialog } = useConfirm();
@@ -70,7 +69,7 @@ export function ListingsModeration() {
           ))}
         </ul>
       )}
-      <LoadMore status={status} count={listings.length} noun="listings" onLoadMore={() => loadMore(PAGE)} />
+      <Pagination pagination={pagination} noun="listings" />
       {dialog}
     </Section>
   );

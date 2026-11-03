@@ -1,30 +1,28 @@
 "use client";
 
 import { SignInButton } from "@clerk/nextjs";
-import { Authenticated, Unauthenticated, usePaginatedQuery } from "convex/react";
+import { Authenticated, Unauthenticated } from "convex/react";
 import Link from "next/link";
 import { useState } from "react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { CategoryChips } from "@/components/CategoryChips";
 import { HowItWorks } from "@/components/HowItWorks";
-import { Badge, Button, buttonVariants, Card, EmptyState, LoadMore, SearchField, ToolIcon } from "@/components/ui";
+import { Badge, Button, buttonVariants, Card, EmptyState, Pagination, SearchField, ToolIcon } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useNumberedPage } from "@/lib/useNumberedPage";
 import { CATEGORY_STYLES, type Category } from "@/lib/categories";
 import { AFTER_SIGN_IN } from "@/lib/nav";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useUrlState } from "@/lib/useUrlState";
-
-export const PUBLIC_PAGE_SIZE = 24;
 
 export function HomeScreen() {
   const [url, setUrl] = useUrlState(["q", "category"] as const);
   const [search, setSearch] = useState(url.q);
   const term = useDebouncedValue(search.trim());
   const category = url.category in CATEGORY_STYLES ? (url.category as Category) : "";
-  const { results: tools, status, loadMore } = usePaginatedQuery(
+  const { results: tools, status, pagination } = useNumberedPage(
     api.tools.listPublic,
     { search: term || undefined, category: category || undefined },
-    { initialNumItems: PUBLIC_PAGE_SIZE },
   );
 
   return (
@@ -89,9 +87,9 @@ export function HomeScreen() {
                 </Card>
               ))}
             </ul>
-            <LoadMore status={status} count={tools.length} noun="tools" onLoadMore={() => loadMore(PUBLIC_PAGE_SIZE)} />
           </>
         )}
+        <Pagination pagination={pagination} noun="tools" />
       </section>
     </div>
   );

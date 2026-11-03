@@ -43,7 +43,7 @@ describe("ListingsScreen", () => {
     await userEvent.type(screen.getByRole("searchbox", { name: "Search your listings" }), "lad");
     await vi.waitFor(() => expect(queryArgs["tools:mine"].at(-1)).toMatchObject({ search: "lad" }));
     await userEvent.click(screen.getByRole("radio", { name: "On loan" }));
-    expect(queryArgs["tools:mine"].at(-1)).toEqual({ search: "lad", status: "on_loan" });
+    expect(queryArgs["tools:mine"].at(-1)).toMatchObject({ search: "lad", status: "on_loan" });
   });
 
   test("a new listing with a photo uploads it first, then creates the tool with its id", async () => {

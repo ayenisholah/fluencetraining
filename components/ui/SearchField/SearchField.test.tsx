@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, test } from "vitest";
 import { axeViolations } from "@/test/axe";
-import { LoadMore } from "../LoadMore/LoadMore";
 import { SearchField } from "./SearchField";
 
 function Harness() {
@@ -32,18 +31,5 @@ describe("SearchField", () => {
   test("has no axe violations", async () => {
     const { container } = render(<Harness />);
     expect(await axeViolations(container)).toEqual([]);
-  });
-});
-
-describe("LoadMore", () => {
-  test("shows the count, singular for one, and a button only while there is more", () => {
-    const { rerender } = render(<LoadMore status="CanLoadMore" count={24} noun="tools" onLoadMore={() => {}} />);
-    expect(screen.getByText("Showing 24 tools")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Load more tools" })).toBeEnabled();
-    rerender(<LoadMore status="LoadingMore" count={24} noun="tools" onLoadMore={() => {}} />);
-    expect(screen.getByRole("button", { name: "Loading…" })).toBeDisabled();
-    rerender(<LoadMore status="Exhausted" count={1} noun="listings" onLoadMore={() => {}} />);
-    expect(screen.getByText(/Showing 1 listing · that's everything/)).toBeInTheDocument();
-    expect(screen.queryByRole("button")).toBeNull();
   });
 });

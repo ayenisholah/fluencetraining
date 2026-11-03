@@ -1,10 +1,10 @@
 "use client";
 
-import { usePaginatedQuery } from "convex/react";
 import { useState } from "react";
-import { LoanList, LOANS_PAGE_SIZE } from "@/components/LoanList";
-import { PageHeader, SearchField, SegmentedControl } from "@/components/ui";
+import { LoanList } from "@/components/LoanList";
+import { PageHeader, Pagination, SearchField, SegmentedControl } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useNumberedPage } from "@/lib/useNumberedPage";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useUrlState } from "@/lib/useUrlState";
 
@@ -32,10 +32,9 @@ export function LoanListScreen({
   const [search, setSearch] = useState(url.q);
   const term = useDebouncedValue(search.trim());
   const phase = PHASES.some((p) => p.value === url.phase) ? (url.phase as Phase) : "";
-  const { results, status, loadMore } = usePaginatedQuery(
+  const { results, status, pagination } = useNumberedPage(
     as === "borrower" ? api.loans.myRequests : api.loans.incoming,
     { search: term || undefined, phase: phase || undefined },
-    { initialNumItems: LOANS_PAGE_SIZE },
   );
   const filtered = Boolean(term || phase);
   return (
@@ -56,10 +55,10 @@ export function LoanListScreen({
       <LoanList
         loans={results}
         status={status}
-        onLoadMore={() => loadMore(LOANS_PAGE_SIZE)}
         as={as}
         empty={filtered ? "Nothing matches that search." : empty}
       />
+      <Pagination pagination={pagination} noun="requests" />
     </>
   );
 }

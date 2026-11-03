@@ -2,9 +2,9 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { axeViolations } from "@/test/axe";
-import { loadMore, mutations, paginated, queryArgs, resetConvexMock } from "@/test/convex-mock";
+import { mutations, paginated, queryArgs, resetConvexMock } from "@/test/convex-mock";
 import { navigation } from "@/test/next-navigation-mock";
-import { BOARD_PAGE_SIZE, ToolsScreen } from "./Tools";
+import { ToolsScreen } from "./Tools";
 
 vi.mock("convex/react", async () => (await import("@/test/convex-mock")).convexReactMock);
 
@@ -44,12 +44,12 @@ describe("ToolsScreen (the board)", () => {
 
   test("search, category chips and Available only all go to the server, and into the URL", async () => {
     render(<ToolsScreen />);
-    expect(lastArgs()).toEqual({ search: undefined, category: undefined, availableOnly: undefined });
+    expect(lastArgs()).toMatchObject({ search: undefined, category: undefined, availableOnly: undefined });
     await userEvent.type(screen.getByRole("searchbox", { name: "Search tools" }), "drill");
     await vi.waitFor(() => expect(lastArgs()).toMatchObject({ search: "drill" }));
     await userEvent.click(screen.getByRole("radio", { name: "Garden" }));
     await userEvent.click(screen.getByRole("switch", { name: "Available only" }));
-    expect(lastArgs()).toEqual({ search: "drill", category: "garden", availableOnly: true });
+    expect(lastArgs()).toMatchObject({ search: "drill", category: "garden", availableOnly: true });
     expect(navigation.href).toBe("/?q=drill&category=garden&available=1");
     await userEvent.click(screen.getByRole("radio", { name: "All" }));
     expect(lastArgs()).toMatchObject({ category: undefined });
@@ -116,11 +116,11 @@ describe("ToolsScreen (the board)", () => {
     expect(screen.getByRole("searchbox", { name: "Search tools" })).toHaveValue("");
   });
 
-  test("Load more fetches the next page", async () => {
+  test("Next requests the next server page", async () => {
     paginated["tools:list"].status = "CanLoadMore";
     render(<ToolsScreen />);
-    await userEvent.click(screen.getByRole("button", { name: "Load more tools" }));
-    expect(loadMore).toHaveBeenCalledWith(BOARD_PAGE_SIZE);
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(lastArgs()).toMatchObject({ pageNumber: 2, pageSize: 10 });
   });
 
   test("shows a busy skeleton while loading", () => {

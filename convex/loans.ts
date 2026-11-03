@@ -1,4 +1,4 @@
-import { paginationOptsValidator } from "convex/server";
+import { pageArgs } from "./lib/pagination";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
@@ -122,7 +122,7 @@ export const markReturned = mutation({
   },
 });
 
-const loanListArgs = { paginationOpts: paginationOptsValidator, search: vSearch, phase: v.optional(vLoanPhase) };
+const loanListArgs = { ...pageArgs, search: vSearch, phase: v.optional(vLoanPhase) };
 
 /** Loans the caller asked to borrow, searchable by tool name, by phase. */
 export const myRequests = query({

@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { ConvexError } from "convex/values";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { axeViolations } from "@/test/axe";
-import { loadMore, mutations, paginated, queryArgs, queryResults, resetConvexMock } from "@/test/convex-mock";
-import { AdminScreen, LOANS_PAGE_SIZE } from "./Admin";
+import { mutations, paginated, queryArgs, queryResults, resetConvexMock } from "@/test/convex-mock";
+import { AdminScreen } from "./Admin";
 
 vi.mock("convex/react", async () => (await import("@/test/convex-mock")).convexReactMock);
 
@@ -94,15 +94,16 @@ describe("AdminScreen for an admin", () => {
     expect(within(loans).getAllByText(/Olu Owner → Bora Borrower/)).toHaveLength(2);
     expect(within(row(loans, "Ladder")).getByText("Requested")).toBeInTheDocument();
     expect(within(row(loans, "Tent")).getByText("Overdue")).toBeInTheDocument();
-    expect(queryArgs["admin:allLoans"].at(-1)).toEqual({ search: undefined, phase: undefined });
-    await userEvent.click(within(loans).getByRole("button", { name: "Load more loans" }));
-    expect(loadMore).toHaveBeenCalledWith(LOANS_PAGE_SIZE);
+    expect(queryArgs["admin:allLoans"].at(-1)).toMatchObject({ search: undefined, phase: undefined });
+    await userEvent.click(within(loans).getByRole("button", { name: "Next" }));
+    expect(queryArgs["admin:allLoans"].at(-1)).toMatchObject({ pageNumber: 2, pageSize: 10 });
+    expect(queryArgs["admin:users"].at(-1)).toMatchObject({ pageNumber: 1, pageSize: 10 });
   });
 
-  test("no Load more once every loan is shown", () => {
+  test("Next is disabled on the last loan page", () => {
     paginated["admin:allLoans"].status = "Exhausted";
     render(<AdminScreen />);
-    expect(screen.queryByRole("button", { name: "Load more loans" })).toBeNull();
+    expect(within(section("All loans")).getByRole("button", { name: "Next" })).toBeDisabled();
   });
 
   test("marks a member as a trusted lender, and unmarks", async () => {
@@ -155,7 +156,7 @@ describe("AdminScreen for an admin", () => {
     await userEvent.type(screen.getByRole("searchbox", { name: "Search members by name or email" }), "olu");
     await vi.waitFor(() => expect(queryArgs["admin:users"].at(-1)).toMatchObject({ search: "olu" }));
     await userEvent.click(screen.getByRole("radio", { name: "Trusted" }));
-    expect(queryArgs["admin:users"].at(-1)).toEqual({ search: "olu", filter: "trusted" });
+    expect(queryArgs["admin:users"].at(-1)).toMatchObject({ search: "olu", filter: "trusted" });
     await userEvent.type(screen.getByRole("searchbox", { name: "Search loans by tool name" }), "tent");
     await vi.waitFor(() => expect(queryArgs["admin:allLoans"].at(-1)).toMatchObject({ search: "tent" }));
     await userEvent.type(screen.getByRole("searchbox", { name: "Search listings" }), "lad");
