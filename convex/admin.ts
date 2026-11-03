@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
@@ -6,12 +7,16 @@ import { todayUtc } from "./lib/dates";
 import { describeLoan } from "./loans";
 import { removeTool } from "./tools";
 
+/** Every loan across all users, newest first, a page at a time. */
 export const allLoans = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { paginationOpts }) => {
     await requireAdmin(ctx);
-    const loans = await ctx.db.query("loans").order("desc").take(200);
-    return await Promise.all(loans.map((l) => describeLoan(ctx, l, "admin")));
+    const result = await ctx.db.query("loans").order("desc").paginate(paginationOpts);
+    return {
+      ...result,
+      page: await Promise.all(result.page.map((l) => describeLoan(ctx, l, "admin"))),
+    };
   },
 });
 
@@ -63,7 +68,7 @@ export const removeListing = mutation({
     const admin = await requireAdmin(ctx);
     const tool = await ctx.db.get(toolId);
     if (!tool || tool.status === "removed") notFound("Tool");
-    await removeTool(ctx, tool, admin);
+    await removeTool(ctx, tool, admin, { allowOnLoan: true });
   },
 });
 

@@ -119,13 +119,19 @@ export const update = mutation({
   },
 });
 
-/** Soft-removes a tool and declines its open requests. Shared by owner/admin. */
+/**
+ * Soft-removes a tool and declines its open requests. Shared by owner/admin.
+ * Owners must wait for an active loan to come back; admins (moderation) may
+ * remove mid-loan: the loan stays open so the lender can still mark it
+ * returned, and the tool stays removed afterwards.
+ */
 export async function removeTool(
   ctx: MutationCtx,
   tool: Doc<"tools">,
   removedBy: Doc<"users">,
+  { allowOnLoan = false }: { allowOnLoan?: boolean } = {},
 ): Promise<void> {
-  if (tool.status === "on_loan") {
+  if (tool.status === "on_loan" && !allowOnLoan) {
     badRequest("This tool is on loan. Mark it returned first.");
   }
   const open = await ctx.db

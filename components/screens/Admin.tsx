@@ -1,9 +1,10 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
-import type { ReactNode } from "react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
+import { useState, type ReactNode } from "react";
 import { activityText } from "@/components/LoanCard";
 import {
+  Alert,
   Avatar,
   Badge,
   Button,
@@ -21,8 +22,10 @@ import {
   WarningIcon,
 } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
-import { categoryLabel, formatDate, timeAgo } from "@/lib/format";
+import { categoryLabel, errorMessage, formatDate, timeAgo } from "@/lib/format";
 import { loanStatusBadge } from "@/lib/loanStatus";
+
+export const LOANS_PAGE_SIZE = 25;
 
 export function AdminScreen() {
   const me = useQuery(api.users.me);
@@ -43,12 +46,30 @@ function Section({ title, description, children }: { title: string; description?
 function AdminDashboard() {
   const stats = useQuery(api.admin.stats);
   const health = useQuery(api.admin.automationHealth);
-  const loans = useQuery(api.admin.allLoans);
+  const { results: loans, status: loansStatus, loadMore } = usePaginatedQuery(
+    api.admin.allLoans,
+    {},
+    { initialNumItems: LOANS_PAGE_SIZE },
+  );
   const listings = useQuery(api.admin.listings);
   const users = useQuery(api.admin.users);
   const retry = useMutation(api.admin.retryDelivery);
   const removeListing = useMutation(api.admin.removeListing);
   const setTrusted = useMutation(api.admin.setTrustedLender);
+  const [confirming, setConfirming] = useState<string>();
+  const [error, setError] = useState<{ id: string; message: string }>();
+
+  /** Runs an admin mutation and shows a refusal next to the row it came from. */
+  const attempt = (id: string, fn: () => Promise<unknown>) => async () => {
+    setError(undefined);
+    try {
+      await fn();
+    } catch (err) {
+      setError({ id, message: errorMessage(err) });
+    }
+  };
+  const rowError = (id: string) =>
+    error?.id === id && <Alert tone="danger" className="mt-2 w-full">{error.message}</Alert>;
 
   return (
     <>
@@ -89,8 +110,9 @@ function AdminDashboard() {
                     </p>
                   </div>
                   {d.status === "failed" && (
-                    <Button size="sm" variant="ghost" onClick={() => retry({ deliveryId: d._id })}>Retry</Button>
+                    <Button size="sm" variant="ghost" onClick={attempt(d._id, () => retry({ deliveryId: d._id }))}>Retry</Button>
                   )}
+                  {rowError(d._id)}
                 </li>
               ))}
               {health.workflowErrors.map((e) => (
@@ -105,7 +127,7 @@ function AdminDashboard() {
         </Section>
 
         <Section title="All loans">
-          {loans === undefined ? (
+          {loansStatus === "LoadingFirstPage" ? (
             <Spinner />
           ) : loans.length === 0 ? (
             <p className="text-body text-fg-muted">No loans yet.</p>
@@ -128,6 +150,17 @@ function AdminDashboard() {
               })}
             </ul>
           )}
+          {(loansStatus === "CanLoadMore" || loansStatus === "LoadingMore") && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="mt-3"
+              disabled={loansStatus === "LoadingMore"}
+              onClick={() => loadMore(LOANS_PAGE_SIZE)}
+            >
+              {loansStatus === "LoadingMore" ? "Loading…" : "Load more loans"}
+            </Button>
+          )}
         </Section>
 
         <div className="grid gap-6 xl:grid-cols-2">
@@ -145,15 +178,29 @@ function AdminDashboard() {
                       <span className="text-fg-muted">· {categoryLabel(t.category)} · {t.ownerName}</span>{" "}
                       {t.status === "on_loan" && <Badge tone="warning">On loan</Badge>}
                     </span>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={t.status === "on_loan"}
-                      title={t.status === "on_loan" ? "Mark it returned first" : undefined}
-                      onClick={() => removeListing({ toolId: t._id })}
-                    >
-                      Remove
-                    </Button>
+                    {confirming === t._id ? (
+                      <span role="group" aria-label={`Remove ${t.name}?`} className="flex flex-wrap items-center gap-2">
+                        <span className="text-description text-fg-muted">
+                          {t.status === "on_loan" ? "It's on loan; the loan stays open." : "Open requests will be declined."}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={attempt(t._id, async () => {
+                            setConfirming(undefined);
+                            await removeListing({ toolId: t._id });
+                          })}
+                        >
+                          Confirm remove
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setConfirming(undefined)}>Keep</Button>
+                      </span>
+                    ) : (
+                      <Button size="sm" variant="danger" aria-label={`Remove ${t.name}`} onClick={() => setConfirming(t._id)}>
+                        Remove
+                      </Button>
+                    )}
+                    {rowError(t._id)}
                   </li>
                 ))}
               </ul>
@@ -166,7 +213,7 @@ function AdminDashboard() {
             ) : (
               <ul className="divide-y divide-line">
                 {users.map((u) => (
-                  <li key={u._id} className="flex items-center justify-between gap-3 py-3">
+                  <li key={u._id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                     <span className="flex min-w-0 items-center gap-3">
                       <Avatar name={u.name} size={36} />
                       <span className="min-w-0">
@@ -178,10 +225,11 @@ function AdminDashboard() {
                     </span>
                     <Toggle
                       size="sm"
-                      label="Trusted"
+                      label={<><span className="sr-only">{`${u.name}:`}</span>{" "}Trusted</>}
                       checked={u.trustedLender}
-                      onCheckedChange={(trusted) => setTrusted({ userId: u._id, trusted })}
+                      onCheckedChange={(trusted) => void attempt(u._id, () => setTrusted({ userId: u._id, trusted }))()}
                     />
+                    {rowError(u._id)}
                   </li>
                 ))}
               </ul>

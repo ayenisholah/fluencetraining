@@ -175,7 +175,7 @@ describe("admin", () => {
     await expect(
       bob.as.mutation(api.admin.setTrustedLender, { userId: bob.id, trusted: true }),
     ).rejects.toThrow(/Admins only/);
-    await expect(bob.as.query(api.admin.allLoans, {})).rejects.toThrow(/Admins only/);
+    await expect(bob.as.query(api.admin.allLoans, { paginationOpts: { numItems: 10, cursor: null } })).rejects.toThrow(/Admins only/);
   });
 
   test("admin can remove any listing and mark a trusted lender", async () => {
