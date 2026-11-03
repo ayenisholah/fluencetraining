@@ -203,6 +203,7 @@ test("the board switches between cards, tiles and list", async () => {
 });
 
 test("screenshots for review: board views, landing and listings, light and dark", async () => {
+  test.setTimeout(120_000); // ten page loads and screenshots
   for (const scheme of ["light", "dark"] as const) {
     await borrower.emulateMedia({ colorScheme: scheme });
     for (const view of ["cards", "tiles", "list"]) {
