@@ -43,6 +43,7 @@ async function landingCard() {
 }
 
 test.beforeAll(async ({ browser }) => {
+  test.setTimeout(120_000); // two Clerk sign-ins, often alongside the other specs
   lender = await signedInPage(browser, LENDER.email);
   borrower = await signedInPage(browser, BORROWER.email);
   visitor = await (await browser.newContext()).newPage();
