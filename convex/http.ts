@@ -18,11 +18,16 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-/** Reads and authenticates a signed request from n8n. */
+/**
+ * Reads and authenticates a signed request. n8n signs with
+ * N8N_TO_LENDLOOP_SECRET; the production metrics poller with its own
+ * OPS_METRICS_SECRET, so neither credential can call the other's endpoints.
+ */
 async function authenticate(
   request: Request,
+  secretName: "N8N_TO_LENDLOOP_SECRET" | "OPS_METRICS_SECRET" = "N8N_TO_LENDLOOP_SECRET",
 ): Promise<{ body: Record<string, unknown> } | Response> {
-  const secret = process.env.N8N_TO_LENDLOOP_SECRET;
+  const secret = process.env[secretName];
   if (!secret) return json({ error: "not configured" }, 503);
   // Refuse oversized bodies before reading them when the size is declared, and
   // measure in bytes (not UTF-16 units) for chunked or undeclared ones.
@@ -37,7 +42,7 @@ async function authenticate(
     signature: request.headers.get(SIGNATURE_HEADER),
   });
   if (!result.ok) {
-    console.warn(`Rejected n8n request: ${result.reason}`);
+    console.warn(JSON.stringify({ level: "warn", event: "signed_request_rejected", path: new URL(request.url).pathname, reason: result.reason }));
     return json({ error: "unauthorized" }, 401);
   }
   try {
@@ -94,6 +99,19 @@ http.route({
     });
     if (!result.ok) return json({ error: result.error }, 422);
     return json({ ok: true, duplicate: result.duplicate });
+  }),
+});
+
+// Operational counts for CloudWatch, polled by the production host over
+// localhost (Caddy blocks /ops/* from the internet) and signed with a secret
+// of its own.
+http.route({
+  path: "/ops/metrics",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const auth = await authenticate(request, "OPS_METRICS_SECRET");
+    if (auth instanceof Response) return auth;
+    return json(await ctx.runQuery(internal.ops.metricsSnapshot, {}));
   }),
 });
 

@@ -34,6 +34,7 @@ import type * as lib_search from "../lib/search.js";
 import type * as lib_toolRecord from "../lib/toolRecord.js";
 import type * as loans from "../loans.js";
 import type * as migrations from "../migrations.js";
+import type * as ops from "../ops.js";
 import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 import type * as webhooks from "../webhooks.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   "lib/toolRecord": typeof lib_toolRecord;
   loans: typeof loans;
   migrations: typeof migrations;
+  ops: typeof ops;
   tools: typeof tools;
   users: typeof users;
   webhooks: typeof webhooks;

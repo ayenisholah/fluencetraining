@@ -77,6 +77,7 @@ describe("coverage guard", () => {
         "dev:seedNeighbourhood",
         "migrations:backfillSearch",
         "images:deleteOrphans",
+        "ops:metricsSnapshot",
       ]),
     );
   });
