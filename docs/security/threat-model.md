@@ -49,7 +49,7 @@ flowchart LR
 |---|---|---|
 | Header injection through tool names or display names | Control and bidi characters refused or stripped server-side | — |
 | HTML injection into emails through tool names or names | Every user value is HTML-escaped by the Convex templates (`convex/lib/email/layout.ts`); emails contain no scripts or styles blocks | `convex/lib/email/email.test.ts` |
-| Credential leakage | SMTP credentials in n8n credentials; the export stub has no password; CI fails on secrets in exports | Self-hosted n8n with env access in Code nodes (production: `N8N_BLOCK_ENV_ACCESS_IN_NODE=true` with credentials) |
+| Credential leakage | SMTP credentials in n8n credentials; the export stub has no password; CI fails on secrets in exports | Code nodes currently require env access (`N8N_BLOCK_ENV_ACCESS_IN_NODE=false` in production Compose); restrict editor access and review code changes |
 
 ## Supply chain
-`npm audit --omit=dev` is clean; dev-only advisories (glob/minimatch ReDoS) don't ship. Docker images are pinned except Convex's `latest` (pin in production).
+Run `npm audit --omit=dev` for current production dependency findings; a past clean result is not an ongoing guarantee. Local Convex uses `latest`; production Compose pins Convex by digest and the other services by version tag. See the [AWS infrastructure guide](../operations/aws-deployment.md) for IAM, secret storage, host boundaries and recovery limitations.

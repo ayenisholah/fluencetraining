@@ -9,7 +9,7 @@ flowchart LR
   app <-->|queries, mutations, live sync| convex[(Convex<br/>data + backend)]
   convex -->|signed webhook| n8n[n8n workflows]
   n8n -->|signed fetch + write-back| convex
-  n8n -->|SMTP| mail[(Email<br/>Mailpit locally)]
+  n8n -->|SMTP| mail[(Email<br/>SES / Mailpit for tests)]
   mail --> visitor
 ```
 
@@ -21,7 +21,13 @@ flowchart LR
 | **Clerk** | Identity: sign-in, sessions, the JWT Convex trusts. Roles are *not* stored in Clerk. | `app/layout.tsx`, `convex/auth.config.ts` |
 | **Convex** | Database, queries and mutations, file storage, scheduled functions, HTTP endpoints for n8n. All authorisation lives here. | `convex/` |
 | **n8n** | Request notifications, daily overdue reminders and the error workflow. | `n8n/workflows/` |
-| **SMTP** | Email delivery (Mailpit in development). | `docker-compose.yml` |
+| **SMTP** | SES delivery when configured; Mailpit captures local test mail. | `scripts/n8n-provider.py` |
+
+## AWS deployment
+
+Next.js runs on Amplify Hosting. Convex and n8n share an EC2 host with Caddy HTTPS routing and encrypted EBS-backed Docker volumes. Clerk provides authentication; Namecheap hosts DNS. Secrets Manager supplies service secrets, SSM provides host access/configuration, S3 holds CDK assets, and AWS Backup snapshots the host. CloudWatch logs/metrics, Synthetics canaries and an SNS alarm topic provide the code-defined monitoring layer.
+
+See the [complete AWS inventory](../operations/aws-deployment.md) and [observability configuration](../operations/observability.md). Local SES configuration is separate from EC2: production bootstrap currently reimports Mailpit templates. The AWS guide records that deployment gap and the single-host availability limits.
 
 ## Code layout
 
@@ -35,6 +41,9 @@ convex/              backend functions by domain: tools, loans, admin, users, ht
 convex/lib/          shared guards and helpers: auth, rules, images, search, people, loanView, outbox
 n8n/                 exported workflows, credential stub, workflow tests
 e2e/                 Playwright specs
+infra/               CDK stacks: backend, web, observability, deployer
+deploy/ec2/          production Compose, Caddy, bootstrap and metrics
+scripts/aws/         deployment, DNS, secrets and host-operation helpers
 ```
 
 ## Loan lifecycle

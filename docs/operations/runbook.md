@@ -2,6 +2,26 @@
 
 Commands assume the repo root with `.env.local` pointing at the target Convex deployment. Locally, Docker commands need the engine that runs the stack (`DOCKER_CONTEXT=default` if Docker Desktop isn't the one).
 
+## AWS production operations
+
+The [AWS deployment guide](aws-deployment.md) contains the account/region, complete service inventory, secrets and deployment order. The [monitoring guide](observability.md) lists exact alarms and triage steps. Use the `LendLoop-Backend` stack's `InstanceId` output to open an SSM Session Manager session; SSH is not exposed.
+
+On the host, production Compose lives under `/opt/lendloop` and requires `-f docker-compose.prod.yml`. The repo-root `docker compose` commands below address local development, not EC2. Inspect services and bootstrap with:
+
+```sh
+cd /opt/lendloop
+sudo docker compose -f docker-compose.prod.yml ps
+sudo journalctl -t lendloop-bootstrap --since '1 hour ago'
+```
+
+- **Host refresh:** `bash scripts/aws/refresh-host.sh` runs bootstrap over SSM. It rewrites Compose configuration from Secrets Manager and reimports n8n workflows. The current bootstrap imports Mailpit templates; it can replace manual SES workflow settings. Do not use it as an SES-preserving restart.
+- **DNS:** `bash scripts/aws/dns-records.sh` prints Namecheap records and checks resolution without changing DNS. App routing/certificate records and SES authentication records are separate.
+- **Clerk rotation:** `bash scripts/aws/put-external-secrets.sh --clerk` updates the production secret. Rebuild Amplify for its build-time secret to take effect; keep the public key and issuer on the same Clerk instance.
+- **Deployer key rotation:** `bash scripts/aws/create-deploy-key.sh` writes a new key to the GitHub `production` environment and removes old keys. Confirm a free key slot before running and verify the next deployment. This is not SES SMTP credential rotation.
+- **HMAC rotation:** update the matching production Secrets Manager secret, reconfigure Convex and refresh the host in a coordinated window, accounting for the SMTP bootstrap gap. Updating only one side causes signature failures.
+- **Data recovery:** inspect AWS Backup recovery points and follow [recovery guidance](aws-deployment.md#rollback-and-recovery). Never delete populated Convex/n8n Docker volumes to fix a service startup issue. `reset-empty-convex.sh` is restricted to never-completed initialization with an admin key still marked `pending`.
+- **Monitoring:** verify the metrics heartbeat and a confirmed SNS destination. The stack creates the alert topic but no subscriptions. Bootstrap logs remain in journald; service logs go to CloudWatch.
+
 ## Failed webhook deliveries
 **Symptom:** Admin › Automation health lists `failed` deliveries; users didn't get emails.
 1. Read `lastError`. A `401` means the secrets don't match (Convex `LENDLOOP_TO_N8N_SECRET` vs n8n). A `5xx` or timeout means n8n is down or slow. "not set" means Convex env is missing `N8N_WEBHOOK_URL` or the secret.

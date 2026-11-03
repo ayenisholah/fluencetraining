@@ -24,8 +24,9 @@ A neighbourhood tool-lending board. Neighbours list tools, request to borrow the
 7. [Security and data-minimisation decisions](#security-and-data-minimisation-decisions)
 8. [Design system](#design-system)
 9. [Testing](#testing)
-10. [What I would change for production](#what-i-would-change-for-production)
-11. [Full documentation](docs/README.md): user stories, architecture, ADRs, threat model, test plan, runbook, release checklist
+10. [AWS production infrastructure](#aws-production-infrastructure)
+11. [What I would change for production](#what-i-would-change-for-production)
+12. [Full documentation](docs/README.md): user stories, architecture, ADRs, threat model, test plan, runbook, release checklist
 
 ## What it does
 
@@ -58,7 +59,7 @@ flowchart LR
     W2[Overdue reminders<br/>daily 08:00 UTC]
     W3[Error handler]
   end
-  Mail[(SMTP / Mailpit)]
+  Mail[(SMTP / SES<br/>Mailpit for local tests)]
 
   UI -- sign in --> Clerk
   UI -- JWT (template "convex") --> Q
@@ -110,15 +111,17 @@ convex/
   *.test.ts          convex-test suites
 n8n/workflows/       exported workflow JSON (no credentials inside)
 n8n/credentials/     local Mailpit SMTP credential (no secret: Mailpit has no auth)
-scripts/             setup, n8n import/export
+scripts/             setup, n8n import/export, AWS deployment helpers
+infra/               CDK stacks: backend, web, observability, deployer
+deploy/ec2/          production Compose, Caddy, bootstrap and metrics
 docker-compose.yml   Convex (self-hosted), Convex dashboard, n8n, Mailpit
 ```
 
 ## Local setup
 
-**You need:** Docker, Node 20.9+, and a free Clerk account.
+**You need:** Docker, Node 20.9+, Python 3 (for n8n provider imports), and a Clerk development instance.
 
-Everything except Clerk runs locally. Convex is **self-hosted in Docker** so that it and n8n can call each other on the compose network. With Convex cloud, the cloud could not reach a webhook on `localhost`.
+The default development stack runs locally except for Clerk. Selecting SES also connects n8n to AWS for email. Convex is **self-hosted in Docker** so that it and n8n can call each other on the compose network. With Convex cloud, the cloud could not reach a webhook on `localhost`.
 
 ### 1. Install and start the stack
 
@@ -167,7 +170,7 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 | Service | URL |
 |---|---|
 | App | http://localhost:3000 |
-| Mailpit (all outgoing mail) | http://localhost:8025 |
+| Mailpit (default local test mail) | http://localhost:8025 |
 | n8n | http://localhost:5678 (create the local owner on first visit) |
 | Convex dashboard | http://localhost:6791 (admin key from `.env.local`) |
 
@@ -369,25 +372,24 @@ On the local stack I also ran each automation scenario end to end: request and a
 
 Release gates (tests, contrast, links, bundle, security, docs) are in the [release checklist](docs/operations/release-checklist.md), with Lighthouse results in [docs/lighthouse/summary.md](docs/lighthouse/summary.md). The [docs index](docs/README.md) lists every lifecycle document.
 
+## AWS production infrastructure
+
+The repository defines production in AWS account `571787168993`, region `eu-north-1`, at **https://lendloop.sholaayeni.xyz**:
+
+- **Amplify Hosting:** Next.js SSR, building the `main` branch.
+- **EC2:** one ARM64 `t4g.small` host with encrypted EBS, running self-hosted Convex, n8n and Caddy through Docker Compose.
+- **Secrets Manager and Systems Manager:** service secrets, deployment parameters, host access and refreshes without SSH.
+- **CloudWatch, Synthetics and SNS:** logs, metrics, dashboard, endpoint checks and alarm routing. SNS subscriptions require operator setup.
+- **AWS Backup:** daily host backups with seven-day retention.
+- **Amazon SES:** SMTP sender `LendLoop <notifications@sholaayeni.xyz>`. Namecheap hosts DNS; Clerk provides user authentication.
+- **CDK / CloudFormation, S3 and IAM:** four application stacks, deployment bundles and GitHub deployment permissions.
+
+Start with the [AWS infrastructure and deployment guide](docs/operations/aws-deployment.md), [monitoring guide](docs/operations/observability.md), and [SES SMTP guide](docs/operations/ses-smtp.md). These describe the code-defined configuration, not a fresh audit of live AWS resources.
+
+**Deployment gap:** local n8n is configured for SES, but EC2 bootstrap still imports Mailpit templates on every refresh. It does not preserve a manual SES configuration. Review the AWS guide before production email changes. Public CI tests need neither SMTP provider; tests that send fixture notifications require Mailpit.
+
 ## What I would change for production
 
-- **Hosting:**
-  - Convex cloud and Vercel.
-  - n8n Cloud, or self-hosted n8n in queue mode (Postgres + Redis + workers) behind TLS, with the webhook path not publicly guessable and an IP allow-list.
-- **Secrets:**
-  - Keep secrets in a secret manager (n8n external secrets, Vercel/Convex env) instead of container env. Then set `N8N_BLOCK_ENV_ACCESS_IN_NODE=true` and read secrets through credentials only.
-  - Support two active HMAC keys at once so they can be rotated without downtime.
-- **Email:**
-  - A transactional provider with SPF/DKIM, bounce handling and per-user notification preferences, including unsubscribe.
-  - Send mail from a queue rather than inline in the webhook execution.
-- **Durable duplicate handling in n8n:** a small store, or a Convex "claim" endpoint, instead of workflow static data, which is per-instance and best effort.
-- **Observability:**
-  - Structured logs, Sentry for the app, and alerts on failed deliveries and on the error workflow (Slack or PagerDuty rather than email).
-  - A daily check that the overdue workflow actually ran.
-- **Abuse and limits:** rate limits on request creation (e.g. Convex rate-limiter component), pagination for large lists, and moderation of listing text.
-- **Roles:** an audited admin-management UI, or Clerk Organizations roles mapped into Convex, instead of a CLI mutation. Plus an audit log of admin actions.
-- **Data lifecycle:**
-  - Retention limits on automation events and delivered outbox rows.
-  - Account deletion that anonymises loan history.
-  - A review of which personal data is processed where (Clerk, Convex, n8n, email provider) with DPAs in place.
-- **Product:** time zones per neighbourhood (dates are UTC today), handover confirmation by both parties, and reminders *before* the due date.
+Remaining work includes making EC2 bootstrap preserve SES configuration, verifying backup restores, and considering multi-host availability as usage grows. The current code supplies CloudWatch monitoring and AWS Backup, but does not create an SNS subscriber or prove a restore meets a recovery target.
+
+Other follow-ups: dual-key HMAC rotation, durable concurrent notification deduplication, notification preferences, automation-event retention, account deletion/anonymisation, and an audited admin-management UI. SES bounce/complaint monitoring is deferred. The single-host setup does not provide n8n queue-mode workers or multi-AZ data replication.

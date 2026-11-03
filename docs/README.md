@@ -21,6 +21,8 @@ The [README](../README.md) is the quick start: local setup, environment variable
 | Release | [Release checklist](operations/release-checklist.md) | You're shipping |
 | | [Changelog](CHANGELOG.md) | You want to know what changed |
 | Operate | [Deployment](operations/deployment.md) | You're setting up an environment |
+| | [AWS infrastructure](operations/aws-deployment.md) | You need the complete AWS service inventory, stacks, DNS, IAM or deployment steps |
+| | [AWS observability](operations/observability.md) | You need metrics, alarm thresholds, canaries or alert-routing details |
 | | [Runbook](operations/runbook.md) | Something is broken, or you need to do an operator task |
 | | [SES SMTP](operations/ses-smtp.md) | You're configuring notification email, rotating credentials, or switching to Mailpit |
 | | [Lighthouse summary](lighthouse/summary.md) | You want the latest performance and accessibility audit |
