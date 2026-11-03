@@ -1,5 +1,10 @@
 # LendLoop
 
+[![CI](https://github.com/ayenisholah/fluencetraining/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ayenisholah/fluencetraining/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ayenisholah/fluencetraining/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/ayenisholah/fluencetraining/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Security policy](https://img.shields.io/badge/security-policy-brightgreen.svg)](SECURITY.md)
+
 > Borrow what you need. Lend what you don't.
 
 A neighbourhood tool-lending board. Neighbours list tools, request to borrow them for a date range, and approve, decline and close out loans. n8n handles the notifications and overdue reminders.
