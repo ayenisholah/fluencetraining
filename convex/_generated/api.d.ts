@@ -10,6 +10,7 @@
 
 import type * as admin from "../admin.js";
 import type * as automation from "../automation.js";
+import type * as concurrencyFixtures from "../concurrencyFixtures.js";
 import type * as crons from "../crons.js";
 import type * as dev from "../dev.js";
 import type * as http from "../http.js";
@@ -42,6 +43,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   automation: typeof automation;
+  concurrencyFixtures: typeof concurrencyFixtures;
   crons: typeof crons;
   dev: typeof dev;
   http: typeof http;

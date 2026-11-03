@@ -48,7 +48,7 @@ Indexes: `by_status`, `by_category_status`, `by_owner`, `by_owner_status`, `by_o
 | `decidedAt`, `returnedAt` | number? | Timestamps |
 | `toolName`, `phase` | derived | Kept in sync by `convex/lib/loanRecord.ts` |
 
-Indexes: `by_borrower`, `by_lender`, `by_borrower_phase`, `by_lender_phase`, `by_phase`, `by_tool`, `by_tool_status`, `by_status_end` (overdue scan); search index `search` on `toolName` filtered by `lenderId`, `borrowerId`, `phase`.
+Indexes: `by_borrower`, `by_lender`, `by_borrower_phase`, `by_lender_phase`, `by_phase`, `by_tool`, `by_tool_status`, `by_tool_borrower_status`, `by_status_end` (overdue scan); search index `search` on `toolName` filtered by `lenderId`, `borrowerId`, `phase`.
 
 ## webhookDeliveries (outbox)
 `loanId`, `event` (`loan.requested|approved|declined|cancelled|returned`), `status` (`pending|delivered|failed`), `attempts`, `lastError?`, `nextAttemptAt?`, `deliveredAt?`. Holds references only: the payload is built at send time. Indexes `by_status`, `by_loan`.
@@ -57,7 +57,7 @@ Indexes: `by_borrower`, `by_lender`, `by_borrower_phase`, `by_lender_phase`, `by
 `idempotencyKey` (unique by convention: `notify:<deliveryId>`, `overdue:<loanId>:<date>`, `error:<executionId>`), `loanId?`, `kind` (`request_notification|overdue_reminder|workflow_error`), `status` (`sent|failed`), `detail?` (≤ 500 chars), `at`. Indexes `by_key`, `by_loan`, `by_kind`.
 
 ## Invariants
-- A tool has at most one `approved` loan; approving checks `by_tool_status`.
+- A tool has at most one `approved` loan; approving checks `by_tool_status`. Duplicate pending requests use `by_tool_borrower_status` to isolate each borrower’s read range.
 - `listed === (status !== "removed")` and `phase === loanPhase(status)`, maintained by the helpers; `migrations:backfillSearch` repairs older rows.
 - A storage file belongs to at most one tool (`by_image`).
 - Removing a tool declines its open requests and deletes its photo; an active loan on it stays open.

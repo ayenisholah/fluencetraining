@@ -69,6 +69,9 @@ describe("coverage guard", () => {
     expect(internalNames).toEqual(
       expect.arrayContaining([
         "users:setRole",
+        "concurrencyFixtures:setup",
+        "concurrencyFixtures:inspect",
+        "concurrencyFixtures:cleanup",
         "dev:backdateLoan",
         "dev:purgeTestData",
         "dev:seedNeighbourhood",

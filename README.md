@@ -333,11 +333,15 @@ npm run build-storybook  # static build in storybook-static/
 
 ## Testing
 
+For local notification troubleshooting, prerequisites and a manual two-account smoke test,
+see the [automation runbook](docs/operations/runbook.md#verify-local-notifications).
+
 ```bash
 npm test                 # Vitest: Convex backend (edge-runtime) + components and lib (jsdom)
 npm run test:storybook   # every story in Chrome: render, play function, axe
 npm run test:e2e         # Playwright (builds and starts the app)
 npm run test:e2e:public  # signed-out suite only
+npm run test:automation # local email + recovery suite; temporarily stops/restores Mailpit
 npm run typecheck && npm run lint
 npm run check:contrast   # WCAG AA for the design tokens in both themes
 ```

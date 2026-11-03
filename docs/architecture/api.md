@@ -40,6 +40,7 @@ Errors are `ConvexError({ code, message })` with codes `UNAUTHENTICATED`, `FORBI
 | `migrations.backfillSearch` | Fill derived fields on old rows; idempotent, self-rescheduling |
 | `images.deleteOrphans` | Daily cron: delete unattached uploads older than 24 h |
 | `dev.seedNeighbourhood` / `dev.purgeTestData` / `dev.backdateLoan` | Sample data, e2e clean-up, overdue testing |
+| `concurrencyFixtures.setup` / `inspect` / `cleanup` | UUID-scoped operator fixtures for the [local concurrency suite](../testing/concurrency.md); never callable by browser clients |
 | `webhooks.*`, `automation.*` | Outbox delivery and n8n endpoint internals |
 
 ## HTTP endpoints (n8n → Convex)

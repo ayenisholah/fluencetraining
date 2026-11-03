@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, Button, DatePicker } from "@/components/ui";
 import { loanDateError, MAX_LOAN_DAYS } from "@/convex/lib/rules";
 import { addDays, parseIso } from "@/lib/calendar";
@@ -27,6 +27,7 @@ export function BorrowForm({
   const [interacted, setInteracted] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
 
   const dateError = loanDateError(startDate, endDate);
   const shown = interacted ? dateError : undefined;
@@ -38,8 +39,10 @@ export function BorrowForm({
       noValidate
       onSubmit={async (e) => {
         e.preventDefault();
+        if (submitting.current) return;
         setInteracted(true);
         if (dateError) return;
+        submitting.current = true;
         setPending(true);
         setError(undefined);
         try {
@@ -48,6 +51,7 @@ export function BorrowForm({
         } catch (err) {
           setError(errorMessage(err));
         } finally {
+          submitting.current = false;
           setPending(false);
         }
       }}

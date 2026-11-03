@@ -50,8 +50,9 @@ See [privacy.md](../security/privacy.md) for the data inventory.
 |---|---|---|
 | NFR-R1 | A loan state change and its webhook are committed together (transactional outbox) | `convex/lib/outbox.ts`, `convex/automation.test.ts` |
 | NFR-R2 | Transient delivery failures retry with backoff; permanent ones are marked failed and visible | `convex/automation.test.ts` |
-| NFR-R3 | Write-backs are idempotent; the daily reminder sends at most one per loan per day | `convex/automation.test.ts`, `n8n/roundtrip.test.ts`, `e2e/automation.spec.ts` |
+| NFR-R3 | Write-backs are idempotent; recorded successful daily reminders are skipped on subsequent runs (overlapping email sends remain best effort) | `convex/automation.test.ts`, `n8n/roundtrip.test.ts`, `e2e/automation.spec.ts` |
 | NFR-R4 | Every n8n failure reaches the error workflow and is visible in Admin | `n8n/workflows.test.ts`, `e2e/automation.spec.ts` |
+| NFR-R6 | Concurrent lending/admin actions preserve one active loan, valid transitions, rate limits, and unique outbox events | [Concurrency matrix](../testing/concurrency.md) |
 | NFR-R5 | Derived fields can be backfilled safely and repeatedly | `convex/search.test.ts` (migration) |
 
 ## Compatibility

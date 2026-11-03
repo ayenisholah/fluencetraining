@@ -17,6 +17,7 @@ The [README](../README.md) is the quick start: local setup, environment variable
 | | [Privacy and data handling](security/privacy.md) | You're adding or exposing personal data |
 | Build | [Contributing](CONTRIBUTING.md) | You're about to write code or open a PR |
 | Test | [Test plan](testing/test-plan.md) | You need to know which suite covers what, and how to run it |
+| | [Concurrency tests](testing/concurrency.md) | You need evidence for competing lending and admin actions |
 | Release | [Release checklist](operations/release-checklist.md) | You're shipping |
 | | [Changelog](CHANGELOG.md) | You want to know what changed |
 | Operate | [Deployment](operations/deployment.md) | You're setting up an environment |

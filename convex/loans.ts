@@ -44,12 +44,13 @@ export const request = mutation({
     if (active && rangesOverlap(active, { startDate, endDate })) {
       badRequest("The tool is already lent out for those dates.");
     }
+    // Keep the read range borrower-specific: other borrowers may request the
+    // same tool without exhausting OCC retries on this duplicate check.
     const mine = await ctx.db
       .query("loans")
-      .withIndex("by_tool_status", (q) =>
-        q.eq("toolId", toolId).eq("status", "requested"),
+      .withIndex("by_tool_borrower_status", (q) =>
+        q.eq("toolId", toolId).eq("borrowerId", user._id).eq("status", "requested"),
       )
-      .filter((q) => q.eq(q.field("borrowerId"), user._id))
       .first();
     if (mine) badRequest("You already have an open request for this tool.");
 

@@ -123,6 +123,7 @@ export default defineSchema({
     .index("by_phase", ["phase"])
     .index("by_tool", ["toolId"])
     .index("by_tool_status", ["toolId", "status"])
+    .index("by_tool_borrower_status", ["toolId", "borrowerId", "status"])
     .index("by_status_end", ["status", "endDate"])
     .searchIndex("search", { searchField: "toolName", filterFields: ["lenderId", "borrowerId", "phase"] }),
 

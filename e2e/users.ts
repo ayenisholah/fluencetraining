@@ -8,3 +8,8 @@ export const BORROWER = { email: "lendloop-borrower+clerk_test@example.com", fir
 export const ADMIN = { email: "lendloop-admin+clerk_test@example.com", firstName: "Ada", lastName: "Admin" };
 export const OWNER = { email: "lendloop-owner+clerk_test@example.com", firstName: "Olu", lastName: "Owner" };
 export const RENTER = { email: "lendloop-renter+clerk_test@example.com", firstName: "Remi", lastName: "Renter" };
+
+// Dedicated accounts keep concurrency browser fixtures independent of other suites.
+export const RACE_OWNER = { email: "lendloop-race-owner+clerk_test@example.com", firstName: "RaceOwner", lastName: "Test" };
+export const RACE_A = { email: "lendloop-race-a+clerk_test@example.com", firstName: "RaceA", lastName: "Test" };
+export const RACE_B = { email: "lendloop-race-b+clerk_test@example.com", firstName: "RaceB", lastName: "Test" };

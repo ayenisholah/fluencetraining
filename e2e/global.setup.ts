@@ -1,7 +1,7 @@
 import { createClerkClient } from "@clerk/backend";
 import { clerkSetup } from "@clerk/testing/playwright";
 import { test as setup } from "@playwright/test";
-import { ADMIN, BORROWER, LENDER, OWNER, RENTER } from "./users";
+import { ADMIN, BORROWER, LENDER, OWNER, RENTER, RACE_OWNER, RACE_A, RACE_B } from "./users";
 
 setup.describe.configure({ mode: "serial" });
 
@@ -11,7 +11,7 @@ setup("configure Clerk testing token", async () => {
 
 setup("ensure test users exist", async () => {
   const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY! });
-  for (const user of [LENDER, BORROWER, ADMIN, OWNER, RENTER]) {
+  for (const user of [LENDER, BORROWER, ADMIN, OWNER, RENTER, RACE_OWNER, RACE_A, RACE_B]) {
     const { data } = await clerk.users.getUserList({ emailAddress: [user.email] });
     if (data.length === 0) {
       await clerk.users.createUser({

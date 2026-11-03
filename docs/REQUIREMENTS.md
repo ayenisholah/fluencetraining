@@ -149,3 +149,10 @@ npx playwright test                                      # all, including signed
 - A borrower with no email on file is skipped from reminders without a record.
 - A failed request notification is recorded as a `workflow_error` with no loan id, so it appears in Admin but not on the loan itself.
 - Trusted-lender changes aren't audit-logged. Listing removals are, through `removedBy`.
+
+## Concurrency regression coverage
+
+A2 (requests), A3 (lender decisions), A4 (returns), and admin removal are additionally covered by
+the [concurrency scenario matrix](testing/concurrency.md): deterministic operation
+orderings, independent real-backend clients, and stale-browser end-to-end checks.
+Multiple pending requests are allowed; only one active approval is permitted.
