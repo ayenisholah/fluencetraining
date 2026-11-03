@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { daysBetween } from "./lib/dates";
+import { overdueReminderEmail } from "./lib/email/reminderEmail";
 import { firstName } from "./lib/people";
 import { vAutomationKind } from "./schema";
 
@@ -26,19 +27,33 @@ export const overdueLoans = internalQuery({
     const rows = await Promise.all(
       loans.map(async (loan) => {
         const idempotencyKey = reminderKey(loan._id, asOf);
-        const [sent, tool, borrower] = await Promise.all([
+        const [sent, tool, borrower, lender] = await Promise.all([
           ctx.db.query("automationEvents").withIndex("by_key", (q) => q.eq("idempotencyKey", idempotencyKey)).unique(),
           ctx.db.get(loan.toolId),
           ctx.db.get(loan.borrowerId),
+          ctx.db.get(loan.lenderId),
         ]);
         if (sent?.status === "sent" || !borrower?.email) return null;
+        const toolName = tool?.name ?? "a tool";
+        const daysOverdue = daysBetween(loan.endDate, asOf);
+        const borrowerFirstName = firstName(borrower.name);
+        const lenderFirstName = firstName(lender?.name, "the lender");
         return {
           loanId: loan._id,
           idempotencyKey,
-          toolName: tool?.name ?? "a tool",
+          toolName,
           endDate: loan.endDate,
-          daysOverdue: daysBetween(loan.endDate, asOf),
-          borrower: { email: borrower.email, firstName: firstName(borrower.name) },
+          daysOverdue,
+          borrower: { email: borrower.email, firstName: borrowerFirstName },
+          lender: { firstName: lenderFirstName },
+          email: overdueReminderEmail({
+            borrowerFirstName,
+            lenderFirstName,
+            toolName,
+            toolCategory: tool?.category,
+            endDate: loan.endDate,
+            daysOverdue,
+          }),
         };
       }),
     );

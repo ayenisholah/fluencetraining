@@ -36,6 +36,8 @@ echo "Configuring Convex environment"
 npx convex env set N8N_WEBHOOK_URL http://n8n:5678/webhook/lendloop-loan-events >/dev/null
 npx convex env set LENDLOOP_TO_N8N_SECRET "$LENDLOOP_TO_N8N_SECRET" >/dev/null
 npx convex env set N8N_TO_LENDLOOP_SECRET "$N8N_TO_LENDLOOP_SECRET" >/dev/null
+# Links and the logo in emails rendered by Convex (convex/lib/email).
+npx convex env set LENDLOOP_APP_URL "${LENDLOOP_APP_URL:-http://localhost:3000}" >/dev/null
 if ! npx convex env get CLERK_JWT_ISSUER_DOMAIN >/dev/null 2>&1; then
   echo "  CLERK_JWT_ISSUER_DOMAIN is not set yet; see README step 3."
   npx convex env set CLERK_JWT_ISSUER_DOMAIN https://set-me.clerk.accounts.dev >/dev/null

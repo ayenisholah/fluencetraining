@@ -85,8 +85,16 @@ describe("n8n HTTP endpoints", () => {
         endDate: isoDay(-2),
         daysOverdue: 2,
         borrower: { email: "bob.builder@example.com", firstName: "Bob" },
+        lender: { firstName: "Ada" },
+        email: {
+          subject: "Reminder: please return Ladder",
+          html: expect.stringContaining("Overdue: please return"),
+          text: expect.stringContaining("Hi Bob,"),
+        },
       },
     ]);
+    // The rendered reminder adds no personal data beyond the row's own fields.
+    expect(JSON.stringify(loans[0].email)).not.toMatch(/@/);
   });
 
   test("reminder write-back is idempotent and hides reminded loans", async () => {
@@ -275,8 +283,9 @@ describe("every loan event notifies the right person with only what's needed", (
       event: string;
       loan: Record<string, unknown>;
       tool: Record<string, unknown>;
-      recipient: { role: string; email: string };
+      recipient: { role: string; email: string; firstName?: string };
       otherParty: { firstName: string };
+      email: { subject: string; html: string; text: string };
     };
     const bodies: Body[] = [];
     vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
@@ -311,9 +320,13 @@ describe("every loan event notifies the right person with only what's needed", (
     ]);
     for (const body of bodies) {
       // Exactly these fields, nothing else (no ids of people, no descriptions, no second email).
-      expect(Object.keys(body).sort()).toEqual(["deliveryId", "event", "loan", "occurredAt", "otherParty", "recipient", "tool"]);
+      expect(Object.keys(body).sort()).toEqual(["deliveryId", "email", "event", "loan", "occurredAt", "otherParty", "recipient", "tool"]);
       expect(Object.keys(body.loan).sort()).toEqual(["endDate", "id", "startDate", "status"]);
-      expect(Object.keys(body.tool)).toEqual(["name"]);
+      expect(Object.keys(body.tool).sort()).toEqual(["category", "name"]);
+      // The rendered email (subject, html, text) is a view of these fields: no addresses in it.
+      expect(Object.keys(body.email).sort()).toEqual(["html", "subject", "text"]);
+      expect(JSON.stringify(body.email)).not.toMatch(/@/);
+      expect(body.email.html).toContain(`Hi ${body.recipient.firstName ?? ""}`.trim());
       expect(Object.keys(body.recipient).sort()).toEqual(["email", "firstName", "role"]);
       expect(Object.keys(body.otherParty)).toEqual(["firstName"]);
       expect(JSON.stringify(body).match(/@/g)).toHaveLength(1);
