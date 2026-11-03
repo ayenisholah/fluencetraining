@@ -46,6 +46,7 @@ const PUBLIC_FUNCTIONS: Record<string, "anyone" | "signed-in" | "owner" | "lende
   "admin:automationHealth": "admin",
   "admin:setTrustedLender": "admin",
   "admin:removeListing": "admin",
+  "admin:removeListings": "admin",
   "admin:retryDelivery": "admin",
 };
 
@@ -227,6 +228,7 @@ describe("admin-only functions", () => {
     ["stats", (w, who) => client(w, who).query(api.admin.stats, {})],
     ["automationHealth", (w, who) => client(w, who).query(api.admin.automationHealth, {})],
     ["setTrustedLender", (w, who) => client(w, who).mutation(api.admin.setTrustedLender, { userId: w.owner.id, trusted: true })],
+    ["removeListings", (w, who) => client(w, who).mutation(api.admin.removeListings, { toolIds: [w.toolId] })],
     ["removeListing", (w, who) => client(w, who).mutation(api.admin.removeListing, { toolId: w.toolId })],
     [
       "retryDelivery",

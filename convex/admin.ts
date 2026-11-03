@@ -108,6 +108,24 @@ export const removeListing = mutation({
   },
 });
 
+/** One atomic, admin-only removal of a visible page of listings. */
+export const removeListings = mutation({
+  args: { toolIds: v.array(v.id("tools")) },
+  handler: async (ctx, { toolIds }) => {
+    const admin = await requireAdmin(ctx);
+    if (toolIds.length < 1 || toolIds.length > 100) badRequest("Select between 1 and 100 listings.");
+    let removedCount = 0;
+    let skippedCount = 0;
+    for (const toolId of new Set(toolIds)) {
+      const tool = await ctx.db.get(toolId);
+      if (!tool || tool.status === "removed") { skippedCount++; continue; }
+      await removeTool(ctx, tool, admin, { allowOnLoan: true });
+      removedCount++;
+    }
+    return { removedCount, skippedCount };
+  },
+});
+
 /** Pending and failed webhook deliveries plus recent n8n workflow errors. */
 export const automationHealth = query({
   args: {},

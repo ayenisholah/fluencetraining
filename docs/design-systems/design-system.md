@@ -179,6 +179,11 @@ Radius: lg 16px. md and sm scale down (12px, 8px **approx**).
 ### Checkbox and radio
 
 - 20x20. Off: 1px neutral border. On: filled `#7364DB` with white check / dot.
+- Mixed checkbox selection uses the same violet fill and a horizontal dash,
+  with the native indeterminate state and an accessible mixed state.
+- Admin Listings uses these checkboxes for current-page selection. A wrapping
+  toolbar groups select-all, selected count, clear, and the danger removal button;
+  the shared danger confirmation dialog explains open-request and active-loan effects.
 
 ### Slider
 

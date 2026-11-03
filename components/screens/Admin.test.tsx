@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ConvexError } from "convex/values";
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -167,4 +167,97 @@ describe("AdminScreen for an admin", () => {
     const { container } = render(<AdminScreen />);
     expect(await axeViolations(container)).toEqual([]);
   });
+});
+
+describe("bulk listing removal", () => {
+  beforeEach(() => signInAs("admin"));
+
+  test("selects rows, supports mixed/select-all state, confirms and reports results", async () => {
+    render(<AdminScreen />);
+    const listings = within(section("Listings"));
+    expect(listings.getByRole("button", { name: "Remove selected (0)" })).toBeDisabled();
+    await userEvent.click(listings.getByRole("checkbox", { name: "Select Ladder" }));
+    expect(listings.getByRole("checkbox", { name: "Select all on this page" })).toBePartiallyChecked();
+    await userEvent.click(listings.getByRole("checkbox", { name: "Select all on this page" }));
+    expect(listings.getByRole("checkbox", { name: "Select Tent" })).toBeChecked();
+    await userEvent.click(listings.getByRole("button", { name: "Remove selected (2)" }));
+    const dialog = screen.getByRole("alertdialog", { name: "Remove 2 listings?" });
+    expect(dialog).toHaveAccessibleDescription(/Active loans stay open/);
+    await userEvent.click(within(dialog).getByRole("button", { name: "Keep" }));
+    expect(mutations["admin:removeListings"]).not.toHaveBeenCalled();
+    await userEvent.click(listings.getByRole("button", { name: "Remove selected (2)" }));
+    mutations["admin:removeListings"].mockResolvedValueOnce({ removedCount: 1, skippedCount: 1 });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Remove selected" }));
+    expect(mutations["admin:removeListings"]).toHaveBeenCalledWith({ toolIds: ["t1", "t2"] });
+    expect(listings.getByRole("status")).toHaveTextContent("1 listing removed. 1 already removed or unavailable.");
+    expect(listings.getByRole("button", { name: "Remove selected (0)" })).toBeDisabled();
+    await vi.waitFor(() => expect(listings.getByRole("group", { name: "Listing selection" })).toHaveFocus());
+  });
+
+  test("failures retain selection and allow retry", async () => {
+    render(<AdminScreen />);
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select Ladder" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove selected (1)" }));
+    mutations["admin:removeListings"].mockRejectedValueOnce(new ConvexError({ code: "BAD_REQUEST", message: "Try again" }));
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Remove selected" }));
+    expect(await screen.findByText("Try again")).toBeVisible();
+    expect(screen.getByRole("checkbox", { name: "Select Ladder" })).toBeChecked();
+    mutations["admin:removeListings"].mockResolvedValueOnce({ removedCount: 1, skippedCount: 0 });
+    await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Remove selected" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  test("selection clears on navigation, page size, raw search, and category changes", async () => {
+    paginated["admin:listings"].status = "CanLoadMore";
+    render(<AdminScreen />);
+    const listings = within(section("Listings"));
+    const select = () => userEvent.click(listings.getByRole("checkbox", { name: "Select Ladder" }));
+    await select();
+    await userEvent.click(listings.getByRole("button", { name: "Next" }));
+    expect(listings.getByRole("checkbox", { name: "Select Ladder" })).not.toBeChecked();
+    await select();
+    await userEvent.click(listings.getByRole("combobox", { name: "Items per page" }));
+    await userEvent.click(listings.getByRole("option", { name: "25" }));
+    expect(listings.getByRole("checkbox", { name: "Select Ladder" })).not.toBeChecked();
+    await select();
+    await userEvent.type(listings.getByRole("searchbox"), "l");
+    expect(listings.getByRole("checkbox", { name: "Select Ladder" })).not.toBeChecked();
+    await select();
+    await userEvent.click(listings.getByRole("combobox", { name: "Category" }));
+    await userEvent.click(listings.getByRole("option", { name: "Garden" }));
+    expect(listings.getByRole("checkbox", { name: "Select Ladder" })).not.toBeChecked();
+    await select();
+    await userEvent.click(listings.getByRole("button", { name: "Clear selection" }));
+    expect(listings.getByRole("checkbox", { name: "Select Ladder" })).not.toBeChecked();
+  });
+
+  test("live removals prune selection", async () => {
+    const { rerender } = render(<AdminScreen />);
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select all on this page" }));
+    paginated["admin:listings"].results = paginated["admin:listings"].results.slice(1);
+    rerender(<AdminScreen />);
+    expect(screen.getByRole("button", { name: "Remove selected (1)" })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: "Select all on this page" })).toBeChecked();
+  });
+});
+
+
+test("bulk confirmation snapshots IDs and prevents repeat submission while pending", async () => {
+  signInAs("admin");
+  const { rerender } = render(<AdminScreen />);
+  await userEvent.click(screen.getByRole("checkbox", { name: "Select all on this page" }));
+  await userEvent.click(screen.getByRole("button", { name: "Remove selected (2)" }));
+  paginated["admin:listings"].results = paginated["admin:listings"].results.slice(1);
+  rerender(<AdminScreen />);
+  let resolve!: (value: { removedCount: number; skippedCount: number }) => void;
+  mutations["admin:removeListings"].mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  const dialog = within(screen.getByRole("alertdialog"));
+  const submit = dialog.getByRole("button", { name: "Remove selected" });
+  await userEvent.click(submit);
+  expect(submit).toBeDisabled();
+  expect(dialog.getByRole("button", { name: "Keep" })).toBeDisabled();
+  await userEvent.click(submit);
+  expect(mutations["admin:removeListings"]).toHaveBeenCalledTimes(1);
+  expect(mutations["admin:removeListings"]).toHaveBeenCalledWith({ toolIds: ["t1", "t2"] });
+  await act(async () => resolve({ removedCount: 1, skippedCount: 1 }));
 });

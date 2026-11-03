@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { acceptEssentialOnly, cardFor, expectNoAxeViolations, listTool, promoteToAdmin, purgeTestTool, requestToBorrow, signedInPage } from "./helpers";
+import { acceptEssentialOnly, cardFor, cli, expectNoAxeViolations, expectNoHorizontalScroll, listTool, promoteToAdmin, purgeTestTool, requestToBorrow, signedInPage } from "./helpers";
 import { ADMIN, OWNER, RENTER } from "./users";
 
 // Roles & rules end to end. Needs the local stack (docker compose) and Clerk
@@ -8,6 +8,7 @@ import { ADMIN, OWNER, RENTER } from "./users";
 test.describe.configure({ mode: "serial" });
 
 const toolName = `E2E admin wheelbarrow ${Date.now().toString(36)}`;
+const bulkName = `E2E bulk ${Date.now().toString(36)}`;
 const ownerName = `${OWNER.firstName} ${OWNER.lastName}`;
 const renterName = `${RENTER.firstName} ${RENTER.lastName}`;
 
@@ -34,6 +35,7 @@ test.beforeAll(async ({ browser }) => {
 test.afterAll(async () => {
   for (const page of [admin, owner, renter, visitor]) await page?.context().close();
   purgeTestTool(toolName);
+  cli("npx", ["convex", "run", "dev:purgeTestData", JSON.stringify({ prefix: bulkName })]);
 });
 
 test("only admins get the admin area", async () => {
@@ -156,4 +158,39 @@ test("admin page passes axe", async () => {
   await admin.goto("/admin");
   await expect(section(admin, "Members")).toBeVisible();
   await expectNoAxeViolations(admin);
+});
+
+
+test("admin bulk removal selects only the visible page and clamps the final page", async () => {
+  test.setTimeout(180_000);
+  for (let i = 1; i <= 11; i++) await listTool(i <= 6 ? owner : renter, `${bulkName} ${i}`, "Garden");
+  await admin.goto("/admin");
+  const listings = section(admin, "Listings");
+  await listings.getByRole("searchbox").fill(bulkName);
+  await expect(listings.getByRole("navigation", { name: "listings pagination" })).toContainText("Showing 1–10 of 11 listings");
+  await expect(listings.getByRole("listitem")).toHaveCount(10);
+  await listings.getByRole("button", { name: "Next" }).click();
+  await expect(listings.getByRole("listitem")).toHaveCount(1);
+  await listings.getByRole("checkbox", { name: "Select all on this page" }).check();
+  await listings.getByRole("button", { name: "Remove selected (1)" }).click();
+  await admin.getByRole("alertdialog").getByRole("button", { name: "Keep" }).click();
+  await listings.getByRole("button", { name: "Remove selected (1)" }).click();
+  await admin.getByRole("alertdialog").getByRole("button", { name: "Remove selected", exact: true }).click();
+  await expect(listings.getByRole("listitem")).toHaveCount(10);
+  await expect(listings.locator('[aria-current="page"]')).toHaveAttribute("aria-label", "Page 1");
+  await listings.getByRole("checkbox", { name: "Select all on this page" }).check();
+  for (const theme of ["light", "dark"]) {
+    await admin.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
+    for (const width of [1920, 375]) {
+      await admin.setViewportSize({ width, height: 900 });
+      await expectNoHorizontalScroll(admin);
+      await listings.screenshot({ path: `test-results/screens/admin-bulk-${theme}-${width}.png` });
+    }
+  }
+  await expectNoAxeViolations(admin);
+  await listings.getByRole("button", { name: "Remove selected (10)" }).click();
+  await admin.getByRole("alertdialog").getByRole("button", { name: "Remove selected", exact: true }).click();
+  await expect(listings.getByRole("listitem")).toHaveCount(0);
+  await expect(listings.getByRole("status")).toContainText("10 listings removed.");
+  await expect(listings.getByRole("button", { name: "Remove selected (0)" })).toBeDisabled();
 });
