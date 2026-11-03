@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "convex/_generated/**",
+    // AWS CDK app: own package, own toolchain.
+    "infra/**",
     "storybook-static/**",
     "playwright-report/**",
     "test-results/**",
