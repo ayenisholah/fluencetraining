@@ -14,3 +14,7 @@ Short records of decisions that are expensive to reverse. Format: context → de
 | [0008](0008-photos-in-convex-storage.md) | Tool photos in Convex storage with server-side checks |
 | [0009](0009-test-real-n8n-code.md) | Test the exported n8n Code nodes, not copies |
 | [0010](0010-server-side-search-pagination.md) | Server-side search and numbered pagination on every list |
+| [0011](0011-single-ec2-host-with-caddy.md) | One EC2 host with Caddy for self-hosted Convex and n8n |
+| [0012](0012-cloudwatch-metrics-via-signed-endpoint.md) | CloudWatch metrics from a signed localhost endpoint and a host poller |
+| [0013](0013-scoped-iam-deployer.md) | A scoped IAM user for GitHub deploys, because the SCP blocks OIDC |
+| [0014](0014-custom-domain-dns-in-namecheap.md) | Custom domain with DNS kept in Namecheap |
