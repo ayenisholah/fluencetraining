@@ -1,16 +1,13 @@
-"use client";
+import type { Metadata } from "next";
+import { IncomingScreen } from "@/components/screens/Incoming";
 
-import { useQuery } from "convex/react";
-import { LoanList } from "@/components/LoanList";
-import { PageHeader } from "@/components/ui";
-import { api } from "@/convex/_generated/api";
+export const metadata: Metadata = {
+  title: "Incoming requests",
+  description: "Approve or decline requests for your tools.",
+  // Signed-in area: keep it out of search results.
+  robots: { index: false, follow: false },
+};
 
-export default function IncomingPage() {
-  const loans = useQuery(api.loans.incoming);
-  return (
-    <>
-      <PageHeader title="Incoming requests" />
-      <LoanList loans={loans} as="lender" empty="No one has asked to borrow your tools yet." />
-    </>
-  );
+export default function Page() {
+  return <IncomingScreen />;
 }
