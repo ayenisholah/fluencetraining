@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f5f0;
+  --surface: #ffffff;
+  --foreground: #1f2421;
+  --muted: #5f675f;
+  --border: #e2ded4;
+  --accent: #2f6b4f;
+  --accent-soft: #e4efe8;
+  --warn: #9a5b13;
+  --warn-soft: #fbeedb;
+  --danger: #a33a32;
+  --danger-soft: #f8e3e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #141714;
+    --surface: #1c201c;
+    --foreground: #e9ece8;
+    --muted: #a1aaa1;
+    --border: #2f352f;
+    --accent: #7cc39c;
+    --accent-soft: #203328;
+    --warn: #e6b16b;
+    --warn-soft: #3a2c19;
+    --danger: #ef9188;
+    --danger-soft: #3b2120;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+}
+
+@utility btn-primary {
+  @apply btn bg-accent text-surface hover:opacity-90;
+}
+
+@utility btn-ghost {
+  @apply btn border border-border bg-surface hover:bg-background;
+}
+
+@utility btn-danger {
+  @apply btn border border-border bg-surface text-danger hover:bg-danger-soft;
+}
+
+@utility card {
+  @apply rounded-xl border border-border bg-surface p-4;
+}
+
+@utility field {
+  @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:outline-2 focus:outline-accent;
+}
+
+@utility label {
+  @apply mb-1 block text-xs font-medium text-muted;
+}
