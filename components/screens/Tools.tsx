@@ -25,10 +25,11 @@ export function ToolsScreen() {
         actions={
           <Select
             label="Category"
+            hideLabel
             className="w-56"
             options={filterOptions}
             value={category}
-            onChange={(e) => setCategory(e.target.value as Category | "")}
+            onValueChange={(v) => setCategory(v as Category | "")}
           />
         }
       />

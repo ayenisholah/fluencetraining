@@ -50,7 +50,8 @@ test("listing form validates before submitting", async () => {
 test("lender lists a tool", async () => {
   const form = lender.getByRole("region", { name: "List a tool" });
   await form.getByLabel("Name").fill(toolName);
-  await form.getByLabel("Category").selectOption("hand_tools");
+  await form.getByRole("combobox", { name: /Category/ }).click();
+  await lender.getByRole("option", { name: "Hand tools" }).click();
   await form.getByLabel("Short description").fill("Three metres, folds flat.");
   await form.getByRole("button", { name: "List it" }).click();
   await expect(lender.getByRole("heading", { name: toolName })).toBeVisible();
@@ -60,6 +61,13 @@ test("borrower requests it", async () => {
   await borrower.goto("/tools");
   const card = borrower.getByRole("listitem").filter({ has: borrower.getByRole("heading", { name: toolName }) });
   await card.getByRole("button", { name: "Request to borrow" }).click();
+  // Pick the dates through the calendar: From = tomorrow + 1, Until = 2 days later.
+  await card.getByRole("button", { name: /^From/ }).click();
+  await borrower.keyboard.press("ArrowRight");
+  await borrower.keyboard.press("Enter");
+  await card.getByRole("button", { name: /^Until/ }).click();
+  await borrower.keyboard.press("ArrowRight");
+  await borrower.keyboard.press("Enter");
   await card.getByRole("button", { name: "Send request" }).click();
   await expect(card.getByText("Request sent. The lender has been notified.")).toBeVisible();
 });

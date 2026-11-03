@@ -30,8 +30,10 @@ describe("ToolForm", () => {
     const onSubmit = vi.fn().mockResolvedValue("id");
     render(<ToolForm submitLabel="List it" onSubmit={onSubmit} />);
     await userEvent.type(screen.getByLabelText("Name"), "Ladder");
-    await userEvent.selectOptions(screen.getByLabelText("Category"), "hand_tools");
-    await userEvent.selectOptions(screen.getByLabelText("Condition"), "fair");
+    await userEvent.click(screen.getByRole("combobox", { name: /Category/ }));
+    await userEvent.click(screen.getByRole("option", { name: "Hand tools" }));
+    await userEvent.click(screen.getByRole("combobox", { name: /Condition/ }));
+    await userEvent.click(screen.getByRole("option", { name: "Fair" }));
     await userEvent.type(screen.getByLabelText("Short description"), "3m");
     await userEvent.click(screen.getByRole("button", { name: "List it" }));
     expect(onSubmit).toHaveBeenCalledWith({ name: "Ladder", category: "hand_tools", condition: "fair", description: "3m" });

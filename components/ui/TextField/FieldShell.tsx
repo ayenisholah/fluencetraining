@@ -23,6 +23,7 @@ export function FieldShell({
   error,
   counter,
   invalid,
+  bare = false,
   className,
   children,
 }: {
@@ -31,15 +32,21 @@ export function FieldShell({
   error?: ReactNode;
   counter?: { length: number; max: number };
   invalid: boolean;
+  /** Render children without the filled field box (outline triggers draw their own). */
+  bare?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   const over = counter ? counter.length > counter.max : false;
   return (
     <div className={className}>
-      <div className={cn(fieldBoxClass, invalid && "border-danger focus-within:border-danger", error ? "rounded-b-none" : "")}>
-        {children}
-      </div>
+      {bare ? (
+        children
+      ) : (
+        <div className={cn(fieldBoxClass, invalid && "border-danger focus-within:border-danger", error ? "rounded-b-none" : "")}>
+          {children}
+        </div>
+      )}
       {error && (
         <p
           id={`${id}-error`}
@@ -62,3 +69,10 @@ export function FieldShell({
     </div>
   );
 }
+
+/**
+ * Figma "All Category" / "Date" field: white, 1px #E8EDF2 border, radius 8,
+ * 48px tall, 15px side padding. Used by Select and DatePicker triggers.
+ */
+export const outlineFieldClass =
+  "relative flex h-12 w-full items-center gap-[19px] rounded-sm border border-field-border bg-surface px-[15px] text-left outline-none transition-[box-shadow,border-color] enabled:hover:ring-4 enabled:hover:ring-state-focus focus-visible:border-focus-ring focus-visible:shadow-[0_0_0_4px_var(--focus-glow)] aria-expanded:border-focus-ring disabled:cursor-not-allowed disabled:opacity-60";

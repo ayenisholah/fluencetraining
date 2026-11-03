@@ -83,3 +83,12 @@ export const ChartIcon = (p: IconProps) => (
 export const ClockIcon = (p: IconProps) => (
   <Icon {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></Icon>
 );
+export const ChevronLeftIcon = (p: IconProps) => (
+  <Icon {...p}><path d="m15 6-6 6 6 6" /></Icon>
+);
+export const ChevronRightIcon = (p: IconProps) => (
+  <Icon {...p}><path d="m9 6 6 6-6 6" /></Icon>
+);
+export const CalendarIcon = (p: IconProps) => (
+  <Icon {...p}><path d="M8 2v3M16 2v3M3.5 9.1h17" /><rect x="3" y="3.5" width="18" height="18" rx="3" /><path d="M15.7 13.7h.01M15.7 16.7h.01M11.995 13.7h.01M11.995 16.7h.01M8.294 13.7h.01M8.294 16.7h.01" strokeWidth={2} /></Icon>
+);

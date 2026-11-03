@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Button, TextField } from "@/components/ui";
+import { Alert, Button, DatePicker } from "@/components/ui";
 import { loanDateError, MAX_LOAN_DAYS } from "@/convex/lib/rules";
+import { addDays, parseIso } from "@/lib/calendar";
 import { errorMessage, todayIso } from "@/lib/format";
 
 /** Which date field a range error belongs to, so the message sits under it. */
@@ -53,26 +54,31 @@ export function BorrowForm({
     >
       <fieldset className="grid grid-cols-2 gap-3">
         <legend className="sr-only">Borrowing dates</legend>
-        <TextField
-          type="date"
+        <DatePicker
           label="From"
           min={todayIso()}
           value={startDate}
+          rangeStart={startDate}
+          rangeEnd={endDate}
           error={field === "from" ? shown : undefined}
-          onChange={(e) => {
-            setStart(e.target.value);
+          onValueChange={(next) => {
+            setStart(next);
+            // Keep the range valid: push Until forward if it's now before From.
+            if (endDate && next > endDate) setEnd(next);
             setInteracted(true);
           }}
         />
-        <TextField
-          type="date"
+        <DatePicker
           label="Until"
-          min={startDate}
+          min={startDate || todayIso()}
+          max={parseIso(startDate) ? addDays(startDate, MAX_LOAN_DAYS) : undefined}
           value={endDate}
+          rangeStart={startDate}
+          rangeEnd={endDate}
           hint={`Up to ${MAX_LOAN_DAYS} days.`}
           error={field === "until" ? shown : undefined}
-          onChange={(e) => {
-            setEnd(e.target.value);
+          onValueChange={(next) => {
+            setEnd(next);
             setInteracted(true);
           }}
         />

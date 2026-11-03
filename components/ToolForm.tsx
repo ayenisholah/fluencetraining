@@ -81,13 +81,13 @@ export function ToolForm({
           label="Category"
           options={categoryOptions}
           value={fields.category}
-          onChange={(e) => set("category", e.target.value as Category)}
+          onValueChange={(v) => set("category", v as Category)}
         />
         <Select
           label="Condition"
           options={conditionOptions}
           value={fields.condition}
-          onChange={(e) => set("condition", e.target.value as Condition)}
+          onValueChange={(v) => set("condition", v as Condition)}
         />
       </div>
       <TextField
