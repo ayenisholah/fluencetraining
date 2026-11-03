@@ -3,7 +3,10 @@
 # Manager, piping them straight from their source (never printed, never on
 # the command line):
 #   lendloop/prod/GITHUB_AMPLIFY_TOKEN  <- `gh auth token` (Amplify pulls the repo with it)
-#   lendloop/prod/CLERK_SECRET_KEY      <- CLERK_SECRET_KEY in .env.local
+#   lendloop/prod/CLERK_SECRET_KEY      <- the production instance's sk_live_ key,
+#                                          typed at a hidden prompt
+#   bash scripts/aws/put-external-secrets.sh           # both
+#   bash scripts/aws/put-external-secrets.sh --clerk   # only the Clerk key (rotation)
 # Safe to re-run: it updates the values in place.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -24,5 +27,10 @@ store() { # name, description; value on stdin
   fi
 }
 
-gh auth token | store GITHUB_AMPLIFY_TOKEN "GitHub token Amplify uses to read the repository"
-grep '^CLERK_SECRET_KEY=' .env.local | cut -d= -f2- | tr -d '\n' | store CLERK_SECRET_KEY "Clerk secret key for the Next.js server"
+[ "${1:-}" = "--clerk" ] || gh auth token | store GITHUB_AMPLIFY_TOKEN "GitHub token Amplify uses to read the repository"
+
+# Production keys only: .env.local holds the development instance's key.
+read -rs -p "Clerk production secret key (sk_live_..., input hidden): " clerk_key; echo
+case "$clerk_key" in sk_live_*) ;; *) echo "Expected a production key starting with sk_live_" >&2; exit 1 ;; esac
+printf '%s' "$clerk_key" | store CLERK_SECRET_KEY "Clerk production secret key for the Next.js server"
+unset clerk_key

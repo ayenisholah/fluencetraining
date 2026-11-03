@@ -6,9 +6,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/../../infra"
 [ -d node_modules ] || npm ci
-# Public value (identifies the Clerk instance); read from .env.local locally,
-# or from the environment in CI.
-export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-$(grep '^NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=' ../.env.local | cut -d= -f2-)}
+# Public value (identifies the production Clerk instance): from the environment
+# in CI, otherwise the repository variable CI uses, so both deploy the same key.
+REPO=${REPO:-ayenisholah/fluencetraining}
+export NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-$(gh variable get NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY -R "$REPO")}
 stacks=("$@"); [ ${#stacks[@]} -gt 0 ] || stacks=(--all)
 npx cdk synth --strict -q
 npx cdk diff "${stacks[@]}" || true

@@ -20,8 +20,10 @@ for _ in $(seq 60); do key=$(secret CONVEX_ADMIN_KEY); [ "$key" != "pending" ] &
 [ "$key" != "pending" ] || { echo "Admin key not published; check the host bootstrap log" >&2; exit 1; }
 
 export CONVEX_SELF_HOSTED_URL="$CONVEX_URL" CONVEX_SELF_HOSTED_ADMIN_KEY="$key"
-# Same Clerk issuer as the app's Clerk instance (not a secret).
-ISSUER=${CLERK_JWT_ISSUER_DOMAIN:-$(CONVEX_SELF_HOSTED_URL= CONVEX_SELF_HOSTED_ADMIN_KEY= npx convex env get CLERK_JWT_ISSUER_DOMAIN 2>/dev/null || true)}
+# The production Clerk instance's issuer (not a secret): from the environment in
+# CI, otherwise the repository variable CI uses.
+REPO=${REPO:-ayenisholah/fluencetraining}
+ISSUER=${CLERK_JWT_ISSUER_DOMAIN:-$(gh variable get CLERK_JWT_ISSUER_DOMAIN -R "$REPO" 2>/dev/null || true)}
 [ -n "$ISSUER" ] || { echo "Set CLERK_JWT_ISSUER_DOMAIN" >&2; exit 1; }
 
 npx convex env set CLERK_JWT_ISSUER_DOMAIN "$ISSUER" >/dev/null
