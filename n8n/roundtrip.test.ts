@@ -67,9 +67,9 @@ describe("request notification: Convex → n8n → Convex", () => {
       });
       if (!verified.json.valid) return new Response("{}", { status: 401 });
       if (verified.json.duplicate) return new Response(JSON.stringify({ ok: true, duplicate: true }));
-      const composed = await runCode(notify, "Compose message", { input: [verified], env });
+      const composed = await runCode(notify, "Check payload", { input: [verified], env });
       emails.push(composed[0].json);
-      const [signed] = await runCode(notify, "Mark sent and sign write-back", { nodes: { "Compose message": composed }, env, staticData });
+      const [signed] = await runCode(notify, "Mark sent and sign write-back", { nodes: { "Check payload": composed }, env, staticData });
       writeBacks.push(signed.json);
       return new Response(JSON.stringify({ ok: true }));
     });

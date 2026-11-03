@@ -105,12 +105,13 @@
       "parameters": {
         "fromEmail": "LendLoop <no-reply@lendloop.local>",
         "toEmail": "={{ $json.borrower.email }}",
-        "subject": "=Reminder: please return {{ $json.toolName }}",
-        "emailFormat": "text",
-        "text": "=Hi {{ $json.borrower.firstName }},\n\n{{ $json.toolName }} was due back on {{ $json.endDate }} ({{ $json.daysOverdue }} day{{ $json.daysOverdue === 1 ? '' : 's' }} ago). Please arrange to return it to the lender.\n\nLendLoop",
+        "subject": "={{ $json.email.subject }}",
+        "emailFormat": "both",
+        "text": "={{ $json.email.text }}",
         "options": {
           "appendAttribution": false
-        }
+        },
+        "html": "={{ $json.email.html }}"
       },
       "name": "Send reminder",
       "type": "n8n-nodes-base.emailSend",

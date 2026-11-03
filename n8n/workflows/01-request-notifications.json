@@ -139,9 +139,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// Build the message from the minimal payload. Only the recipient's address is\n// present; the other party is identified by first name only.\nconst p = $input.first().json.payload;\nconst app = $env.LENDLOOP_APP_URL || 'http://localhost:3000';\nconst dates = `${p.loan.startDate} to ${p.loan.endDate}`;\nconst who = p.otherParty.firstName;\nconst tool = p.tool.name;\nconst messages = {\n  'loan.requested': [`${who} wants to borrow your ${tool}`,\n    `${who} has asked to borrow your ${tool} (${dates}).\\n\\nApprove or decline: ${app}/incoming`],\n  'loan.cancelled': [`${who} cancelled their request for your ${tool}`,\n    `${who} no longer needs your ${tool} for ${dates}. Nothing else to do.`],\n  'loan.approved': [`${who} said yes: ${tool}`,\n    `${who} approved your request to borrow their ${tool} (${dates}).\\n\\nDetails: ${app}/requests`],\n  'loan.declined': [`Your request for ${tool} was declined`,\n    `Your request to borrow ${tool} for ${dates} was declined. Other tools: ${app}/tools`],\n  'loan.returned': [`Thanks for returning ${tool}`,\n    `${who} marked their ${tool} as returned. Thanks for looking after it.`],\n};\nconst message = messages[p.event];\nif (!message) throw new Error(`Unknown event type: ${p.event}`);\nreturn [{ json: {\n  to: p.recipient.email,\n  subject: message[0],\n  text: `Hi ${p.recipient.firstName},\\n\\n${message[1]}\\n\\nLendLoop`,\n  deliveryId: p.deliveryId,\n  loanId: p.loan.id,\n} }];"
+        "jsCode": "// The message is rendered in Convex (convex/lib/email) and signed with the rest\n// of the payload; n8n only checks it is complete before sending. A malformed\n// delivery throws here, so the error workflow sees it.\nconst p = $input.first().json.payload;\nconst EVENTS = ['loan.requested', 'loan.cancelled', 'loan.approved', 'loan.declined', 'loan.returned'];\nif (!EVENTS.includes(p.event)) throw new Error(`Unknown event type: ${p.event}`);\nconst email = p.email || {};\nfor (const key of ['subject', 'html', 'text']) {\n  if (typeof email[key] !== 'string' || !email[key]) throw new Error(`Payload is missing email.${key}`);\n}\nif (!p.recipient || !p.recipient.email) throw new Error('Payload is missing recipient.email');\nreturn [{ json: {\n  to: p.recipient.email,\n  subject: email.subject,\n  html: email.html,\n  text: email.text,\n  deliveryId: p.deliveryId,\n  loanId: p.loan.id,\n} }];"
       },
-      "name": "Compose message",
+      "name": "Check payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -155,11 +155,12 @@
         "fromEmail": "LendLoop <no-reply@lendloop.local>",
         "toEmail": "={{ $json.to }}",
         "subject": "={{ $json.subject }}",
-        "emailFormat": "text",
+        "emailFormat": "both",
         "text": "={{ $json.text }}",
         "options": {
           "appendAttribution": false
-        }
+        },
+        "html": "={{ $json.html }}"
       },
       "name": "Send notification",
       "type": "n8n-nodes-base.emailSend",
@@ -181,7 +182,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const crypto = require('crypto');\nfunction signed(bodyObject) {\n  const body = JSON.stringify(bodyObject);\n  const timestamp = String(Date.now());\n  const signature = 'sha256=' + crypto\n    .createHmac('sha256', $env.N8N_TO_LENDLOOP_SECRET)\n    .update(`${timestamp}.${body}`)\n    .digest('hex');\n  return { body, timestamp, signature };\n}\n\n// Remember this delivery so a Convex retry does not email twice, and prepare\n// the signed write-back for the loan's activity log.\nconst { deliveryId, loanId } = $('Compose message').first().json;\nconst state = $getWorkflowStaticData('global');\nstate.deliveries = [...(state.deliveries || []), deliveryId].slice(-1000);\nreturn [{ json: signed({\n  idempotencyKey: `notify:${deliveryId}`,\n  loanId,\n  kind: 'request_notification',\n  status: 'sent',\n}) }];"
+        "jsCode": "const crypto = require('crypto');\nfunction signed(bodyObject) {\n  const body = JSON.stringify(bodyObject);\n  const timestamp = String(Date.now());\n  const signature = 'sha256=' + crypto\n    .createHmac('sha256', $env.N8N_TO_LENDLOOP_SECRET)\n    .update(`${timestamp}.${body}`)\n    .digest('hex');\n  return { body, timestamp, signature };\n}\n\n// Remember this delivery so a Convex retry does not email twice, and prepare\n// the signed write-back for the loan's activity log.\nconst { deliveryId, loanId } = $('Check payload').first().json;\nconst state = $getWorkflowStaticData('global');\nstate.deliveries = [...(state.deliveries || []), deliveryId].slice(-1000);\nreturn [{ json: signed({\n  idempotencyKey: `notify:${deliveryId}`,\n  loanId,\n  kind: 'request_notification',\n  status: 'sent',\n}) }];"
       },
       "name": "Mark sent and sign write-back",
       "type": "n8n-nodes-base.code",
@@ -303,18 +304,7 @@
         ],
         [
           {
-            "node": "Compose message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Compose message": {
-      "main": [
-        [
-          {
-            "node": "Send notification",
+            "node": "Check payload",
             "type": "main",
             "index": 0
           }
@@ -348,6 +338,17 @@
         [
           {
             "node": "Record notification in Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check payload": {
+      "main": [
+        [
+          {
+            "node": "Send notification",
             "type": "main",
             "index": 0
           }

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
+import { loanEventEmail, type LoanEventName } from "../convex/lib/email/loanEmails";
 import { sign, verify } from "../convex/lib/hmac";
 import { vLoanEvent } from "../convex/schema";
 import { loadWorkflow, node, runCode, type Item } from "./runCode";
@@ -15,10 +16,22 @@ const env = {
 const notify = loadWorkflow("notify");
 const remind = loadWorkflow("remind");
 const errors = loadWorkflow("error");
+const remind02 = () => remind;
 const all = [notify, remind, errors];
 const LOAN_EVENTS = vLoanEvent.members.map((m) => m.value);
 
+const LOAN_EVENT_NAMES = ["loan.requested", "loan.approved", "loan.declined", "loan.cancelled", "loan.returned"] as LoanEventName[];
 const payload = (over: Record<string, unknown> = {}) => ({
+  email: loanEventEmail({
+    // A bogus event still carries a well-formed email, so the check that fails is the event's.
+    event: (LOAN_EVENT_NAMES.includes(over.event as LoanEventName) ? over.event : "loan.requested") as LoanEventName,
+    recipientFirstName: "Olu",
+    otherFirstName: "Remi",
+    toolName: "Ladder",
+    toolCategory: "hand_tools",
+    startDate: "2026-11-04",
+    endDate: "2026-11-06",
+  }),
   deliveryId: "d1",
   event: "loan.requested",
   occurredAt: "2026-11-03T10:00:00.000Z",
@@ -155,29 +168,37 @@ describe("01 Request notifications › Verify signature", () => {
   });
 });
 
-describe("01 Request notifications › Compose message", () => {
-  const compose = (p: Record<string, unknown>) =>
-    runCode(notify, "Compose message", { input: [{ json: { valid: true, duplicate: false, payload: p } }], env });
+describe("01 Request notifications › Check payload", () => {
+  const check = (p: Record<string, unknown>) =>
+    runCode(notify, "Check payload", { input: [{ json: { valid: true, duplicate: false, payload: p } }], env });
 
-  test.each(LOAN_EVENTS)("%s has a subject and body addressed to the recipient", async (event) => {
-    const [out] = await compose(payload({ event }));
-    expect(out.json).toMatchObject({ to: "olu@example.com", deliveryId: "d1", loanId: "loan1" });
-    expect(out.json.subject).toEqual(expect.any(String));
+  test.each(LOAN_EVENTS)("%s: passes Convex's rendered email through to the send step", async (event) => {
+    const p = payload({ event });
+    const [out] = await check(p);
+    expect(out.json).toEqual({ to: "olu@example.com", ...(p.email as object), deliveryId: "d1", loanId: "loan1" });
+  });
+
+  test("the message really is Convex's: same renderer, HTML and text", async () => {
+    const [out] = await check(payload());
+    expect(out.json.subject).toBe("Remi wants to borrow your Ladder");
+    expect(out.json.html).toContain("New borrow request");
     expect(out.json.text).toMatch(/^Hi Olu,/);
-    expect(out.json.text).toContain("Ladder");
-    expect(Object.keys(out.json).sort()).toEqual(["deliveryId", "loanId", "subject", "text", "to"]);
   });
 
-  test("names the other party by first name only and links back to the app", async () => {
-    const [requested] = await compose(payload());
-    expect(requested.json.subject).toBe("Remi wants to borrow your Ladder");
-    expect(requested.json.text).toContain("https://lendloop.test/incoming");
-    const [approved] = await compose(payload({ event: "loan.approved", recipient: { role: "borrower", email: "remi@example.com", firstName: "Remi" }, otherParty: { firstName: "Olu" } }));
-    expect(approved.json).toMatchObject({ to: "remi@example.com", subject: "Olu said yes: Ladder" });
+  test.each([
+    ["an unknown event", { event: "loan.exploded" }, /Unknown event type/],
+    ["no rendered email", { email: undefined }, /missing email\.subject/],
+    ["an empty html part", { email: { subject: "s", html: "", text: "t" } }, /missing email\.html/],
+    ["no recipient address", { recipient: { role: "lender", firstName: "Olu" } }, /missing recipient\.email/],
+  ])("%s fails the run (so the error workflow sees it)", async (_name, over, message) => {
+    await expect(check(payload(over))).rejects.toThrow(message);
   });
 
-  test("an unknown event fails the run (so the error workflow sees it)", async () => {
-    await expect(compose(payload({ event: "loan.exploded" }))).rejects.toThrow(/Unknown event type/);
+  test("both email nodes send HTML and text from the rendered message", () => {
+    const send = node(notify, "Send notification").parameters;
+    expect(send).toMatchObject({ emailFormat: "both", html: "={{ $json.html }}", text: "={{ $json.text }}", subject: "={{ $json.subject }}" });
+    const remind = node(remind02(), "Send reminder").parameters;
+    expect(remind).toMatchObject({ emailFormat: "both", html: "={{ $json.email.html }}", text: "={{ $json.email.text }}", subject: "={{ $json.email.subject }}" });
   });
 });
 
@@ -186,7 +207,7 @@ describe("01 Request notifications › Mark sent and sign write-back", () => {
 
   test("signs an idempotent write-back that Convex will accept", async () => {
     const staticData: Record<string, unknown> = {};
-    const [out] = await runCode(notify, "Mark sent and sign write-back", { nodes: { "Compose message": composed }, env, staticData });
+    const [out] = await runCode(notify, "Mark sent and sign write-back", { nodes: { "Check payload": composed }, env, staticData });
     expect(JSON.parse(out.json.body as string)).toEqual({
       idempotencyKey: "notify:d9",
       loanId: "loan9",
@@ -199,7 +220,7 @@ describe("01 Request notifications › Mark sent and sign write-back", () => {
 
   test("remembers at most the last 1000 deliveries", async () => {
     const staticData: Record<string, unknown> = { deliveries: Array.from({ length: 1000 }, (_, i) => `old${i}`) };
-    await runCode(notify, "Mark sent and sign write-back", { nodes: { "Compose message": composed }, env, staticData });
+    await runCode(notify, "Mark sent and sign write-back", { nodes: { "Check payload": composed }, env, staticData });
     const list = staticData.deliveries as string[];
     expect(list).toHaveLength(1000);
     expect(list.at(-1)).toBe("d9");

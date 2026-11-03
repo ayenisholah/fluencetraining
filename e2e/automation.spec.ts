@@ -46,6 +46,12 @@ async function searchMail(request: APIRequestContext, query: string): Promise<Ma
   return (await res.json()).messages ?? [];
 }
 
+/** Mailpit's parsed message: both MIME parts of the multipart email. */
+async function mailParts(request: APIRequestContext, id: string): Promise<{ html: string; text: string }> {
+  const message = await (await request.get(`${MAILPIT}/message/${id}`)).json();
+  return { html: message.HTML ?? "", text: message.Text ?? "" };
+}
+
 async function mailText(request: APIRequestContext, id: string): Promise<string> {
   return (await (await request.get(`${MAILPIT}/message/${id}`)).json()).Text;
 }
@@ -102,6 +108,16 @@ test("a new request emails the lender with only what they need", async ({ reques
   // The other party appears by first name only.
   expect(mail.text).not.toContain(RENTER.email);
   expect(mail.text).not.toContain(RENTER.lastName);
+
+  // The branded HTML part (rendered by Convex, convex/lib/email) arrives alongside the text.
+  const { html } = await mailParts(request, mail.ID);
+  expect(html).toContain("Lend<span");
+  expect(html).toContain("New borrow request");
+  expect(html).toContain(`Hi ${OWNER.firstName},`);
+  expect(html).toContain(toolName);
+  expect(html).toMatch(/href="http:\/\/localhost:3000\/incoming\?phase=open"/);
+  expect(html).toContain(">Camping</span>"); // category chip in its preset colour
+  expect(html).not.toContain(RENTER.email);
 
   const tools = convexRows<{ _id: string; name: string }>("tools");
   const toolId = tools.find((t) => t.name === toolName)!._id;
@@ -170,6 +186,11 @@ test("the daily workflow reminds an overdue borrower and writes the status back"
   expect(mail.To.map((t) => t.Address)).toEqual([RENTER.email]);
   expect(mail.text).toContain(`Hi ${RENTER.firstName},`);
   expect(mail.text).toMatch(/2 days ago/);
+  expect(mail.text).toContain(`was due back to ${OWNER.firstName}`);
+  const { html } = await mailParts(request, mail.ID);
+  expect(html).toContain("Overdue: please return");
+  expect(html).toMatch(/href="http:\/\/localhost:3000\/requests"/);
+  expect(html).toContain(toolName);
 
   // Write-back reached Convex: the loan's activity says so on both sides.
   await renter.goto("/requests");
@@ -207,6 +228,8 @@ test("a redelivered webhook is acknowledged but not emailed twice", async ({ req
     loan: { id: loanId, status: "approved", startDate: "2026-11-04", endDate: "2026-11-06" },
     tool: { name: toolName },
     recipient: { role: "borrower", email: recipient, firstName: "Dup" },
+    // Convex always sends a rendered message; n8n refuses a payload without one.
+    email: { subject: `Dup test ${run}`, html: `<p>Dup test ${run}</p>`, text: `Dup test ${run}` },
     otherParty: { firstName: OWNER.firstName },
   });
   const writeBacks = () =>
