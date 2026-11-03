@@ -1,23 +1,10 @@
 import { badRequest } from "./auth";
+import { daysBetween, isoDay, loanDateError, MAX_LOAN_DAYS } from "./rules";
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-export const MAX_LOAN_DAYS = 30;
+export { daysBetween, MAX_LOAN_DAYS };
 
 export function todayUtc(now: number = Date.now()): string {
-  return new Date(now).toISOString().slice(0, 10);
-}
-
-export function daysBetween(from: string, to: string): number {
-  return Math.round(
-    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
-      86_400_000,
-  );
-}
-
-function isRealDate(value: string): boolean {
-  if (!ISO_DATE.test(value)) return false;
-  const parsed = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && todayUtc(parsed.getTime()) === value;
+  return isoDay(now);
 }
 
 export function validateLoanDates(
@@ -25,14 +12,8 @@ export function validateLoanDates(
   endDate: string,
   now: number = Date.now(),
 ): void {
-  if (!isRealDate(startDate) || !isRealDate(endDate)) {
-    badRequest("Dates must be valid calendar dates (YYYY-MM-DD).");
-  }
-  if (startDate < todayUtc(now)) badRequest("The start date is in the past.");
-  if (endDate < startDate) badRequest("The end date is before the start date.");
-  if (daysBetween(startDate, endDate) > MAX_LOAN_DAYS) {
-    badRequest(`Loans can last at most ${MAX_LOAN_DAYS} days.`);
-  }
+  const error = loanDateError(startDate, endDate, now);
+  if (error) badRequest(error);
 }
 
 /** Inclusive date ranges overlap. */

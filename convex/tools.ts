@@ -3,20 +3,15 @@ import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { badRequest, requireToolOwner, requireUser } from "./lib/auth";
 import { enqueueLoanEvent } from "./lib/outbox";
+import { assertWithinRateLimit } from "./lib/rateLimit";
+import { toolFieldErrors } from "./lib/rules";
 import { vCategory, vCondition } from "./schema";
 
-const LIMITS = { name: 80, description: 500 };
-
 function cleanFields(fields: { name: string; description: string }) {
-  const name = fields.name.trim();
-  const description = fields.description.trim();
-  if (name.length < 2 || name.length > LIMITS.name) {
-    badRequest(`Name must be 2–${LIMITS.name} characters.`);
-  }
-  if (description.length > LIMITS.description) {
-    badRequest(`Description must be at most ${LIMITS.description} characters.`);
-  }
-  return { name, description };
+  const errors = toolFieldErrors(fields);
+  const first = errors.name ?? errors.description;
+  if (first) badRequest(first);
+  return { name: fields.name.trim(), description: fields.description.trim() };
 }
 
 /**
@@ -99,6 +94,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
+    await assertWithinRateLimit(ctx, "listing", user._id);
     return await ctx.db.insert("tools", {
       ...args,
       ...cleanFields(args),

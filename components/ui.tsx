@@ -62,3 +62,13 @@ export function LoanStatus({ status, overdue }: { status: string; overdue?: bool
   const label = status === "approved" ? "On loan" : status[0].toUpperCase() + status.slice(1);
   return <Badge tone={loanTones[status]}>{label}</Badge>;
 }
+
+/** Inline field message, referenced by the field's aria-describedby. */
+export function FieldError({ id, children }: { id: string; children?: ReactNode }) {
+  if (!children) return null;
+  return (
+    <p id={id} className="mt-1 text-xs text-danger">
+      {children}
+    </p>
+  );
+}

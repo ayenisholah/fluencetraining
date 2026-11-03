@@ -16,6 +16,8 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_dates from "../lib/dates.js";
 import type * as lib_hmac from "../lib/hmac.js";
 import type * as lib_outbox from "../lib/outbox.js";
+import type * as lib_rateLimit from "../lib/rateLimit.js";
+import type * as lib_rules from "../lib/rules.js";
 import type * as loans from "../loans.js";
 import type * as tools from "../tools.js";
 import type * as users from "../users.js";
@@ -36,6 +38,8 @@ declare const fullApi: ApiFromModules<{
   "lib/dates": typeof lib_dates;
   "lib/hmac": typeof lib_hmac;
   "lib/outbox": typeof lib_outbox;
+  "lib/rateLimit": typeof lib_rateLimit;
+  "lib/rules": typeof lib_rules;
   loans: typeof loans;
   tools: typeof tools;
   users: typeof users;

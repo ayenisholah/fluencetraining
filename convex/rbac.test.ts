@@ -194,3 +194,49 @@ describe("admin", () => {
     expect((await as.query(api.users.me, {}))?.role).toBe("user");
   });
 });
+
+describe("spam protection", () => {
+  test("limits listings per user per hour", async () => {
+    const t = setup();
+    const ada = await signIn(t, "Ada");
+    const bob = await signIn(t, "Bob");
+    for (let i = 0; i < 10; i++) {
+      await ada.as.mutation(api.tools.create, { ...drill, name: `Drill ${i}` });
+    }
+    await expect(ada.as.mutation(api.tools.create, drill)).rejects.toThrow(
+      /a lot of listings/,
+    );
+    // Other users are unaffected.
+    await bob.as.mutation(api.tools.create, drill);
+  });
+
+  test("deleting listings does not reset the limit", async () => {
+    const t = setup();
+    const ada = await signIn(t, "Ada");
+    for (let i = 0; i < 10; i++) {
+      const toolId = await ada.as.mutation(api.tools.create, drill);
+      await ada.as.mutation(api.tools.remove, { toolId });
+    }
+    await expect(ada.as.mutation(api.tools.create, drill)).rejects.toThrow(
+      /a lot of listings/,
+    );
+  });
+
+  test("limits borrow requests per user per hour", async () => {
+    const t = setup();
+    const ada = await signIn(t, "Ada");
+    const bob = await signIn(t, "Bob");
+    const toolIds = [];
+    for (let i = 0; i < 10; i++) toolIds.push(await ada.as.mutation(api.tools.create, drill));
+    const eve = await signIn(t, "Eve");
+    for (let i = 0; i < 10; i++) toolIds.push(await eve.as.mutation(api.tools.create, drill));
+    const lender = await signIn(t, "Lee");
+    const extra = await lender.as.mutation(api.tools.create, drill);
+    for (const toolId of toolIds) {
+      await bob.as.mutation(api.loans.request, { toolId, startDate: isoDay(1), endDate: isoDay(2) });
+    }
+    await expect(
+      bob.as.mutation(api.loans.request, { toolId: extra, startDate: isoDay(1), endDate: isoDay(2) }),
+    ).rejects.toThrow(/a lot of borrow requests/);
+  });
+});

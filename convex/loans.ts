@@ -9,6 +9,7 @@ import {
 } from "./lib/auth";
 import { rangesOverlap, todayUtc, validateLoanDates } from "./lib/dates";
 import { enqueueLoanEvent } from "./lib/outbox";
+import { assertWithinRateLimit } from "./lib/rateLimit";
 
 async function activeLoanFor(ctx: QueryCtx, toolId: Doc<"tools">["_id"]) {
   return await ctx.db
@@ -68,6 +69,7 @@ export const request = mutation({
     if (!tool || tool.status === "removed") notFound("Tool");
     if (tool.ownerId === user._id) badRequest("You can't borrow your own tool.");
     validateLoanDates(startDate, endDate);
+    await assertWithinRateLimit(ctx, "request", user._id);
 
     const active = await activeLoanFor(ctx, toolId);
     if (active && rangesOverlap(active, { startDate, endDate })) {
