@@ -1,7 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { ConvexError } from "convex/values";
 import { axeViolations } from "@/test/axe";
+import { addDays, formatCompact, formatLong } from "@/lib/calendar";
 import { todayIso } from "@/lib/format";
 import { BorrowForm, dateErrorField } from "./BorrowForm";
 
@@ -25,22 +27,28 @@ describe("BorrowForm", () => {
     expect(onSent).toHaveBeenCalledOnce();
   });
 
-  test("an end date before the start blocks submit with a message", async () => {
-    const onSubmit = vi.fn();
+  test("moving From past Until pushes Until along, so the range stays valid", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<BorrowForm onSubmit={onSubmit} onSent={vi.fn()} onCancel={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("Until"), { target: { value: todayIso(0) } });
-    fireEvent.change(screen.getByLabelText("From"), { target: { value: todayIso(5) } });
+    await userEvent.click(screen.getByRole("button", { name: /^From/ }));
+    await userEvent.click(screen.getByRole("button", { name: formatLong(todayIso(5)) }));
+    expect(screen.getByRole("button", { name: /^Until/ })).toHaveTextContent(formatCompact(todayIso(5)));
     await userEvent.click(screen.getByRole("button", { name: "Send request" }));
-    expect(onSubmit).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Until")).toHaveAccessibleDescription(/before the start date/);
+    expect(onSubmit).toHaveBeenCalledWith({ startDate: todayIso(5), endDate: todayIso(5) });
   });
 
-  test("more than 30 days is flagged on the Until field", () => {
+  test("Until is limited to 30 days after From and highlights the range", async () => {
     render(<BorrowForm onSubmit={vi.fn()} onSent={vi.fn()} onCancel={vi.fn()} />);
-    const until = screen.getByLabelText("Until");
-    fireEvent.change(until, { target: { value: todayIso(60) } });
-    expect(until).toHaveAttribute("aria-invalid", "true");
-    expect(until).toHaveAccessibleDescription(/at most 30 days/);
+    const until = screen.getByRole("button", { name: /^Until/ });
+    expect(until).toHaveAccessibleDescription(/Up to 30 days/);
+    await userEvent.click(until);
+    const start = todayIso(1);
+    expect(screen.getByRole("button", { name: formatLong(addDays(start, 30)) })).not.toHaveAttribute("aria-disabled");
+    await userEvent.keyboard("{PageDown}{PageDown}");
+    expect(screen.getByRole("button", { name: formatLong(addDays(start, 30)) })).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    await userEvent.click(until);
+    expect(screen.getByRole("button", { name: formatLong(todayIso(2)) }).closest("td")?.className).toContain("bg-brand-soft");
   });
 
   test("cancel calls back", async () => {
@@ -54,4 +62,33 @@ describe("BorrowForm", () => {
     const { container } = render(<BorrowForm onSubmit={vi.fn()} onSent={vi.fn()} onCancel={vi.fn()} />);
     expect(await axeViolations(container)).toEqual([]);
   });
+});
+
+
+test("repeated submit events while a request is pending send only once", async () => {
+  let finish!: () => void;
+  const onSubmit = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+  const onSent = vi.fn();
+  render(<BorrowForm onSubmit={onSubmit} onSent={onSent} onCancel={vi.fn()} />);
+  const button = screen.getByRole("button", { name: "Send request" });
+  act(() => { fireEvent.submit(button.closest("form")!); fireEvent.submit(button.closest("form")!); });
+  expect(onSubmit).toHaveBeenCalledTimes(1);
+  expect(button).toBeDisabled();
+  await act(async () => finish());
+  expect(onSent).toHaveBeenCalledOnce();
+});
+
+
+test("a server refusal is shown and releases the submit guard for retry", async () => {
+  const onSubmit = vi.fn().mockRejectedValueOnce(new ConvexError({ code: "BAD_REQUEST", message: "The tool is already lent out for those dates." })).mockResolvedValueOnce(undefined);
+  const onSent = vi.fn();
+  render(<BorrowForm onSubmit={onSubmit} onSent={onSent} onCancel={vi.fn()} />);
+  const button = screen.getByRole("button", { name: "Send request" });
+  await userEvent.click(button);
+  expect(await screen.findByText("The tool is already lent out for those dates.")).toBeVisible();
+  expect(button).toBeEnabled();
+  expect(onSent).not.toHaveBeenCalled();
+  await userEvent.click(button);
+  expect(onSubmit).toHaveBeenCalledTimes(2);
+  expect(onSent).toHaveBeenCalledOnce();
 });

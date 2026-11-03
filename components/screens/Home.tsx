@@ -1,22 +1,32 @@
 "use client";
 
 import { SignInButton } from "@clerk/nextjs";
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
+import { Authenticated, Unauthenticated } from "convex/react";
 import Link from "next/link";
-import { Badge, Button, buttonVariants, Card, EmptyState, ToolIcon } from "@/components/ui";
+import { useState } from "react";
+import { CategoryBadge } from "@/components/CategoryBadge";
+import { CategoryChips } from "@/components/CategoryChips";
+import { HowItWorks } from "@/components/HowItWorks";
+import { Badge, Button, buttonVariants, Card, EmptyState, Pagination, SearchField, ToolIcon } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
-import { categoryLabel } from "@/lib/format";
-
-const steps = [
-  { title: "List what you own", body: "Add the tools gathering dust: name, condition, anything borrowers should know." },
-  { title: "Request for dates", body: "Neighbours ask to borrow for up to 30 days. You approve or decline." },
-  { title: "Get reminders", body: "Everyone gets an email when something changes, and borrowers are nudged when a loan is overdue." },
-];
+import { useNumberedPage } from "@/lib/useNumberedPage";
+import { CATEGORY_STYLES, type Category } from "@/lib/categories";
+import { AFTER_SIGN_IN } from "@/lib/nav";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import { useUrlState } from "@/lib/useUrlState";
 
 export function HomeScreen() {
-  const tools = useQuery(api.tools.listPublic);
+  const [url, setUrl] = useUrlState(["q", "category"] as const);
+  const [search, setSearch] = useState(url.q);
+  const term = useDebouncedValue(search.trim());
+  const category = url.category in CATEGORY_STYLES ? (url.category as Category) : "";
+  const { results: tools, status, pagination } = useNumberedPage(
+    api.tools.listPublic,
+    { search: term || undefined, category: category || undefined },
+  );
+
   return (
-    <div className="space-y-14">
+    <div className="space-y-10">
       <section className="space-y-5 pt-4">
         <Badge tone="brand">Neighbourhood tool library</Badge>
         <h1 className="max-w-2xl text-h4 text-fg sm:text-h1">Borrow what you need. Lend what you don&apos;t.</h1>
@@ -26,7 +36,7 @@ export function HomeScreen() {
         {/* Fixed-height slot: the button appears once auth resolves, without shifting the page. */}
         <div className="min-h-14">
           <Unauthenticated>
-            <SignInButton mode="modal">
+            <SignInButton mode="modal" forceRedirectUrl={AFTER_SIGN_IN} signUpForceRedirectUrl={AFTER_SIGN_IN}>
               <Button size="lg">Sign in to lend or borrow</Button>
             </SignInButton>
           </Unauthenticated>
@@ -38,37 +48,48 @@ export function HomeScreen() {
         </div>
       </section>
 
-      <section aria-labelledby="available">
-        <h2 id="available" className="mb-4 text-h7 text-fg">Available now</h2>
-        {tools === undefined ? (
+      <HowItWorks />
+
+      <section aria-labelledby="available" className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <h2 id="available" className="text-h7 text-fg">Available now</h2>
+          <SearchField
+            label="Search available tools"
+            placeholder="Search tools"
+            value={search}
+            onChange={(value) => {
+              setSearch(value);
+              setUrl({ q: value.trim() });
+            }}
+            className="sm:w-80"
+          />
+        </div>
+        <CategoryChips value={category} onChange={(c) => setUrl({ category: c })} />
+        {status === "LoadingFirstPage" ? (
           <ul aria-busy="true" aria-label="Loading tools" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2].map((i) => (
               <li key={i} className="h-[68px] animate-pulse rounded-md border border-line bg-surface" />
             ))}
           </ul>
         ) : tools.length === 0 ? (
-          <EmptyState icon={<ToolIcon />} title="No tools listed yet" description="Be the first to lend something." />
+          <EmptyState
+            icon={<ToolIcon />}
+            title={term || category ? "No available tools match" : "No tools listed yet"}
+            description={term || category ? "Try another search or category." : "Be the first to lend something."}
+          />
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {tools.map((tool, i) => (
-              <Card as="li" key={i} className="flex items-center justify-between gap-3">
-                <span className="text-body-bold text-fg">{tool.name}</span>
-                <Badge>{categoryLabel(tool.category)}</Badge>
-              </Card>
-            ))}
-          </ul>
+          <>
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {tools.map((tool) => (
+                <Card as="li" key={tool._id} className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 truncate text-body-bold text-fg">{tool.name}</span>
+                  <CategoryBadge category={tool.category} className="shrink-0" />
+                </Card>
+              ))}
+            </ul>
+          </>
         )}
-      </section>
-
-      <section aria-labelledby="how" className="grid gap-3 sm:grid-cols-3">
-        <h2 id="how" className="sr-only">How it works</h2>
-        {steps.map((step, i) => (
-          <Card key={step.title}>
-            <p className="text-description font-semibold text-brand-fg">Step {i + 1}</p>
-            <h3 className="mt-1 text-subtitle-semibold text-fg">{step.title}</h3>
-            <p className="mt-2 text-body text-fg-muted">{step.body}</p>
-          </Card>
-        ))}
+        <Pagination pagination={pagination} noun="tools" />
       </section>
     </div>
   );

@@ -36,6 +36,8 @@ export const CheckboxAndRadio: Story = {
       <legend className="mb-2 text-body-bold">Notify me about</legend>
       <Checkbox label="New requests" defaultChecked />
       <Checkbox label="Overdue loans" />
+      <Checkbox label="Some listings selected" indeterminate />
+      <Checkbox label="Selection unavailable" disabled />
       <div className="flex gap-4">
         <Radio name="freq" label="Instantly" defaultChecked />
         <Radio name="freq" label="Daily digest" />
@@ -50,3 +52,5 @@ function SliderDemo() {
 }
 
 export const Slider: Story = { render: () => <SliderDemo /> };
+
+export const CheckboxAndRadioDark: Story = { ...CheckboxAndRadio, globals: { theme: "dark" } };

@@ -43,6 +43,9 @@ export const vLoanEvent = v.union(
   v.literal("loan.cancelled"),
   v.literal("loan.returned"),
 );
+/** Coarse loan state for list tabs (open / active / closed), derived from status. */
+export const vLoanPhase = v.union(v.literal("open"), v.literal("active"), v.literal("closed"));
+
 export const vAutomationKind = v.union(
   v.literal("request_notification"),
   v.literal("overdue_reminder"),
@@ -56,9 +59,14 @@ export default defineSchema({
     email: v.optional(v.string()),
     role: vRole,
     trustedLender: v.boolean(),
+    // Name + email, for admin search. Optional until convex/migrations.ts has run.
+    searchText: v.optional(v.string()),
   })
     .index("by_token", ["tokenIdentifier"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_role", ["role"])
+    .index("by_trusted", ["trustedLender"])
+    .searchIndex("search", { searchField: "searchText", filterFields: ["role", "trustedLender"] }),
 
   tools: defineTable({
     ownerId: v.id("users"),
@@ -72,10 +80,26 @@ export default defineSchema({
       v.literal("removed"),
     ),
     removedBy: v.optional(v.id("users")),
+    // Optional photo (Convex file storage), checked by convex/lib/images.ts.
+    imageId: v.optional(v.id("_storage")),
+    // Derived, kept in sync by convex/lib/toolRecord.ts. `listed` exists because
+    // search-index filters can only test equality (status != "removed").
+    // Optional until convex/migrations.ts has run.
+    searchText: v.optional(v.string()),
+    listed: v.optional(v.boolean()),
   })
     .index("by_status", ["status"])
     .index("by_category_status", ["category", "status"])
-    .index("by_owner", ["ownerId"]),
+    .index("by_owner", ["ownerId"])
+    .index("by_owner_status", ["ownerId", "status"])
+    .index("by_owner_listed", ["ownerId", "listed"])
+    .index("by_listed", ["listed"])
+    .index("by_listed_category", ["listed", "category"])
+    .index("by_image", ["imageId"])
+    .searchIndex("search", {
+      searchField: "searchText",
+      filterFields: ["listed", "status", "category", "ownerId"],
+    }),
 
   loans: defineTable({
     toolId: v.id("tools"),
@@ -87,11 +111,21 @@ export default defineSchema({
     status: vLoanStatus,
     decidedAt: v.optional(v.number()),
     returnedAt: v.optional(v.number()),
+    // Derived, kept in sync by convex/lib/loanRecord.ts: the tool's name (for
+    // search) and the coarse phase (for tabs). Optional until migrated.
+    toolName: v.optional(v.string()),
+    phase: v.optional(vLoanPhase),
   })
     .index("by_borrower", ["borrowerId"])
     .index("by_lender", ["lenderId"])
+    .index("by_borrower_phase", ["borrowerId", "phase"])
+    .index("by_lender_phase", ["lenderId", "phase"])
+    .index("by_phase", ["phase"])
+    .index("by_tool", ["toolId"])
     .index("by_tool_status", ["toolId", "status"])
-    .index("by_status_end", ["status", "endDate"]),
+    .index("by_tool_borrower_status", ["toolId", "borrowerId", "status"])
+    .index("by_status_end", ["status", "endDate"])
+    .searchIndex("search", { searchField: "toolName", filterFields: ["lenderId", "borrowerId", "phase"] }),
 
   // Outbox for Convex -> n8n webhooks. Stores references only; the payload is
   // built at delivery time so no personal data sits in the queue.

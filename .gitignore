@@ -47,3 +47,9 @@ storybook-static/
 test-results/
 playwright-report/
 e2e/.auth/
+
+# rendered email previews (npm run email:preview)
+email-previews/
+
+# isolated responsive browser artifacts
+playwright-responsive-results/

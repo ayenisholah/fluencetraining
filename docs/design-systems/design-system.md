@@ -179,6 +179,11 @@ Radius: lg 16px. md and sm scale down (12px, 8px **approx**).
 ### Checkbox and radio
 
 - 20x20. Off: 1px neutral border. On: filled `#7364DB` with white check / dot.
+- Mixed checkbox selection uses the same violet fill and a horizontal dash,
+  with the native indeterminate state and an accessible mixed state.
+- Admin Listings uses these checkboxes for current-page selection. A wrapping
+  toolbar groups select-all, selected count, clear, and the danger removal button;
+  the shared danger confirmation dialog explains open-request and active-loan effects.
 
 ### Slider
 
@@ -405,6 +410,32 @@ What these changes mean in the UI:
 - `#B2A7FF` is still used for hover, as specified, since hover has no contrast requirement. Keyboard focus uses `--focus-ring`, which is `#B2A7FF` again in the night theme (6.71:1 on the dark card).
 - `neutral-500` is still used as `--fg-subtle` for icons and large text, where 3:1 is enough.
 - The night-theme card surface (`#282A33`) and the status colours on dark tints are marked **(approx)**: the file has no variables for them.
+
+### Pagination composition
+
+Pagination is derived from the Frox Control, Select and colour primitives above.
+It is not an exact transcription of node `1169:12005`: that node could not be
+read because the Figma MCP quota was exhausted.
+
+- The footer has a `line` top divider, 16px top padding, and 16px between groups.
+- The page-size selector uses `Select appearance="control"`: a 36px pill,
+  a single-line value, and an inline visible label. Existing form selects keep
+  their default field appearance and floating label.
+- Pagination uses 40px page buttons, 8px corners, and a violet active square
+  with `aria-current="page"`. First and last pages remain visible; up to seven
+  slots show all pages or nearby pages separated by noninteractive ellipses.
+  Previous/Next are outlined arrow buttons, disabled at the boundaries.
+- The selector references its single visible label. Muted result text shows
+  the range, for example “Showing 41–50 of 105 tools”; empty results show “0 tools”.
+- Container queries place summary and navigation side by side from 60rem.
+  Smaller containers stack them; below 36rem, page numbers sit above the
+  Previous/Next row. This also accommodates narrow admin panels.
+- All colours come from semantic tokens, including day/night backgrounds,
+  disabled states and focus treatments. Existing AA adjustments still apply.
+- Numbered server pages support direct jumps and exact matching totals. Page
+  sizes are 10, 25, 50 and 100. Filters and size changes reset to page one.
+  Counts currently scan the matching index for the small demo catalogue; larger
+  deployments should maintain counts to avoid query read limits.
 
 ### Testing
 

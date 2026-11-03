@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/cn";
+import { popoverCardClass } from "../Popover/usePopover";
 
 export type DropdownItem = {
   key: string;
@@ -19,6 +20,10 @@ export type DropdownItem = {
   href?: string;
   onSelect?: () => void;
   active?: boolean;
+  /** Destructive action: red, as in Figma's "Cancel" / "Delete". */
+  tone?: "default" | "danger";
+  /** Draw a divider above this item. */
+  separatorBefore?: boolean;
 };
 
 type LinkLike = ComponentType<{
@@ -138,10 +143,7 @@ export function DropdownMenu({
           role="menu"
           aria-label={triggerLabel}
           onKeyDown={onMenuKey}
-          className={cn(
-            "absolute z-40 mt-2 min-w-[187px] rounded-md border border-line bg-surface p-1.5 shadow-lg",
-            align === "end" ? "right-0" : "left-0",
-          )}
+          className={cn(popoverCardClass, "mt-2 min-w-[187px] p-1.5", align === "end" ? "right-0" : "left-0")}
         >
           {items.map((item, i) => {
             const content = (
@@ -154,8 +156,15 @@ export function DropdownMenu({
               item.onSelect?.();
               close(!item.href);
             };
-            const cls = cn(itemClass, item.active && "bg-surface-sunken text-fg");
-            return item.href ? (
+            const cls = cn(
+              itemClass,
+              item.active && "bg-surface-sunken text-fg",
+              item.tone === "danger" && "text-danger hover:text-danger focus:text-danger",
+            );
+            const divider = item.separatorBefore ? (
+              <div key={`${item.key}-sep`} role="separator" className="mx-3 my-1 h-px bg-line" />
+            ) : null;
+            return [divider, item.href ? (
               <Link
                 key={item.key}
                 ref={(el: HTMLAnchorElement | null) => {
@@ -184,7 +193,7 @@ export function DropdownMenu({
               >
                 {content}
               </button>
-            );
+            )];
           })}
         </div>
       )}

@@ -38,8 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // is created by users.store just after auth reaches Convex, so wait for it
   // instead of letting those queries throw.
   const ready = Boolean(me);
-  const incoming = useQuery(api.loans.incoming, ready ? {} : "skip");
-  const pending = incoming?.filter((l) => l.status === "requested").length ?? 0;
+  const pending = useQuery(api.loans.pendingIncomingCount, ready ? {} : "skip") ?? 0;
   const links = appNav(me?.role);
   const current = links.find((l) => isActive(pathname, l.href));
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Alert, Button, TextField } from "@/components/ui";
+import { useRef, useState } from "react";
+import { Alert, Button, DatePicker } from "@/components/ui";
 import { loanDateError, MAX_LOAN_DAYS } from "@/convex/lib/rules";
+import { addDays, parseIso } from "@/lib/calendar";
 import { errorMessage, todayIso } from "@/lib/format";
 
 /** Which date field a range error belongs to, so the message sits under it. */
@@ -26,6 +27,7 @@ export function BorrowForm({
   const [interacted, setInteracted] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
 
   const dateError = loanDateError(startDate, endDate);
   const shown = interacted ? dateError : undefined;
@@ -33,12 +35,14 @@ export function BorrowForm({
 
   return (
     <form
-      className="mt-4 space-y-3 border-t border-line pt-4"
+      className="@container mt-4 space-y-3 border-t border-line pt-4"
       noValidate
       onSubmit={async (e) => {
         e.preventDefault();
+        if (submitting.current) return;
         setInteracted(true);
         if (dateError) return;
+        submitting.current = true;
         setPending(true);
         setError(undefined);
         try {
@@ -47,38 +51,44 @@ export function BorrowForm({
         } catch (err) {
           setError(errorMessage(err));
         } finally {
+          submitting.current = false;
           setPending(false);
         }
       }}
     >
-      <fieldset className="grid grid-cols-2 gap-3">
+      <fieldset className="grid grid-cols-1 gap-3 @[40rem]:grid-cols-2">
         <legend className="sr-only">Borrowing dates</legend>
-        <TextField
-          type="date"
+        <DatePicker
           label="From"
           min={todayIso()}
           value={startDate}
+          rangeStart={startDate}
+          rangeEnd={endDate}
           error={field === "from" ? shown : undefined}
-          onChange={(e) => {
-            setStart(e.target.value);
+          onValueChange={(next) => {
+            setStart(next);
+            // Keep the range valid: push Until forward if it's now before From.
+            if (endDate && next > endDate) setEnd(next);
             setInteracted(true);
           }}
         />
-        <TextField
-          type="date"
+        <DatePicker
           label="Until"
-          min={startDate}
+          min={startDate || todayIso()}
+          max={parseIso(startDate) ? addDays(startDate, MAX_LOAN_DAYS) : undefined}
           value={endDate}
+          rangeStart={startDate}
+          rangeEnd={endDate}
           hint={`Up to ${MAX_LOAN_DAYS} days.`}
           error={field === "until" ? shown : undefined}
-          onChange={(e) => {
-            setEnd(e.target.value);
+          onValueChange={(next) => {
+            setEnd(next);
             setInteracted(true);
           }}
         />
       </fieldset>
       <Alert tone="danger">{error}</Alert>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" loading={pending}>
           Send request
         </Button>

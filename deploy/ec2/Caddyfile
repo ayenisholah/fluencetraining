@@ -1,0 +1,53 @@
+# TLS termination for the production host. Certificates come from Let's
+# Encrypt automatically; BASE_DOMAIN is "<elastic-ip>.sslip.io" until a real
+# domain is set up.
+{
+	admin off
+	servers {
+		protocols h1 h2
+	}
+}
+
+(security) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Convex client API and websocket sync (NEXT_PUBLIC_CONVEX_URL).
+convex.{$BASE_DOMAIN} {
+	import security
+	reverse_proxy convex:3210
+}
+
+# Convex HTTP actions: the n8n endpoints. /ops/* is host-only (metrics.sh
+# calls it on localhost), so it's refused here.
+site.{$BASE_DOMAIN} {
+	import security
+	@ops path /ops/*
+	respond @ops 404
+	reverse_proxy convex:3211
+}
+
+# n8n: production webhooks are public (they verify an HMAC); everything else,
+# the editor included, needs basic auth on top of n8n's own owner login.
+n8n.{$BASE_DOMAIN} {
+	import security
+	@webhook path /webhook/*
+	handle @webhook {
+		reverse_proxy n8n:5678
+	}
+	handle {
+		basic_auth {
+			admin {$N8N_EDITOR_HASH}
+		}
+		reverse_proxy n8n:5678
+	}
+}

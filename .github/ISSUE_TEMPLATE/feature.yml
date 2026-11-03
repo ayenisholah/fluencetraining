@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest a change, written as a user story.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      placeholder: "As a <lender/borrower/admin/visitor> I want … so that …"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: "Given … when … then …"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes (privacy, security, accessibility)

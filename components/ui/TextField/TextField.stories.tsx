@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
-import { Select } from "../Select/Select";
 import { TextField } from "./TextField";
 
 // TextField's props are a union (input | textarea); stories use one flat shape.
@@ -43,7 +42,4 @@ export const FloatsOnFocus: Story = {
     await expect(input).toHaveValue("Ladder");
     await expect(canvas.getByText("Label").className).toContain("top-1.5");
   },
-};
-export const SelectField: Story = {
-  render: () => <Select label="Category" options={[{ value: "garden", label: "Garden" }, { value: "kitchen", label: "Kitchen" }]} />,
 };

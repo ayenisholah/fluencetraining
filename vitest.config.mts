@@ -15,7 +15,17 @@ export default defineConfig({
           name: "convex",
           environment: "edge-runtime",
           server: { deps: { inline: ["convex-test"] } },
-          include: ["convex/**/*.test.ts", "n8n/**/*.test.ts"],
+          include: ["convex/**/*.test.ts"],
+        },
+      },
+      {
+        // Runs the Code nodes from the exported n8n workflow JSON. Node, not
+        // edge-runtime: n8n Code nodes use require("crypto").
+        extends: true,
+        test: {
+          name: "n8n",
+          environment: "node",
+          include: ["n8n/**/*.test.ts"],
         },
       },
       {
