@@ -146,7 +146,7 @@ export function ToolsScreen() {
               >
                 {sent === tool._id && (
                   <p role="status" className="mt-4 text-body text-success">
-                    Request sent. The lender has been notified.
+                    Request sent. We&apos;ll email the lender.
                   </p>
                 )}
                 {borrowing === tool._id && (

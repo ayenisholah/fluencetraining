@@ -98,6 +98,10 @@ describe("exported workflow JSON", () => {
     }
   });
 
+  test("successful runs aren't stored: their data holds recipient addresses and rendered email", () => {
+    for (const w of [notify, remind]) expect(w.settings.saveDataSuccessExecution).toBe("none");
+  });
+
   test("every network step (HTTP, email) retries", () => {
     for (const w of all) {
       for (const n of w.nodes.filter((n) => /httpRequest|emailSend/.test(n.type))) {

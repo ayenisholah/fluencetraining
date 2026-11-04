@@ -224,10 +224,14 @@ describe("migrations:backfillSearch", () => {
     expect(first.patched).toBeGreaterThanOrEqual(3);
     expect(await t.mutation(internal.migrations.backfillSearch, {})).toEqual({ patched: 0, done: true });
     const [toolRow, loanRow] = await t.run((ctx) => Promise.all([ctx.db.get(toolId), ctx.db.get(loanId)]));
-    expect(toolRow).toMatchObject({ searchText: "Old ladder", listed: true });
+    expect(toolRow).toMatchObject({ searchText: "Old ladder", publicSearchText: "Old ladder", listed: true });
     expect(loanRow).toMatchObject({ phase: "closed", toolName: "Old ladder" });
     const viewer = await signIn(t, "Viewer");
     expect((await viewer.as.query(api.tools.list, { ...ALL, search: "ladder" })).page.map((r) => r.name)).toEqual([
+      "Old ladder",
+    ]);
+    // The signed-out landing page finds backfilled rows too (name-only index).
+    expect((await t.query(api.tools.listPublic, { ...ALL, search: "ladder" })).page.map((r) => r.name)).toEqual([
       "Old ladder",
     ]);
   });

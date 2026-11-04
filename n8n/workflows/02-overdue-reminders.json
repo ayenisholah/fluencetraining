@@ -295,7 +295,7 @@
     "executionOrder": "v1",
     "errorWorkflow": "LendLoopErrorWf1",
     "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all",
+    "saveDataSuccessExecution": "none",
     "saveManualExecutions": true,
     "timezone": "UTC"
   },

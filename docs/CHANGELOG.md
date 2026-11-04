@@ -4,12 +4,28 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 
 ## Unreleased
 
+### Fixed
+- The overdue query filters already-reminded loans *while* scanning (up to 500 returned, 4,000 scanned), so a partial run no longer leaves later overdue loans permanently unreminded.
+
+### Documentation
+- README and ADR 0005 state the delivery guarantees precisely: idempotent records, best-effort email deduplication, and why the webhook is acknowledged before the activity write-back.
+
+### Security
+- The signed-out landing page searches tool **names only** (new `searchPublic` index on `publicSearchText`). Before, a description-only word still matched, which let anyone probe descriptions they aren't shown.
+- Error details written back from n8n have email addresses masked before storage.
+- n8n stores no data from successful runs and prunes the rest after 7 days.
+
+### Added
+- Daily `automation:purgeOld` deletes finished webhook deliveries and automation events after 90 days, as the privacy page states.
+
 ### Changed
+- The borrow confirmation says "Request sent. We'll email the lender." instead of claiming the lender was already notified (delivery is asynchronous and retried).
+- The privacy page describes account deletion as the operator process it actually is.
 - Signed-in pages show a page-shaped skeleton while the user's record loads, instead of a corner spinner saying "Setting up your account…" on every visit. That message now appears only on a first sign-in, while the account row is created.
 
 ### Added
 - The SES SMTP IAM user (`lendloop-prod-ses-smtp`) and its send policy are defined in CDK instead of by hand. The policy covers recipient identities, which the SES sandbox requires.
-- A $1/month AWS Budget emails `ALERT_EMAIL` as soon as real (or forecast) spend appears on the free-plan account.
+- A $1/month AWS Budget emails `ALERT_EMAIL` as soon as real (or forecast) spend appears on the free-plan account. Create it once with `scripts/aws/create-cost-budget.sh` (Budgets is global and unavailable to CloudFormation in eu-north-1).
 - `.git-blame-ignore-revs` skips the repo-wide formatting commit.
 
 ### Fixed

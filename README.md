@@ -282,9 +282,10 @@ Reliability measures:
   - Failed deliveries are listed in Admin with a Retry button.
 - **n8n nodes:** HTTP and email nodes use retry-on-fail (3 tries).
 - **Duplicate handling:**
-  - The notification workflow remembers handled `deliveryId`s in workflow static data, so a Convex retry after a lost response doesn't email twice.
-  - The overdue query skips loans already reminded today.
-  - Every write-back is keyed. The key is `notify:<deliveryId>`, `overdue:<loanId>:<date>` or `error:<executionId>`. Convex upserts by key inside a serializable mutation, so retries and re-runs never create duplicates. A later `sent` upgrades an earlier `failed`.
+  - **Records are idempotent.** Every write-back is keyed: `notify:<deliveryId>`, `overdue:<loanId>:<date>` or `error:<executionId>`. Convex upserts by key inside a serializable mutation, so retries and re-runs never create duplicate records. A later `sent` upgrades an earlier `failed`.
+  - **Emails are deduplicated on a best-effort basis.** The notification workflow remembers handled `deliveryId`s in workflow static data, the last 1,000, so a Convex retry after a lost response normally doesn't email twice. n8n saves static data only when a run ends, so two *overlapping* runs of the same delivery could both send. That's rare, because Convex retries after at least 30 s. The overdue query skips loans already reminded today, and that filter runs while scanning, so a partial run never starves later loans. If SMTP accepts a reminder but the write-back then fails, a re-run the same day can send it again.
+  - **Ordering:** the webhook is acknowledged after the email is sent and *before* the activity write-back. Acknowledging later would turn a slow write-back into a Convex retry, which means a duplicate email. If the write-back exhausts its retries, the email went out but the loan shows no activity. The error workflow reports that run to ops and to Admin › Automation health.
+  - The production fix for all three is an atomic "claim" in Convex before sending (see [What I would change for production](#what-i-would-change-for-production)).
 
 To refresh the exported JSON after editing in the n8n UI, run `npm run n8n:export`. It strips instance-specific fields and fails if any secret value from `.env` appears in the output.
 
