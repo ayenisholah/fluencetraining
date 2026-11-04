@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { daysBetween } from "./lib/dates";
 import { overdueReminderEmail } from "./lib/email/reminderEmail";
@@ -21,32 +22,49 @@ export function reminderKey(loanId: string, asOf: string): string {
   return `overdue:${loanId}:${asOf}`;
 }
 
+/** Most reminders returned per run; n8n sends them one by one. */
+export const OVERDUE_BATCH = 500;
+/**
+ * Most overdue loans examined per run. Bounds the query's reads (two per
+ * scanned loan, three more per returned one) well inside Convex's limits.
+ */
+export const OVERDUE_SCAN_LIMIT = 4000;
+
 /**
  * Approved loans whose end date has passed and that have not had a reminder
  * sent today. Excluding already-reminded loans means a re-run or retry of the
  * daily workflow does not email anyone twice.
+ *
+ * The filter runs *while* walking the index, so loans already reminded today
+ * don't use up the batch: a re-run after a partial run reaches the loans the
+ * first run didn't get to.
  */
 export const overdueLoans = internalQuery({
   args: { asOf: v.string() },
   handler: async (ctx, { asOf }) => {
-    const loans = await ctx.db
+    const due: { loan: Doc<"loans">; idempotencyKey: string }[] = [];
+    let scanned = 0;
+    for await (const loan of ctx.db
       .query("loans")
-      .withIndex("by_status_end", (q) => q.eq("status", "approved").lt("endDate", asOf))
-      .take(500);
+      .withIndex("by_status_end", (q) => q.eq("status", "approved").lt("endDate", asOf))) {
+      if (due.length >= OVERDUE_BATCH || scanned >= OVERDUE_SCAN_LIMIT) break;
+      scanned++;
+      const idempotencyKey = reminderKey(loan._id, asOf);
+      const sent = await ctx.db
+        .query("automationEvents")
+        .withIndex("by_key", (q) => q.eq("idempotencyKey", idempotencyKey))
+        .unique();
+      if (sent?.status !== "sent") due.push({ loan, idempotencyKey });
+    }
     // Per-loan lookups are independent; run them together and keep the order.
     const rows = await Promise.all(
-      loans.map(async (loan) => {
-        const idempotencyKey = reminderKey(loan._id, asOf);
-        const [sent, tool, borrower, lender] = await Promise.all([
-          ctx.db
-            .query("automationEvents")
-            .withIndex("by_key", (q) => q.eq("idempotencyKey", idempotencyKey))
-            .unique(),
+      due.map(async ({ loan, idempotencyKey }) => {
+        const [tool, borrower, lender] = await Promise.all([
           ctx.db.get(loan.toolId),
           ctx.db.get(loan.borrowerId),
           ctx.db.get(loan.lenderId),
         ]);
-        if (sent?.status === "sent" || !borrower?.email) return null;
+        if (!borrower?.email) return null;
         const toolName = tool?.name ?? "a tool";
         const daysOverdue = daysBetween(loan.endDate, asOf);
         const borrowerFirstName = firstName(borrower.name);
