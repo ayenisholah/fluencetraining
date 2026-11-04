@@ -72,7 +72,7 @@ Composite alarm `lendloop-prod-unhealthy` is the OR of heartbeat, stuck deliveri
 
 ## Alert delivery and triage
 
-All operational alarm actions target SNS topic `lendloop-prod-alerts`, exposed as `AlertsTopicArn`. The stack creates **no subscription**. Configure a monitored destination and complete any endpoint confirmation before assuming an alarm reaches an operator. CloudWatch's alarm state alone does not prove notification delivery.
+All operational alarm actions target SNS topic `lendloop-prod-alerts`, exposed as `AlertsTopicArn`. When the repository variable `ALERT_EMAIL` is set, the stack subscribes that address by email (the address stays out of this public repo). AWS sends a one-time confirmation link; until it is clicked the subscription is `PendingConfirmation` and nothing is delivered. Check with `aws sns list-subscriptions-by-topic --topic-arn <AlertsTopicArn>`. Without the variable the stack creates no subscription. CloudWatch's alarm state alone does not prove notification delivery.
 
 1. Check the composite alarm and individual failing signal on `LendLoop-Prod`.
 2. For missing heartbeat, inspect EC2 status, SSM availability, metrics timer/service, Convex health and access to Secrets Manager/CloudWatch.

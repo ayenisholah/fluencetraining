@@ -29,6 +29,7 @@ new ObservabilityStack(app, "LendLoop-Observability", {
   baseDomain: backend.baseDomain,
   appUrl: web.appUrl,
   amplifyAppId: web.appId,
+  alertEmail: app.node.tryGetContext("alertEmail") ?? (process.env.ALERT_EMAIL || undefined),
   logGroupNames: Object.fromEntries(LOG_GROUPS.map((n) => [n, backend.logGroups[n].logGroupName])) as Record<
     (typeof LOG_GROUPS)[number],
     string
