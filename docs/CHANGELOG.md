@@ -5,6 +5,7 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 ## Unreleased
 
 ### Fixed
+- The privacy page gives a real contact address for deletion and data requests instead of a placeholder.
 - The overdue query filters already-reminded loans *while* scanning (up to 500 returned, 4,000 scanned), so a partial run no longer leaves later overdue loans permanently unreminded.
 
 ### Documentation

@@ -88,7 +88,7 @@ export default function PrivacyPage() {
         <h2>Your choices</h2>
         <p>
           You can edit or delete your listings at any time. To delete your account, or to ask for a copy of your data,
-          contact privacy@lendloop.example and we&apos;ll do it within 30 days.
+          contact ayenisholah@gmail.com and we&apos;ll do it within 30 days.
         </p>
       </section>
     </LegalPage>
