@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time local setup: secrets, containers, Convex deploy + env, n8n import.
-# Safe to re-run. Requires Docker and Node 20+.
+# Safe to re-run. Requires Docker and Node 22.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -44,7 +44,8 @@ npx convex env set LENDLOOP_TO_N8N_SECRET "$LENDLOOP_TO_N8N_SECRET" >/dev/null
 npx convex env set N8N_TO_LENDLOOP_SECRET "$N8N_TO_LENDLOOP_SECRET" >/dev/null
 # Links and the logo in emails rendered by Convex (convex/lib/email).
 npx convex env set LENDLOOP_APP_URL "${LENDLOOP_APP_URL:-http://localhost:3000}" >/dev/null
-if ! npx convex env get CLERK_JWT_ISSUER_DOMAIN >/dev/null 2>&1; then
+# `convex env get` exits 0 for a missing variable, so test its output.
+if [ -z "$(npx convex env get CLERK_JWT_ISSUER_DOMAIN 2>/dev/null)" ]; then
   echo "  CLERK_JWT_ISSUER_DOMAIN is not set yet; see README step 3."
   npx convex env set CLERK_JWT_ISSUER_DOMAIN https://set-me.clerk.accounts.dev >/dev/null
 fi

@@ -5,10 +5,13 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 ## Unreleased
 
 ### Fixed
+- `npm run setup` works on a fresh clone. It stopped before deploying Convex, because `convex env get` exits 0 for a missing variable and the Clerk issuer placeholder was never set.
+- The local Convex images are pinned, so a new clone runs the versions the repository was tested with instead of `latest`.
 - The privacy page gives a real contact address for deletion and data requests instead of a placeholder.
 - The overdue query filters already-reminded loans *while* scanning (up to 500 returned, 4,000 scanned), so a partial run no longer leaves later overdue loans permanently unreminded.
 
 ### Documentation
+- README local setup is a complete path for a new reviewer: prerequisites, free ports, what to expect at each step, how to check it works, and a troubleshooting table.
 - README opens with a live-demo walkthrough, including the SES sandbox limit and how a reviewer gets admin, and the production note is rewritten as a short, current priority list.
 - README, ADR 0004 and `AGENTS.md` no longer overstate what per-direction HMAC secrets protect, and match the code on the Node version, admin removal of on-loan tools, admin access to names and emails, and pagination state.
 - README and ADR 0005 state the delivery guarantees precisely: idempotent records, best-effort email deduplication, and why the webhook is acknowledged before the activity write-back.
