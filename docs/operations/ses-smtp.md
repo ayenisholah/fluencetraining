@@ -13,7 +13,7 @@ Production sends through SES; Mailpit is local-only. `config.mailProvider` in `i
 Store or rotate the credential once, before the first SES deploy:
 
 ```sh
-bash scripts/aws/put-external-secrets.sh --ses                   # creates a new key for lendloop-n8n-smtp
+bash scripts/aws/put-external-secrets.sh --ses                   # creates a new key for lendloop-prod-ses-smtp
 bash scripts/aws/put-external-secrets.sh --ses /private/key.csv  # or derives from an existing key CSV (chmod 600)
 ```
 
