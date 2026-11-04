@@ -9,24 +9,53 @@
 
 A neighbourhood tool-lending board. Neighbours list tools, request to borrow them for a date range, and approve, decline and close out loans. n8n handles the notifications and overdue reminders.
 
+**Live demo:** https://lendloop.sholaayeni.xyz · [Try it in ten minutes](#try-it)
+
 **Stack:** Next.js 16 (App Router) · TypeScript · Clerk · Convex · n8n · Tailwind CSS 4 · Frox design system · Vitest, Testing Library, Storybook 10, Playwright
 
 ---
 
 ## Contents
 
-1. [What it does](#what-it-does)
-2. [Architecture](#architecture)
-3. [Local setup](#local-setup)
-4. [Environment variables](#environment-variables)
-5. [Roles and access control](#roles-and-access-control)
-6. [n8n workflows](#n8n-workflows)
-7. [Security and data-minimisation decisions](#security-and-data-minimisation-decisions)
-8. [Design system](#design-system)
-9. [Testing](#testing)
-10. [AWS production infrastructure](#aws-production-infrastructure)
-11. [What I would change for production](#what-i-would-change-for-production)
-12. [Full documentation](docs/README.md): user stories, architecture, ADRs, threat model, test plan, runbook, release checklist
+1. [Try it](#try-it)
+2. [What it does](#what-it-does)
+3. [Architecture](#architecture)
+4. [Local setup](#local-setup)
+5. [Environment variables](#environment-variables)
+6. [Roles and access control](#roles-and-access-control)
+7. [n8n workflows](#n8n-workflows)
+8. [Security and data-minimisation decisions](#security-and-data-minimisation-decisions)
+9. [Design system](#design-system)
+10. [Testing](#testing)
+11. [AWS production infrastructure](#aws-production-infrastructure)
+12. [What I would change for production](#what-i-would-change-for-production)
+13. [Full documentation](docs/README.md): user stories, architecture, ADRs, threat model, test plan, runbook, release checklist
+
+## Try it
+
+**Live demo: https://lendloop.sholaayeni.xyz**
+
+A ten-minute walkthrough of the brief, using two accounts (one normal window, one private window):
+
+1. **Signed out:** open the home page. It lists tool names and categories only, with a "Sign in to lend or borrow" button.
+2. **Account A:** sign up, then add a tool under **My listings**.
+3. **Account B:** sign up, find the tool under **All tools**, and request it for a date range.
+4. **Account A:** open **Incoming** and approve. The tool now shows as on loan for both accounts.
+5. **Account A:** mark the loan returned. Each loan card shows its recent automation activity, e.g. "Notification sent just now".
+
+**Email on the live site:** Amazon SES is still in its sandbox, so it only delivers to verified addresses. If you're reviewing this application and want the emails, reply to my submission email with the addresses you'll sign up with. AWS sends each one a verification link to click. For an unverified address the app works normally, SES rejects the email, and the failure appears in Admin › Automation health. The local stack has no such limit, because Mailpit catches everything.
+
+**Admin on the live site:** roles can only be changed by an operator, by design, so there's no self-service route. Reply with the account you signed up with and I'll promote it. Locally, run the [`users:setRole` command](#4-run-it). The overdue reminders and failure handling are easiest to try on the [local stack](#trying-the-automations).
+
+**Where to look in the code:**
+
+| Topic | Start here |
+|---|---|
+| Role and ownership rules | `convex/lib/auth.ts`, and `convex/access.test.ts`, which fails if a public function has no guard |
+| Transactional outbox and retries | `convex/lib/outbox.ts`, `convex/webhooks.ts` |
+| Signed endpoints and idempotent write-backs | `convex/lib/hmac.ts`, `convex/http.ts`, `convex/automation.ts` |
+| n8n workflows and their tests | `n8n/workflows/`, `n8n/roundtrip.test.ts` |
+| Decisions and tradeoffs | [Security decisions](#security-and-data-minimisation-decisions), [production note](#what-i-would-change-for-production), [ADRs](docs/architecture/adr/README.md) |
 
 ## What it does
 
@@ -119,7 +148,7 @@ docker-compose.yml   Convex (self-hosted), Convex dashboard, n8n, Mailpit
 
 ## Local setup
 
-**You need:** Docker, Node 20.9+, Python 3 (for n8n provider imports), and a Clerk development instance.
+**You need:** Docker, Node 22 with npm 10 (`nvm use` reads `.nvmrc`), Python 3 (for n8n provider imports), and a Clerk development instance.
 
 The default development stack runs locally except for Clerk. Selecting SES also connects n8n to AWS for email. Convex is **self-hosted in Docker** so that it and n8n can call each other on the compose network. With Convex cloud, the cloud could not reach a webhook on `localhost`.
 
@@ -259,7 +288,7 @@ Business rules enforced on the server:
 - You can't borrow your own tool, or open two requests for the same tool.
 - A tool has one active loan at a time, and overlapping requests are rejected.
 - Removing a listing declines its open requests, and the borrowers are notified.
-- A tool on loan can't be removed.
+- An owner can't remove a tool while it's on loan. An admin can, for moderation: the loan stays open so the lender can still mark it returned.
 
 The Next.js `proxy.ts` redirects signed-out visitors away from app pages. That is a UX convenience; it is not the access control.
 
@@ -296,7 +325,7 @@ To refresh the exported JSON after editing in the n8n UI, run `npm run n8n:expor
   - Signing scheme: HMAC-SHA256 over `${timestamp}.${rawBody}`, sent as `x-lendloop-timestamp` and `x-lendloop-signature: sha256=<hex>`.
   - Verification uses constant-time comparison and a 5-minute replay window.
   - n8n verifies the **raw bytes** it received, not re-serialised JSON.
-  - There are **two secrets, one per direction**, so the credential n8n holds can't be used to forge events *to* n8n.
+  - There are **two secrets, one per direction**, so a signature made for one direction is never valid in the other, and each secret can be rotated on its own. HMAC is symmetric, so Convex and n8n each hold both secrets: this doesn't protect against a compromised Convex or n8n.
 - **Secrets stay out of code and exports.**
   - Secrets live in `.env`, which is git-ignored and generated locally, in Convex deployment env, and in n8n credentials and container env.
   - Workflow JSON only references `$env.*` and a credential id.
@@ -353,7 +382,7 @@ npm test                 # Vitest: Convex backend (edge-runtime) + components an
 npm run test:storybook   # every story in Chrome: render, play function, axe
 npm run test:e2e         # Playwright (builds and starts the app)
 npm run test:e2e:public  # signed-out suite only
-npm run test:automatioVn # local email + recovery suite; temporarily stops/restores Mailpit
+npm run test:automation  # local email + recovery suite; temporarily stops/restores Mailpit
 npm run typecheck && npm run lint
 npm run check:contrast   # WCAG AA for the design tokens in both themes
 ```
@@ -365,7 +394,7 @@ npm run check:contrast   # WCAG AA for the design tokens in both themes
 | `convex/hmac.test.ts`, `convex/rules.test.ts` | Signing round-trip, tamper and replay detection, parity with the Node `crypto` used in n8n; the shared validation rules. |
 | `components/**/*.test.tsx` | Every component's variants, states (disabled, loading, error), keyboard behaviour (segmented control, menu, toggle), ARIA wiring and an axe pass; LoanCard actions per viewer; ToolForm and BorrowForm validation, focus and submit. |
 | `lib/lib.test.ts` | Theme storage, nav by role, loan status mapping, formatting, contrast maths, class merging. |
-| `components/**/*.stories.tsx` | 49 stories run as browser tests with axe set to fail on violations, including colour contrast. |
+| `components/**/*.stories.tsx` | Every story runs as a browser test with axe set to fail on violations, including colour contrast. |
 | `e2e/public.spec.ts` | Desktop and mobile: landing CTA, consent persistence, theme persistence, legal pages, real 404, auth redirect, no horizontal scroll, axe in light and dark. |
 | `e2e/signed-in.spec.ts` | With `@clerk/testing` and two Clerk test users: non-admins can't reach Admin, listing validation, then lend → request → approve → "On loan" on both sides → notification activity → returned. Then axe on every signed-in page. It needs the local stack (`npm run setup`) and Clerk keys in `.env.local`, and is skipped without them. |
 
@@ -391,6 +420,13 @@ Start with the [AWS infrastructure and deployment guide](docs/operations/aws-dep
 
 ## What I would change for production
 
-Remaining work includes making EC2 bootstrap preserve SES configuration, verifying backup restores, and considering multi-host availability as usage grows. The current code supplies CloudWatch monitoring and AWS Backup, but does not create an SNS subscriber or prove a restore meets a recovery target.
+This runs on one small host inside an AWS free plan, which suits a demo. For real users, in priority order:
 
-Other follow-ups: dual-key HMAC rotation, durable concurrent notification deduplication, notification preferences, automation-event retention, account deletion/anonymisation, and an audited admin-management UI. SES bounce/complaint monitoring is deferred. The single-host setup does not provide n8n queue-mode workers or multi-AZ data replication.
+1. **Email:** get SES production access (it's still in the sandbox) and move DMARC from `p=none` to enforcement once the domain has a sending reputation.
+2. **Delivery guarantees:** add an atomic "claim" in Convex before each send, and reconcile activity write-backs that fail after the email went out. That closes the three gaps listed under [Duplicate handling](#n8n-workflows).
+3. **Availability and recovery:** replace the single host with managed or multi-host Convex and n8n in queue mode, set recovery targets, and test a restore. Daily backups run, but no restore has been tested.
+4. **Privacy:** self-service account deletion and data export. Today deletion is a manual operator process.
+5. **Auditability:** record who did what for admin actions (removals, Trusted Lender, role changes), add an audited admin-management UI, and turn on a CloudTrail trail.
+6. **Secrets:** dual-key HMAC rotation, so a secret can change with no failed deliveries.
+7. **Scale:** replace the counting scans behind numbered pagination with aggregates or cursors, and page through overdue loans beyond the current 4,000-loan scan limit.
+8. **Product:** notification preferences, and bookings for future dates. Approving a request currently marks the tool on loan straight away.
