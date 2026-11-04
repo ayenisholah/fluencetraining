@@ -4,6 +4,18 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 
 ## Unreleased
 
+### Security
+- The signed-out landing page searches tool **names only** (new `searchPublic` index on `publicSearchText`). Before, a description-only word still matched, which let anyone probe descriptions they aren't shown.
+- Error details written back from n8n have email addresses masked before storage.
+- n8n stores no data from successful runs and prunes the rest after 7 days.
+
+### Added
+- Daily `automation:purgeOld` deletes finished webhook deliveries and automation events after 90 days, as the privacy page states.
+
+### Changed
+- The borrow confirmation says "Request sent. We'll email the lender." instead of claiming the lender was already notified (delivery is asynchronous and retried).
+- The privacy page describes account deletion as the operator process it actually is.
+
 ### Added
 - The SES SMTP IAM user (`lendloop-prod-ses-smtp`) and its send policy are defined in CDK instead of by hand. The policy covers recipient identities, which the SES sandbox requires.
 - A $1/month AWS Budget emails `ALERT_EMAIL` as soon as real (or forecast) spend appears on the free-plan account. Create it once with `scripts/aws/create-cost-budget.sh` (Budgets is global and unavailable to CloudFormation in eu-north-1).

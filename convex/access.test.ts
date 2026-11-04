@@ -83,6 +83,7 @@ describe("coverage guard", () => {
         "dev:seedNeighbourhood",
         "migrations:backfillSearch",
         "images:deleteOrphans",
+        "automation:purgeOld",
         "ops:metricsSnapshot",
       ]),
     );

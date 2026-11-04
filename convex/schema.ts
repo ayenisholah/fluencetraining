@@ -69,6 +69,7 @@ export default defineSchema({
     // search-index filters can only test equality (status != "removed").
     // Optional until convex/migrations.ts has run.
     searchText: v.optional(v.string()),
+    publicSearchText: v.optional(v.string()),
     listed: v.optional(v.boolean()),
   })
     .index("by_status", ["status"])
@@ -82,6 +83,11 @@ export default defineSchema({
     .searchIndex("search", {
       searchField: "searchText",
       filterFields: ["listed", "status", "category", "ownerId"],
+    })
+    // Signed-out search: public fields only (see convex/lib/toolRecord.ts).
+    .searchIndex("searchPublic", {
+      searchField: "publicSearchText",
+      filterFields: ["status", "category"],
     }),
 
   loans: defineTable({

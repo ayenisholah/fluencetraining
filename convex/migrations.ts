@@ -17,7 +17,11 @@ export const backfillSearch = internalMutation({
     for (const tool of await ctx.db.query("tools").collect()) {
       if (patched >= BATCH) break;
       const want = toolSearchFields(tool);
-      if (tool.searchText !== want.searchText || tool.listed !== want.listed) {
+      if (
+        tool.searchText !== want.searchText ||
+        tool.publicSearchText !== want.publicSearchText ||
+        tool.listed !== want.listed
+      ) {
         await ctx.db.patch(tool._id, want);
         patched++;
       }

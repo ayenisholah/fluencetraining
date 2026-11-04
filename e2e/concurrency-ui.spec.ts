@@ -73,8 +73,8 @@ test("duplicate submissions across tabs create one request and show a useful ref
   await expect
     .poll(
       async () =>
-        (await a.getByText("Request sent. The lender has been notified.").count()) +
-        (await duplicateTab.getByText("Request sent. The lender has been notified.").count()),
+        (await a.getByText("Request sent. We'll email the lender.").count()) +
+        (await duplicateTab.getByText("Request sent. We'll email the lender.").count()),
     )
     .toBe(1);
 });

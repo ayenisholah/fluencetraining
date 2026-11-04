@@ -105,7 +105,10 @@ describe("tools.listPublic (landing page)", () => {
     const names = async (args: Record<string, unknown>) =>
       (await t.query(api.tools.listPublic, { ...ALL, ...args })).page.map((r) => r.name).sort();
     expect(await names({ search: "drill" })).toEqual(["Cordless drill"]);
-    expect(await names({ search: "hammer" })).toEqual(["Cordless drill"]); // matches the description too
+    // Descriptions are for signed-in users: a word only in the description must
+    // not find the tool publicly, or a signed-out caller could probe for it.
+    expect(await names({ search: "hammer" })).toEqual([]);
+    expect(await names({ search: "18V" })).toEqual([]);
     expect(await names({ category: "garden" })).toEqual(["Garden shears", "Leaf rake"]);
     expect(await names({ search: "garden", category: "garden" })).toEqual(["Garden shears"]);
     expect(await names({ search: "   " })).toHaveLength(3); // blank search = no search
