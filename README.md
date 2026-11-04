@@ -62,7 +62,7 @@ flowchart LR
   Mail[(SMTP / SES<br/>Mailpit for local tests)]
 
   UI -- sign in --> Clerk
-  UI -- JWT (template "convex") --> Q
+  UI -->|"JWT (Clerk template: convex)"| Q
   Q --> DB
   Q -- same transaction --> OB
   OB --> ACT
@@ -352,7 +352,7 @@ npm test                 # Vitest: Convex backend (edge-runtime) + components an
 npm run test:storybook   # every story in Chrome: render, play function, axe
 npm run test:e2e         # Playwright (builds and starts the app)
 npm run test:e2e:public  # signed-out suite only
-npm run test:automation # local email + recovery suite; temporarily stops/restores Mailpit
+npm run test:automatioVn # local email + recovery suite; temporarily stops/restores Mailpit
 npm run typecheck && npm run lint
 npm run check:contrast   # WCAG AA for the design tokens in both themes
 ```
