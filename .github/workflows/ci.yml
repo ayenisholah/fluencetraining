@@ -79,6 +79,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - name: Synthesise every stack
+        # A placeholder ALERT_EMAIL so resources that depend on it are synthesised too.
+        env:
+          ALERT_EMAIL: ci@example.com
         run: npx cdk synth --strict -q
 
   storybook:
