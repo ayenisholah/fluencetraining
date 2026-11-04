@@ -20,7 +20,7 @@ sudo journalctl -t lendloop-bootstrap --since '1 hour ago'
 - **Deployer key rotation:** `bash scripts/aws/create-deploy-key.sh` writes a new key to the GitHub `production` environment and removes old keys. Confirm a free key slot before running and verify the next deployment. This is not SES SMTP credential rotation.
 - **HMAC rotation:** update the matching production Secrets Manager secret, reconfigure Convex and refresh the host in a coordinated window. Updating only one side causes signature failures.
 - **Data recovery:** inspect AWS Backup recovery points and follow [recovery guidance](aws-deployment.md#rollback-and-recovery). Never delete populated Convex/n8n Docker volumes to fix a service startup issue. `reset-empty-convex.sh` is restricted to never-completed initialization with an admin key still marked `pending`.
-- **Monitoring:** verify the metrics heartbeat and a confirmed SNS destination. The stack creates the alert topic but no subscriptions. Bootstrap logs remain in journald; service logs go to CloudWatch.
+- **Monitoring:** verify the metrics heartbeat and that the `ALERT_EMAIL` subscription on `lendloop-prod-alerts` is confirmed (`aws sns list-subscriptions-by-topic`). Bootstrap logs remain in journald; service logs go to CloudWatch.
 
 ## Failed webhook deliveries
 **Symptom:** Admin › Automation health lists `failed` deliveries; users didn't get emails.

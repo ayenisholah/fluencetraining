@@ -73,7 +73,11 @@ export class BackendStack extends Stack {
     ) as BackendStack["logGroups"];
 
     // ── Code bundles (compose file, Caddyfile, scripts; n8n workflows) ───────
-    const bundle = new s3assets.Asset(this, "Ec2Bundle", { path: path.join(repoRoot, "deploy", "ec2") });
+    const bundle = new s3assets.Asset(this, "Ec2Bundle", {
+      path: path.join(repoRoot, "deploy", "ec2"),
+      // Local Python byte-code would change the asset hash and ship to the host.
+      exclude: ["__pycache__", "*.pyc"],
+    });
     const n8nBundle = new s3assets.Asset(this, "N8nBundle", {
       path: path.join(repoRoot, "n8n"),
       exclude: ["*.test.ts", "*.ts"],
@@ -129,6 +133,23 @@ export class BackendStack extends Stack {
           ]
         : []),
     ];
+    // SES SMTP identity. The access key (and the derived SMTP password in
+    // SES_SMTP_CREDENTIALS) is created by put-external-secrets.sh --ses, so no
+    // secret passes through CloudFormation. Any identity is allowed because the
+    // SES sandbox also authorises against each recipient's verified identity;
+    // the sender stays pinned by ses:FromAddress.
+    const sesUser = new iam.User(this, "SesSmtpUser", { userName: config.sesSmtpUser });
+    new iam.Policy(this, "SesSmtpSendPolicy", {
+      policyName: "SendAsNotifications",
+      users: [sesUser],
+      statements: [
+        new iam.PolicyStatement({
+          actions: ["ses:SendRawEmail"],
+          resources: [`arn:aws:ses:${this.region}:${this.account}:identity/*`],
+          conditions: { StringEquals: { "ses:FromAddress": config.mailFrom.replace(/^.*<|>$/g, "") } },
+        }),
+      ],
+    });
     // Stored by scripts/aws/put-external-secrets.sh --ses (never generated here).
     const sesSmtp = secretsmanager.Secret.fromSecretNameV2(
       this,
