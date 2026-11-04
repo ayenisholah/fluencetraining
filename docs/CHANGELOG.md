@@ -4,6 +4,9 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 
 ## Unreleased
 
+### Fixed
+- **Production email is delivered.** The EC2 host sent every notification to Mailpit, which kept it on the host. Bootstrap now imports the SES SMTP credential from Secrets Manager (`put-external-secrets.sh --ses`), renders the workflows for SES with the shared `deploy/ec2/n8n_mail.py`, sets the ops mailbox from `ALERT_EMAIL`, and fails the deploy if any of it doesn't import. Mailpit runs only when `config.mailProvider` is `"mailpit"`.
+
 ### Added
 - Contributor and agent guard rails: `AGENTS.md` rules for coding agents (read by `CLAUDE.md`), Prettier, EditorConfig, `.nvmrc`, a husky + lint-staged pre-commit hook, stricter ESLint rules that enforce the CONTRIBUTING conventions, stricter TypeScript flags, and an `infra` CI job (typecheck, lint, `cdk synth`).
 

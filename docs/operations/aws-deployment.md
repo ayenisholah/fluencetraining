@@ -30,10 +30,8 @@ flowchart LR
     Convex <-->|signed webhook and write-back| N8n
     Convex --> Disk[Encrypted EBS / Docker volumes]
     N8n --> Disk
-    Mailpit[Mailpit capture service]
   end
   N8n -.->|when SES configured on that instance| SES[Amazon SES SMTP]
-  N8n -.->|current EC2 bootstrap default| Mailpit
   Host --> Logs[CloudWatch logs and metrics]
   Disk --> Backup[AWS Backup]
   Secrets[Secrets Manager / SSM parameters] --> Host
@@ -42,7 +40,7 @@ flowchart LR
   CF --> Host
 ```
 
-**Email deployment gap:** the local n8n instance was switched to SES. The EC2 [bootstrap](../../deploy/ec2/bootstrap.sh) still unconditionally imports `mailpit-smtp.json` and the repository's local workflow templates on every refresh. It does not use `scripts/n8n-provider.py`, copy the local n8n credential store, or preserve a manually applied SES workflow configuration. Do not interpret a successful production deploy as proof that the EC2 instance sends through SES. See [SES SMTP](ses-smtp.md) before enabling or refreshing production email. Fixing this bootstrap gap is separate implementation work.
+**Email:** n8n on the host sends through Amazon SES (`notifications@sholaayeni.xyz`). Bootstrap imports the SES SMTP credential from Secrets Manager and renders the workflows for SES on every deploy; Mailpit only runs if `config.mailProvider` is set to `"mailpit"`. See [SES SMTP › Production](ses-smtp.md#production-ec2), including the sandbox limits.
 
 ## Stacks and AWS services
 
@@ -68,7 +66,7 @@ CloudFormation orchestrates the four stacks. The CDK bootstrap stack provides th
 
 ## Host routing and persistent state
 
-[Production Compose](../../deploy/ec2/docker-compose.prod.yml) runs Caddy `2.10.2-alpine`, n8n `2.45.7`, Mailpit `v1.33.0`, and a digest-pinned Convex image. Only Caddy publishes internet-facing ports. Convex also binds ports 3210/3211 to host loopback for administration and metrics. n8n and Mailpit publish no host ports.
+[Production Compose](../../deploy/ec2/docker-compose.prod.yml) runs Caddy `2.10.2-alpine`, n8n `2.45.7`, Mailpit `v1.33.0` (only with the `mailpit` profile), and a digest-pinned Convex image. Only Caddy publishes internet-facing ports. Convex also binds ports 3210/3211 to host loopback for administration and metrics. n8n and Mailpit publish no host ports.
 
 [Caddy](../../deploy/ec2/Caddyfile) obtains Let's Encrypt certificates, sets security headers and emits JSON access logs. `/ops/*` on the HTTP-actions hostname returns 404 externally. `/webhook/*` on the n8n hostname bypasses Basic Auth but must pass workflow HMAC verification; the editor and other paths require Basic Auth (`admin`) in addition to n8n's own owner login. The Basic Auth password comes from `N8N_EDITOR_PASSWORD`.
 
@@ -97,13 +95,13 @@ The host role has SSM/CloudWatch managed policies, scoped secret/asset/parameter
 
 1. Authenticate AWS tooling for account `571787168993` / `eu-north-1`. Install Node 22, npm, AWS CLI, GitHub CLI, `jq`, `curl`, `unzip` and DNS tooling (`dig`). Confirm the default VPC and CDK bootstrap exist. Review `infra/cdk.context.json` before deliberately refreshing the AMI; replacing this host can affect its data.
 2. Set GitHub repository variables `AWS_REGION=eu-north-1`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (production key), and `CLERK_JWT_ISSUER_DOMAIN` (same production Clerk instance). Configure Clerk's Convex JWT template and production domains/redirects. Development credentials stay in the local test environment.
-3. Run `bash scripts/aws/put-external-secrets.sh` to supply the GitHub token and Clerk secret. The script reads the Clerk key through a hidden prompt. It does not create SES credentials.
+3. Run `bash scripts/aws/put-external-secrets.sh` to supply the GitHub token and Clerk secret. The script reads the Clerk key through a hidden prompt. Then run `bash scripts/aws/put-external-secrets.sh --ses` to store the SES SMTP credential ([SES SMTP](ses-smtp.md#production-ec2)).
 4. Validate infrastructure with `npm ci --prefix infra` and `npm run typecheck --prefix infra`. Review a CDK synthesis/diff before deploying. `bash scripts/aws/deploy-infra.sh` deploys all stacks; optional arguments select stacks. It prints a diff but proceeds with `--require-approval never`, even if the diff command fails. It is not a dry run. Outputs are written to ignored `infra/cdk.outputs.json`.
 5. Run `bash scripts/aws/dns-records.sh` and add the printed records in Namecheap. Run it again to check public DNS. A first custom-domain deployment may wait for these records while CloudFormation/Amplify is still provisioning.
 6. Run `bash scripts/aws/configure-backend.sh`. It waits for HTTPS and the admin key, sets Convex's Clerk/HMAC/metrics/app-URL environment, deploys functions, and runs `migrations:backfillSearch`. The optional `--seed` adds sample catalogue data; omit it for a real production catalogue.
-7. Run `bash scripts/aws/refresh-host.sh` only after reviewing the email deployment gap above. It uses SSM to download current assets, run bootstrap, and restart/update containers; it is not a data migration or an SES-preserving import.
+7. Run `bash scripts/aws/refresh-host.sh`. It uses SSM to download current assets, run bootstrap (including the SES credential and workflow import), and restart/update containers; it is not a data migration.
 8. Create/protect the GitHub `production` environment, restrict deployment branches to `main`, and configure required reviewers if desired. `bash scripts/aws/create-deploy-key.sh` stores the deployer's key in its `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment secrets, then deletes old keys. It needs a free IAM access-key slot and permission to manage keys/secrets.
-9. Perform the release smoke checks in [deployment.md](deployment.md#deploy-steps-production), verify monitoring and recovery points, and subscribe an operator to SNS if alerts are required. These are checks to perform, not claims that subscription/restore verification already happened.
+9. Perform the release smoke checks in [deployment.md](deployment.md#deploy-steps-production), verify monitoring and recovery points, and confirm the alarm email subscription (repository variable `ALERT_EMAIL`). These are checks to perform, not claims that subscription/restore verification already happened.
 
 The [Deploy workflow](../../.github/workflows/deploy.yml) runs after successful `CI` on `main`, or by manual dispatch. It checks out the triggering commit, installs dependencies, deploys CDK, configures Convex and refreshes the host. It uses the GitHub `production` environment; approval depends on repository environment settings, not YAML alone. Restrict manual runs to `main` through those settings.
 

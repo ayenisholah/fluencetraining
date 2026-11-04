@@ -14,11 +14,11 @@ sudo docker compose -f docker-compose.prod.yml ps
 sudo journalctl -t lendloop-bootstrap --since '1 hour ago'
 ```
 
-- **Host refresh:** `bash scripts/aws/refresh-host.sh` runs bootstrap over SSM. It rewrites Compose configuration from Secrets Manager and reimports n8n workflows. The current bootstrap imports Mailpit templates; it can replace manual SES workflow settings. Do not use it as an SES-preserving restart.
+- **Host refresh:** `bash scripts/aws/refresh-host.sh` runs bootstrap over SSM. It rewrites Compose configuration from Secrets Manager and reimports n8n workflows. It reimports the SES credential from Secrets Manager each time, so manual SMTP changes in the n8n UI are overwritten. Change them with `put-external-secrets.sh --ses` instead.
 - **DNS:** `bash scripts/aws/dns-records.sh` prints Namecheap records and checks resolution without changing DNS. App routing/certificate records and SES authentication records are separate.
 - **Clerk rotation:** `bash scripts/aws/put-external-secrets.sh --clerk` updates the production secret. Rebuild Amplify for its build-time secret to take effect; keep the public key and issuer on the same Clerk instance.
 - **Deployer key rotation:** `bash scripts/aws/create-deploy-key.sh` writes a new key to the GitHub `production` environment and removes old keys. Confirm a free key slot before running and verify the next deployment. This is not SES SMTP credential rotation.
-- **HMAC rotation:** update the matching production Secrets Manager secret, reconfigure Convex and refresh the host in a coordinated window, accounting for the SMTP bootstrap gap. Updating only one side causes signature failures.
+- **HMAC rotation:** update the matching production Secrets Manager secret, reconfigure Convex and refresh the host in a coordinated window. Updating only one side causes signature failures.
 - **Data recovery:** inspect AWS Backup recovery points and follow [recovery guidance](aws-deployment.md#rollback-and-recovery). Never delete populated Convex/n8n Docker volumes to fix a service startup issue. `reset-empty-convex.sh` is restricted to never-completed initialization with an admin key still marked `pending`.
 - **Monitoring:** verify the metrics heartbeat and a confirmed SNS destination. The stack creates the alert topic but no subscriptions. Bootstrap logs remain in journald; service logs go to CloudWatch.
 

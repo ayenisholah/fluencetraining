@@ -19,6 +19,14 @@ param() { aws ssm get-parameter --region "$AWS_REGION" --name "$1" --query Param
 # BASE_DOMAIN from user-data (<ip>.sslip.io) is only the first-boot fallback.
 BASE_DOMAIN=$(param /lendloop/prod/base-domain 2>/dev/null || echo "$BASE_DOMAIN")
 
+# Outgoing mail. "ses" sends real email through Amazon SES with the SMTP
+# credential in Secrets Manager (scripts/aws/put-external-secrets.sh --ses);
+# "mailpit" keeps every email on this host. Set in CDK (infra/lib/config.ts).
+MAIL_PROVIDER=$(param /lendloop/prod/mail-provider 2>/dev/null || echo mailpit)
+MAIL_FROM=$(param /lendloop/prod/mail-from 2>/dev/null || echo "LendLoop <notifications@sholaayeni.xyz>")
+OPS_EMAIL=$(param /lendloop/prod/ops-email 2>/dev/null || echo ops@lendloop.local)
+case "$MAIL_PROVIDER" in ses | mailpit) ;; *) echo "Unknown mail provider: $MAIL_PROVIDER" >&2; exit 1 ;; esac
+
 # 1. Code bundle (compose file, Caddyfile, scripts) and the n8n workflows, both
 #    CDK assets in the bootstrap bucket; the S3 URLs are published as SSM params.
 aws s3 cp --region "$AWS_REGION" "$(param "$BUNDLE_PARAM")" /tmp/ec2.zip --only-show-errors
@@ -46,6 +54,8 @@ LENDLOOP_TO_N8N_SECRET=$(secret LENDLOOP_TO_N8N_SECRET)
 N8N_TO_LENDLOOP_SECRET=$(secret N8N_TO_LENDLOOP_SECRET)
 N8N_EDITOR_HASH='$editor_hash'
 LENDLOOP_APP_URL=${LENDLOOP_APP_URL:-}
+LENDLOOP_OPS_EMAIL=$OPS_EMAIL
+COMPOSE_PROFILES=$([ "$MAIL_PROVIDER" = mailpit ] && echo mailpit)
 ENV
 chmod 600 .env
 umask 022
@@ -53,6 +63,8 @@ umask 022
 # 3. Start or update the stack.
 docker compose -f docker-compose.prod.yml pull --quiet
 docker compose -f docker-compose.prod.yml up -d --remove-orphans
+# Mailpit only runs with its profile; stop a leftover one after switching to SES.
+[ "$MAIL_PROVIDER" = mailpit ] || docker compose -f docker-compose.prod.yml --profile mailpit rm -sf mailpit >/dev/null 2>&1 || true
 until curl -sf http://127.0.0.1:3210/version >/dev/null; do sleep 3; done
 
 # 4. Convex admin key: generated once on the host and stored for CI (the
@@ -65,8 +77,26 @@ fi
 # 5. n8n workflows (same steps as scripts/n8n-import.sh, against this stack).
 until docker compose -f docker-compose.prod.yml logs n8n 2>&1 | grep -q "Editor is now accessible"; do sleep 3; done
 n8n() { docker compose -f docker-compose.prod.yml exec -T n8n n8n "$@" 2>&1 | grep -v "license SDK" || true; }
-n8n import:credentials --input=/lendloop/credentials/mailpit-smtp.json
-n8n import:workflow --separate --input=/lendloop/workflows
+if [ "$MAIL_PROVIDER" = ses ]; then
+  # Workflows as exported use Mailpit; render SES copies into the bind mount
+  # (/lendloop inside the container). They hold no secrets.
+  python3 "$APP_DIR/n8n_mail.py" render --provider ses --sender "$MAIL_FROM" --ops "$OPS_EMAIL" \
+    --src "$APP_DIR/n8n/workflows" --out "$APP_DIR/n8n/rendered"
+  workflow_dir=/lendloop/rendered
+  # The SMTP credential goes secret -> stdin -> an owner-only file inside the
+  # container, is imported (n8n encrypts it at rest) and deleted.
+  ses_json=$(secret SES_SMTP_CREDENTIALS) || { echo "SES selected but $SECRET_PREFIX/SES_SMTP_CREDENTIALS is missing" >&2; exit 1; }
+  printf '%s' "$ses_json" | python3 "$APP_DIR/n8n_mail.py" credential |
+    docker compose -f docker-compose.prod.yml exec -T n8n sh -c 'umask 077; cat > /tmp/lendloop-ses.json'
+  unset ses_json
+  imported=$(n8n import:credentials --input=/tmp/lendloop-ses.json)
+  docker compose -f docker-compose.prod.yml exec -T n8n rm -f /tmp/lendloop-ses.json
+  grep -qi "success" <<<"$imported" || { echo "SES credential was not imported" >&2; exit 1; }
+else
+  n8n import:credentials --input=/lendloop/credentials/mailpit-smtp.json
+  workflow_dir=/lendloop/workflows
+fi
+n8n import:workflow --separate --input="$workflow_dir"
 for id in LendLoopErrorWf1 LendLoopNotifyWf LendLoopRemindWf; do n8n publish:workflow --id="$id"; done
 # The CLI prints errors but exits 0, so check the result instead.
 workflows=$(n8n list:workflow)
@@ -74,6 +104,7 @@ for id in LendLoopErrorWf1 LendLoopNotifyWf LendLoopRemindWf; do
   grep -q "^$id|" <<<"$workflows" || { echo "n8n workflow $id was not imported" >&2; exit 1; }
 done
 docker compose -f docker-compose.prod.yml restart n8n >/dev/null
+echo "n8n mail provider: $MAIL_PROVIDER"
 
 # 6. Metrics every 5 minutes (systemd timer, survives reboots).
 cat > /etc/systemd/system/lendloop-metrics.service <<UNIT

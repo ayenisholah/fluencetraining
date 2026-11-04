@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Local tests | Next.js on localhost | Docker Convex + n8n | Mailpit; notification-capable tests require it |
 | Local SES integration | Next.js on localhost | Same local stack, explicitly configured | Amazon SES in `eu-north-1` |
-| AWS production code | Amplify Hosting SSR | Self-hosted Convex + n8n + Caddy on EC2 | SES is the chosen delivery service, but the EC2 bootstrap still imports Mailpit templates; see the deployment gap below |
+| AWS production code | Amplify Hosting SSR | Self-hosted Convex + n8n + Caddy on EC2 | SES (`notifications@sholaayeni.xyz`); see [SES SMTP](ses-smtp.md#production-ec2) |
 
 Start with the [AWS deployment guide](aws-deployment.md) for the full service inventory, account/region, IAM, secrets, DNS, stacks and deployment scripts. Local setup remains in the [README](../../README.md#local-setup).
 
@@ -22,7 +22,7 @@ The application URL is `https://lendloop.sholaayeni.xyz`. AWS infrastructure is 
 | n8n credential store | Encrypted SMTP credentials; tied to that instance's `N8N_ENCRYPTION_KEY` and data volume |
 | GitHub production deployment | Repository variables for region/Clerk; AWS deployer credentials in the `production` environment |
 
-**Current gap:** local SES configuration does not transfer to EC2. Production bootstrap imports Mailpit credentials and source workflow JSON on every host refresh, and does not set the requested SES ops mailbox. Do not refresh an EC2 instance with manually configured SES workflows without accounting for that overwrite. See [AWS email deployment gap](aws-deployment.md#architecture) and [SES SMTP](ses-smtp.md).
+**Email:** bootstrap imports the SES credential from Secrets Manager (`lendloop/prod/SES_SMTP_CREDENTIALS`) and renders the workflows for SES on every host refresh; the ops mailbox comes from the `ALERT_EMAIL` variable. See [SES SMTP › Production](ses-smtp.md#production-ec2).
 
 ## Deploy steps (production)
 

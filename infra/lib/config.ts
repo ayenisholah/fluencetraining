@@ -18,6 +18,13 @@ export const config = {
   /** CloudWatch namespace for the custom metrics published by deploy/ec2/metrics.sh. */
   metricsNamespace: "LendLoop",
   instanceType: "t4g.small",
+  /**
+   * Outgoing mail on the host: "ses" sends real email through Amazon SES (the
+   * SMTP credential is SES_SMTP_CREDENTIALS below); "mailpit" keeps it on the host.
+   */
+  mailProvider: "ses" as "ses" | "mailpit",
+  /** Sender for notifications; the domain is verified in SES (DKIM). */
+  mailFrom: "LendLoop <notifications@sholaayeni.xyz>",
   logRetentionDays: 30,
   tags: { project: "lendloop", environment: "production", managedBy: "cdk" },
 } as const;
@@ -36,4 +43,4 @@ export const GENERATED_SECRETS = [
 ] as const;
 
 /** Secrets provided from outside AWS by the operator (never generated). */
-export const EXTERNAL_SECRETS = ["GITHUB_AMPLIFY_TOKEN", "CLERK_SECRET_KEY"] as const;
+export const EXTERNAL_SECRETS = ["GITHUB_AMPLIFY_TOKEN", "CLERK_SECRET_KEY", "SES_SMTP_CREDENTIALS"] as const;

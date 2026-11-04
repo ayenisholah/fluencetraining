@@ -25,11 +25,11 @@ Copy into the release PR and tick each item.
 
 ## AWS infrastructure
 - [ ] CDK diff reviewed for EC2/AMI replacement, persistent storage, IAM and secret changes; region/account match the [AWS guide](aws-deployment.md).
-- [ ] EC2 email bootstrap gap resolved or explicitly accounted for before refresh; verify actual n8n SMTP credential and sender after deployment.
+- [ ] Bootstrap log shows `n8n mail provider: ses`; one real notification reached a verified inbox (SES sandbox limits apply until production access).
 - [ ] Amplify auto-build commit checked independently of the GitHub production deployment gate.
 - [ ] Namecheap records, HTTPS endpoints and production Clerk instance agree.
 - [ ] Recent AWS Backup recovery point verified; restore plan preserves Convex and n8n encryption secrets.
-- [ ] CloudWatch heartbeat/canaries reviewed and SNS subscription confirmed if operator notifications are expected.
+- [ ] CloudWatch heartbeat/canaries reviewed and the alarm email subscription confirmed.
 
 ## After deploy
 - [ ] Smoke test ([deployment.md](deployment.md#deploy-steps-production)).

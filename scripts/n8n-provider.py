@@ -1,10 +1,6 @@
 """Provider-specific n8n imports. Secrets travel over stdin, never argv/logs."""
 import argparse
-import base64
-import copy
 import csv
-import hashlib
-import hmac
 import io
 import json
 from pathlib import Path
@@ -18,14 +14,10 @@ import uuid
 
 ROOT = Path(__file__).resolve().parent.parent
 MARKER = '/home/node/.n8n/lendloop-mail-provider'
-SES_ID = 'LendLoopSesSmtp01'
 
-
-def smtp_password(secret, region):
-    key = ('AWS4' + secret).encode()
-    for value in ['11111111', region, 'ses', 'aws4_request', 'SendRawEmail']:
-        key = hmac.new(key, value.encode(), hashlib.sha256).digest()
-    return base64.b64encode(b'\x04' + key).decode()
+# Shared with the production host: one copy of the SES and rendering logic.
+sys.path.insert(0, str(ROOT / 'deploy' / 'ec2'))
+from n8n_mail import SES_ID, render, ses_credential, smtp_password  # noqa: E402
 
 
 def read_credentials(path):
@@ -39,17 +31,6 @@ def read_credentials(path):
     if not row.get('Access key ID') or not row.get('Secret access key'):
         raise ValueError('Expected an IAM access-key CSV, not an SMTP CSV.')
     return row['Access key ID'], smtp_password(row['Secret access key'], 'eu-north-1')
-
-
-def render(workflow, provider):
-    workflow = copy.deepcopy(workflow)
-    for node in workflow['nodes']:
-        if node['type'] == 'n8n-nodes-base.emailSend' and provider == 'ses':
-            node['credentials']['smtp'] = {'id': SES_ID, 'name': 'LendLoop SES Stockholm'}
-            node['parameters']['fromEmail'] = 'LendLoop <notifications@sholaayeni.xyz>'
-            if workflow['id'] == 'LendLoopErrorWf1':
-                node['parameters']['toEmail'] = 'ayenisholah@gmail.com'
-    return workflow
 
 
 def docker(*args, data=None):
@@ -85,10 +66,7 @@ def main():
                               context=ssl.create_default_context(), timeout=20) as smtp:
             smtp.login(user, password)
         print('SES TLS and SMTP authentication succeeded. No email sent.', flush=True)
-        credential = [{'id': SES_ID, 'name': 'LendLoop SES Stockholm', 'type': 'smtp',
-                       'data': {'host': 'email-smtp.eu-north-1.amazonaws.com', 'port': 465,
-                                'secure': True, 'disableStartTls': False,
-                                'user': user, 'password': password}}]
+        credential = ses_credential(user, password)
     if args.verify_only:
         if not credential:
             raise ValueError('--verify-only requires --credentials-csv.')

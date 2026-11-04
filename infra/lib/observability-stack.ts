@@ -163,6 +163,31 @@ exports.handler = async () => {
         treatMissingData: cloudwatch.TreatMissingData.BREACHING,
       },
     );
+    // SES account reputation (AWS's thresholds for review are 5% bounces and
+    // 0.1% complaints). Bounced and complaining addresses are also suppressed
+    // account-wide, so they aren't mailed again.
+    const ses = (metricName: string) =>
+      new cloudwatch.Metric({ namespace: "AWS/SES", metricName, statistic: "Maximum", period: Duration.hours(1) });
+    alarm(
+      "ses-bounce-rate",
+      "SES bounce rate is above 2%: check recipients and the suppression list.",
+      ses("Reputation.BounceRate"),
+      0.02,
+      {
+        evaluationPeriods: 1,
+        datapointsToAlarm: 1,
+      },
+    );
+    alarm(
+      "ses-complaint-rate",
+      "SES complaint rate is above 0.05%: someone marked LendLoop email as spam.",
+      ses("Reputation.ComplaintRate"),
+      0.0005,
+      {
+        evaluationPeriods: 1,
+        datapointsToAlarm: 1,
+      },
+    );
     const failedDeliveries = alarm(
       "failed-deliveries",
       "Webhook deliveries to n8n have failed permanently (Admin › Automation health has Retry).",

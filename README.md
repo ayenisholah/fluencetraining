@@ -386,7 +386,7 @@ The repository defines production in AWS account `571787168993`, region `eu-nort
 
 Start with the [AWS infrastructure and deployment guide](docs/operations/aws-deployment.md), [monitoring guide](docs/operations/observability.md), and [SES SMTP guide](docs/operations/ses-smtp.md). These describe the code-defined configuration, not a fresh audit of live AWS resources.
 
-**Deployment gap:** local n8n is configured for SES, but EC2 bootstrap still imports Mailpit templates on every refresh. It does not preserve a manual SES configuration. Review the AWS guide before production email changes. Public CI tests need neither SMTP provider; tests that send fixture notifications require Mailpit.
+**Email:** production n8n sends through Amazon SES; Mailpit is only for local tests. See [SES SMTP › Production](docs/operations/ses-smtp.md#production-ec2).
 
 ## What I would change for production
 
