@@ -1,5 +1,4 @@
 import { CfnOutput, Duration, RemovalPolicy, Stack, Tags, type StackProps } from "aws-cdk-lib";
-import * as budgets from "aws-cdk-lib/aws-budgets";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as cwActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as logs from "aws-cdk-lib/aws-logs";
@@ -40,28 +39,6 @@ export class ObservabilityStack extends Stack {
     });
     // Email subscriptions stay PendingConfirmation until the recipient clicks the AWS link.
     if (props.alertEmail) topic.addSubscription(new subs.EmailSubscription(props.alertEmail));
-
-    // The account runs on AWS free-plan credits: email the operator as soon as
-    // real spend appears (or is forecast). Budgets themselves are free.
-    if (props.alertEmail) {
-      new budgets.CfnBudget(this, "CostGuard", {
-        budget: {
-          budgetName: "lendloop-monthly-cost-guard",
-          budgetType: "COST",
-          timeUnit: "MONTHLY",
-          budgetLimit: { amount: 1, unit: "USD" },
-        },
-        notificationsWithSubscribers: (["ACTUAL", "FORECASTED"] as const).map((notificationType) => ({
-          notification: {
-            notificationType,
-            comparisonOperator: "GREATER_THAN",
-            threshold: 100,
-            thresholdType: "PERCENTAGE",
-          },
-          subscribers: [{ subscriptionType: "EMAIL", address: props.alertEmail! }],
-        })),
-      });
-    }
     const notify = new cwActions.SnsAction(topic);
 
     const lendloop = (metricName: string, statistic = "Maximum", period = FIVE_MIN) =>
