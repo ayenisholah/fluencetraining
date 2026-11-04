@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Frox design system tokens (docs/design-system.md).
+ * Frox design system tokens (docs/design-systems/design-system.md).
  * The raw scale below is copied exactly from the Figma file. Components use
  * the semantic aliases, which is where accessibility adjustments are made.
  * Theme: [data-theme="dark" | "light"] on <html>, defaulting to the OS setting.
@@ -46,7 +46,7 @@
   color-scheme: light;
 
   /* Semantic aliases used by components. AA adjustments live here only;
-     see docs/design-system.md, "AA adjustments". */
+     see docs/design-systems/design-system.md, "AA adjustments". */
   --canvas: var(--neutral-100);
   --surface: var(--neutral-0);
   --surface-sunken: var(--neutral-100);
