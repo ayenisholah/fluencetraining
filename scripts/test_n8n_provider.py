@@ -61,5 +61,47 @@ class ProviderTests(unittest.TestCase):
             self.assertEqual(source, json.loads(path.read_text()))
 
 
+class HostMailTests(unittest.TestCase):
+    """deploy/ec2/n8n_mail.py as bootstrap.sh runs it on the EC2 host."""
+
+    SCRIPT = provider.ROOT / 'deploy/ec2/n8n_mail.py'
+
+    def run_script(self, *args, data=None):
+        return subprocess.run(['python3', str(self.SCRIPT), *args], input=data, text=True,
+                              capture_output=True, check=True)
+
+    def test_render_uses_given_sender_and_ops_without_touching_sources(self):
+        src = provider.ROOT / 'n8n/workflows'
+        before = {p.name: p.read_text() for p in src.glob('*.json')}
+        with tempfile.TemporaryDirectory() as out:
+            self.run_script('render', '--provider', 'ses', '--sender', 'X <x@example.test>',
+                            '--ops', 'ops@example.test', '--src', str(src), '--out', out)
+            rendered = {p.name: json.loads(p.read_text()) for p in Path(out).glob('*.json')}
+        self.assertEqual(set(rendered), set(before))
+        senders = 0
+        for workflow in rendered.values():
+            for node in workflow['nodes']:
+                if node['type'] == 'n8n-nodes-base.emailSend':
+                    senders += 1
+                    self.assertEqual(node['credentials']['smtp']['id'], provider.SES_ID)
+                    self.assertEqual(node['parameters']['fromEmail'], 'X <x@example.test>')
+                    if workflow['id'] == 'LendLoopErrorWf1':
+                        self.assertEqual(node['parameters']['toEmail'], 'ops@example.test')
+        self.assertGreater(senders, 0)
+        self.assertEqual(before, {p.name: p.read_text() for p in src.glob('*.json')})
+
+    def test_credential_reads_stdin_and_never_echoes_argv(self):
+        result = self.run_script('credential', data=json.dumps({'user': 'AKIAEXAMPLE', 'password': 'pw'}))
+        [credential] = json.loads(result.stdout)
+        self.assertEqual(credential['id'], provider.SES_ID)
+        self.assertEqual(credential['data']['user'], 'AKIAEXAMPLE')
+        self.assertEqual(credential['data']['host'], 'email-smtp.eu-north-1.amazonaws.com')
+        self.assertEqual(result.stderr, '')
+
+    def test_credential_rejects_incomplete_input(self):
+        with self.assertRaises(subprocess.CalledProcessError):
+            self.run_script('credential', data=json.dumps({'user': 'AKIAEXAMPLE'}))
+
+
 if __name__ == '__main__':
     unittest.main()

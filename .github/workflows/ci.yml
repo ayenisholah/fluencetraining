@@ -39,6 +39,8 @@ jobs:
       - run: npm run typecheck
       - name: Unit, component and Convex tests
         run: npm test
+      - name: n8n mail provider (Python)
+        run: npm run test:n8n:provider
       - name: Colour contrast (WCAG AA)
         run: npm run check:contrast
       - name: Workflow exports contain no credential data

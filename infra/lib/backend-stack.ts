@@ -24,13 +24,18 @@ export const LOG_GROUPS = ["caddy", "convex", "n8n", "mailpit"] as const;
  * Caddy (TLS) with docker compose. Stateful, so it lives in its own stack
  * with termination protection.
  */
+export type BackendStackProps = StackProps & {
+  /** Operator mailbox for n8n failure emails (the ALERT_EMAIL repository variable). */
+  opsEmail?: string;
+};
+
 export class BackendStack extends Stack {
   readonly instance: ec2.Instance;
   readonly baseDomain: string;
   readonly convexUrl: string;
   readonly logGroups: Record<(typeof LOG_GROUPS)[number], logs.LogGroup>;
 
-  constructor(scope: Construct, id: string, props: StackProps) {
+  constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, { ...props, terminationProtection: true });
 
     const vpc = ec2.Vpc.fromLookup(this, "DefaultVpc", { isDefault: true });
@@ -104,6 +109,33 @@ export class BackendStack extends Stack {
       stringValue: this.baseDomain,
     });
 
+    // Mail settings bootstrap.sh reads (see config.mailProvider).
+    const mailParams = [
+      new ssm.StringParameter(this, "MailProviderParam", {
+        parameterName: "/lendloop/prod/mail-provider",
+        stringValue: config.mailProvider,
+      }),
+      new ssm.StringParameter(this, "MailFromParam", {
+        parameterName: "/lendloop/prod/mail-from",
+        stringValue: config.mailFrom,
+      }),
+      // Where n8n's error workflow reports failures; kept out of the public repo.
+      ...(props.opsEmail
+        ? [
+            new ssm.StringParameter(this, "OpsEmailParam", {
+              parameterName: "/lendloop/prod/ops-email",
+              stringValue: props.opsEmail,
+            }),
+          ]
+        : []),
+    ];
+    // Stored by scripts/aws/put-external-secrets.sh --ses (never generated here).
+    const sesSmtp = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "SesSmtpCredentials",
+      `${config.secretPrefix}/SES_SMTP_CREDENTIALS`,
+    );
+
     // ── Instance role: least privilege for what the host does ───────────────
     const role = new iam.Role(this, "InstanceRole", {
       assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
@@ -129,6 +161,8 @@ export class BackendStack extends Stack {
     bundleParam.grantRead(role);
     n8nBundleParam.grantRead(role);
     domainParam.grantRead(role);
+    for (const param of mailParams) param.grantRead(role);
+    sesSmtp.grantRead(role);
     role.addToPolicy(
       new iam.PolicyStatement({
         actions: ["ssm:GetParameter"],

@@ -73,17 +73,17 @@ services:
     volumes:
       - n8n-data:/home/node/.n8n
       - ./n8n:/lendloop:ro
-    depends_on: [mailpit]
     logging:
       driver: awslogs
       options:
         <<: *log-opts
         awslogs-group: /lendloop/prod/n8n
 
-  # Captures all email until SES is set up; UI reachable only through an SSM
-  # port-forward (no published port).
+  # Catches all email when the mail provider is "mailpit" (COMPOSE_PROFILES,
+  # set by bootstrap.sh). UI reachable only through an SSM port-forward.
   mailpit:
     image: axllent/mailpit:v1.33.0
+    profiles: [mailpit]
     restart: unless-stopped
     logging:
       driver: awslogs

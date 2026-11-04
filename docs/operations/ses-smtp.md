@@ -2,9 +2,28 @@
 
 LendLoop supports explicit `mailpit` and `ses` imports. Python 3 (standard library), Docker Compose, and the running local stack are required. Set `DOCKER_CONTEXT=default` if your containers run in the system Docker engine rather than Docker Desktop.
 
-## Deployment boundary
+## Production (EC2)
 
-The provider commands below target the **local repo-root Docker Compose stack**. SES credentials are stored in that n8n instance's volume; they are not automatically available to EC2. The production `deploy/ec2/bootstrap.sh` still imports Mailpit credentials and local workflow templates on every refresh. Production Compose also defaults the ops mailbox to `ops@lendloop.local` unless configured otherwise. See the [AWS deployment guide](aws-deployment.md#architecture) for this gap before refreshing an EC2 instance with manual SES settings. This guide does not claim the production bootstrap preserves SES.
+Production sends through SES; Mailpit is local-only. `config.mailProvider` in `infra/lib/config.ts` (`"ses"`) and `config.mailFrom` are published as SSM parameters `/lendloop/prod/mail-provider` and `/lendloop/prod/mail-from`, and the `ALERT_EMAIL` repository variable becomes `/lendloop/prod/ops-email` (n8n failure emails). On every deploy [bootstrap.sh](../../deploy/ec2/bootstrap.sh) reads them, and with `ses` it:
+
+1. Renders SES copies of the workflows with [`deploy/ec2/n8n_mail.py`](../../deploy/ec2/n8n_mail.py), the same code `scripts/n8n-provider.py` uses locally. The repository JSON stays Mailpit.
+2. Pipes `lendloop/prod/SES_SMTP_CREDENTIALS` from Secrets Manager into an owner-only temp file inside the n8n container, imports it as credential `LendLoopSesSmtp01` (n8n encrypts it at rest) and deletes the file.
+3. Imports and publishes the rendered workflows and fails the deploy if the credential or any workflow didn't import. Mailpit doesn't run (Compose profile `mailpit`).
+
+Store or rotate the credential once, before the first SES deploy:
+
+```sh
+bash scripts/aws/put-external-secrets.sh --ses                   # creates a new key for lendloop-n8n-smtp
+bash scripts/aws/put-external-secrets.sh --ses /private/key.csv  # or derives from an existing key CSV (chmod 600)
+```
+
+It derives the SMTP password, logs in to SES (without sending) and only then stores `{user, password}`. The next deploy, or `bash scripts/aws/refresh-host.sh`, imports it. After rotating, delete the old access key in IAM. To go back to Mailpit, set `mailProvider: "mailpit"` and deploy.
+
+**Sandbox:** until AWS grants production access, SES only delivers to verified addresses (and addresses at the verified domain). Verify each test recipient with `aws sesv2 create-email-identity --email-identity <address>` (they click a link), and request production access with `aws sesv2 put-account-details --production-access-enabled --mail-type TRANSACTIONAL --website-url https://lendloop.sholaayeni.xyz --use-case-description "<what LendLoop sends and why>"`. Check the state with `aws sesv2 get-account`.
+
+## Local stack
+
+The provider commands below target the **local repo-root Docker Compose stack**. SES credentials imported there live in that n8n instance's volume.
 
 ## Configure SES
 

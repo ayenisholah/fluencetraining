@@ -16,9 +16,13 @@ const clerkPublishableKey =
   app.node.tryGetContext("clerkPublishableKey") ?? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 if (!clerkPublishableKey) throw new Error("Set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (or -c clerkPublishableKey=...)");
 
+// Operator mailbox for alarms and n8n failures; a repository variable, kept out of this public repo.
+const alertEmail: string | undefined = app.node.tryGetContext("alertEmail") ?? (process.env.ALERT_EMAIL || undefined);
+
 const backend = new BackendStack(app, "LendLoop-Backend", {
   env,
   description: "LendLoop production host (Convex, n8n, Caddy)",
+  opsEmail: alertEmail,
 });
 const web = new WebStack(app, "LendLoop-Web", {
   env,
@@ -33,7 +37,7 @@ new ObservabilityStack(app, "LendLoop-Observability", {
   baseDomain: backend.baseDomain,
   appUrl: web.appUrl,
   amplifyAppId: web.appId,
-  alertEmail: app.node.tryGetContext("alertEmail") ?? (process.env.ALERT_EMAIL || undefined),
+  alertEmail,
   logGroupNames: Object.fromEntries(LOG_GROUPS.map((n) => [n, backend.logGroups[n].logGroupName])) as Record<
     (typeof LOG_GROUPS)[number],
     string

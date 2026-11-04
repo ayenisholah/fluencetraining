@@ -7,6 +7,11 @@
 #                                          typed at a hidden prompt
 #   bash scripts/aws/put-external-secrets.sh           # both
 #   bash scripts/aws/put-external-secrets.sh --clerk   # only the Clerk key (rotation)
+#   bash scripts/aws/put-external-secrets.sh --ses [iam-access-key.csv]
+#       lendloop/prod/SES_SMTP_CREDENTIALS <- SMTP user and password for the
+#       lendloop-n8n-smtp IAM user, derived from an access key: the given CSV
+#       (owner-only permissions), or a new key created here. Checked against
+#       SES before it is stored; deploys then import it into n8n.
 # Safe to re-run: it updates the values in place.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -26,6 +31,51 @@ store() { # name, description; value on stdin
     echo "created $name"
   fi
 }
+
+if [ "${1:-}" = "--ses" ]; then
+  csv=${2:-}
+  if [ -z "$csv" ]; then
+    # IAM allows two keys per user; delete an unused one first if this fails.
+    created=$(aws iam create-access-key --user-name lendloop-n8n-smtp --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
+    echo "Created a new access key for lendloop-n8n-smtp; delete the old one once this works."
+  fi
+  # Derive the SMTP password (deploy/ec2/n8n_mail.py) and prove it logs in to
+  # SES before storing it. New keys can take a few seconds to become valid.
+  derive=$(
+    cat <<'PY'
+import importlib.util, json, smtplib, ssl, sys, time
+from pathlib import Path
+root = Path.cwd()
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, root / path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+mail = load("n8n_mail", "deploy/ec2/n8n_mail.py")
+if sys.argv[1]:
+    sys.path.insert(0, str(root / "deploy/ec2"))
+    user, password = load("provider", "scripts/n8n-provider.py").read_credentials(sys.argv[1])
+else:
+    user, secret = sys.stdin.read().split()
+    password = mail.smtp_password(secret, "eu-north-1")
+for attempt in range(12):
+    try:
+        with smtplib.SMTP_SSL(mail.SES_HOST, mail.SES_PORT, context=ssl.create_default_context(), timeout=20) as smtp:
+            smtp.login(user, password)
+        break
+    except smtplib.SMTPAuthenticationError:
+        if attempt == 11:
+            sys.exit("SES rejected the SMTP credentials.")
+        time.sleep(5)
+print("SES SMTP login succeeded.", file=sys.stderr)
+print(json.dumps({"user": user, "password": password}))
+PY
+  )
+  # The new key (if any) travels on stdin, never argv.
+  printf '%s' "${created:-}" | python3 -I -c "$derive" "$csv" | store SES_SMTP_CREDENTIALS "SES SMTP credentials n8n sends production email with"
+  unset created
+  exit 0
+fi
 
 [ "${1:-}" = "--clerk" ] || gh auth token | store GITHUB_AMPLIFY_TOKEN "GitHub token Amplify uses to read the repository"
 

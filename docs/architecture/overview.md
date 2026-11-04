@@ -27,7 +27,7 @@ flowchart LR
 
 Next.js runs on Amplify Hosting. Convex and n8n share an EC2 host with Caddy HTTPS routing and encrypted EBS-backed Docker volumes. Clerk provides authentication; Namecheap hosts DNS. Secrets Manager supplies service secrets, SSM provides host access/configuration, S3 holds CDK assets, and AWS Backup snapshots the host. CloudWatch logs/metrics, Synthetics canaries and an SNS alarm topic provide the code-defined monitoring layer.
 
-See the [complete AWS inventory](../operations/aws-deployment.md) and [observability configuration](../operations/observability.md). Local SES configuration is separate from EC2: production bootstrap currently reimports Mailpit templates. The AWS guide records that deployment gap and the single-host availability limits.
+See the [complete AWS inventory](../operations/aws-deployment.md) and [observability configuration](../operations/observability.md). Production n8n sends through SES (bootstrap imports the credential from Secrets Manager); Mailpit is for local tests. The AWS guide records the single-host availability limits.
 
 ## Code layout
 
