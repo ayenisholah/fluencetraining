@@ -15,10 +15,7 @@ export function readTheme(storage: Pick<Storage, "getItem"> | undefined): ThemeP
   }
 }
 
-export function writeTheme(
-  storage: Pick<Storage, "setItem" | "removeItem"> | undefined,
-  theme: ThemePreference,
-): void {
+export function writeTheme(storage: Pick<Storage, "setItem" | "removeItem"> | undefined, theme: ThemePreference): void {
   try {
     if (theme === "system") storage?.removeItem(THEME_KEY);
     else storage?.setItem(THEME_KEY, theme);

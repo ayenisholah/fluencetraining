@@ -42,7 +42,14 @@ async function authenticate(
     signature: request.headers.get(SIGNATURE_HEADER),
   });
   if (!result.ok) {
-    console.warn(JSON.stringify({ level: "warn", event: "signed_request_rejected", path: new URL(request.url).pathname, reason: result.reason }));
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        event: "signed_request_rejected",
+        path: new URL(request.url).pathname,
+        reason: result.reason,
+      }),
+    );
     return json({ error: "unauthorized" }, 401);
   }
   try {

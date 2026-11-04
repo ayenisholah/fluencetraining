@@ -9,7 +9,11 @@ vi.mock("convex/react", () => ({ useQuery: query }));
 beforeEach(() => {
   query.mockReset();
   query.mockImplementation((_ref, { pageNumber, pageSize }) => ({
-    page: [{ _id: pageNumber === 1 ? "first" : "second" }], pageNumber, pageSize, totalPages: 5, totalCount: 50,
+    page: [{ _id: pageNumber === 1 ? "first" : "second" }],
+    pageNumber,
+    pageSize,
+    totalPages: 5,
+    totalCount: 50,
   }));
 });
 
@@ -31,7 +35,9 @@ describe("useNumberedPage", () => {
   });
 
   test("size and filter changes reset pages before making the next request", () => {
-    const { result, rerender } = renderHook(({ search }) => useNumberedPage(api.tools.list, { search }), { initialProps: { search: "drill" } });
+    const { result, rerender } = renderHook(({ search }) => useNumberedPage(api.tools.list, { search }), {
+      initialProps: { search: "drill" },
+    });
     act(() => result.current.pagination.next());
     act(() => result.current.pagination.setPageSize(25));
     expect(query).toHaveBeenLastCalledWith(api.tools.list, { search: "drill", pageNumber: 1, pageSize: 25 });
@@ -47,7 +53,10 @@ describe("useNumberedPage", () => {
     act(() => result.current.pagination.next());
     query.mockReturnValue(undefined);
     rerender();
-    act(() => { result.current.pagination.next(); result.current.pagination.previous(); });
+    act(() => {
+      result.current.pagination.next();
+      result.current.pagination.previous();
+    });
     expect(result.current.pagination).toMatchObject({ page: 2, loading: true, hasNext: false });
     query.mockReturnValue({ page: [], pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0 });
     rerender();
@@ -55,7 +64,10 @@ describe("useNumberedPage", () => {
   });
 
   test("list instances keep independent sizes and pages", () => {
-    const { result } = renderHook(() => ({ tools: useNumberedPage(api.tools.list, {}), users: useNumberedPage(api.admin.users, {}) }));
+    const { result } = renderHook(() => ({
+      tools: useNumberedPage(api.tools.list, {}),
+      users: useNumberedPage(api.admin.users, {}),
+    }));
     act(() => result.current.tools.pagination.setPageSize(50));
     act(() => result.current.tools.pagination.next());
     expect(result.current.tools.pagination).toMatchObject({ page: 2, pageSize: 50 });

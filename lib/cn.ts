@@ -9,9 +9,20 @@ const twMerge = extendTailwindMerge({
       "font-size": [
         {
           text: [
-            "h1", "h2", "h4", "h5", "h6", "h7", "subtitle", "subtitle-semibold",
-            "body", "body-bold", "button-label", "mini-button-label",
-            "description", "mini-description",
+            "h1",
+            "h2",
+            "h4",
+            "h5",
+            "h6",
+            "h7",
+            "subtitle",
+            "subtitle-semibold",
+            "body",
+            "body-bold",
+            "button-label",
+            "mini-button-label",
+            "description",
+            "mini-description",
           ],
         },
       ],

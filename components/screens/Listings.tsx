@@ -37,10 +37,11 @@ export function ListingsScreen() {
   const [search, setSearch] = useState(url.q);
   const term = useDebouncedValue(search.trim());
   const status: StatusFilter = url.status === "available" || url.status === "on_loan" ? url.status : "";
-  const { results: tools, status: pageStatus, pagination } = useNumberedPage(
-    api.tools.mine,
-    { search: term || undefined, status: status || undefined },
-  );
+  const {
+    results: tools,
+    status: pageStatus,
+    pagination,
+  } = useNumberedPage(api.tools.mine, { search: term || undefined, status: status || undefined });
   const create = useMutation(api.tools.create);
   const update = useMutation(api.tools.update);
   const remove = useMutation(api.tools.remove);
@@ -91,7 +92,12 @@ export function ListingsScreen() {
                   <Card as="li" key={tool._id}>
                     {editing === tool._id ? (
                       <ToolForm
-                        initial={{ name: tool.name, category: tool.category, condition: tool.condition, description: tool.description }}
+                        initial={{
+                          name: tool.name,
+                          category: tool.category,
+                          condition: tool.condition,
+                          description: tool.description,
+                        }}
                         initialImageUrl={tool.imageUrl}
                         uploadImage={uploadImage}
                         submitLabel="Save"
@@ -103,7 +109,13 @@ export function ListingsScreen() {
                       />
                     ) : (
                       <div className="flex flex-col gap-4 sm:flex-row">
-                        <ToolImage src={tool.imageUrl} name={tool.name} category={tool.category} iconSize={28} className="w-24 shrink-0 rounded-md sm:w-32" />
+                        <ToolImage
+                          src={tool.imageUrl}
+                          name={tool.name}
+                          category={tool.category}
+                          iconSize={28}
+                          className="w-24 shrink-0 rounded-md sm:w-32"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <h2 className="text-subtitle-semibold text-fg">{tool.name}</h2>
@@ -113,16 +125,21 @@ export function ListingsScreen() {
                             <CategoryBadge category={tool.category} />
                             <span className="text-description text-fg-muted">{conditionLabel(tool.condition)}</span>
                           </div>
-                          {tool.description && <p className="mt-2 line-clamp-2 text-body text-fg-muted">{tool.description}</p>}
+                          {tool.description && (
+                            <p className="mt-2 line-clamp-2 text-body text-fg-muted">{tool.description}</p>
+                          )}
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => setEditing(tool._id)}>Edit</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setEditing(tool._id)}>
+                              Edit
+                            </Button>
                             <Button
                               variant="danger"
                               size="sm"
                               onClick={() =>
                                 confirm({
                                   title: `Delete "${tool.name}"?`,
-                                  description: "It disappears from the board and any open requests for it are declined.",
+                                  description:
+                                    "It disappears from the board and any open requests for it are declined.",
                                   confirmLabel: "Delete listing",
                                   onConfirm: () => remove({ toolId: tool._id }),
                                 })
@@ -142,7 +159,10 @@ export function ListingsScreen() {
           <Pagination pagination={pagination} noun="listings" />
         </section>
         <Card as="section" aria-labelledby="new-listing">
-          <CardHeader title={<span id="new-listing">List a tool</span>} description="It appears on the board straight away." />
+          <CardHeader
+            title={<span id="new-listing">List a tool</span>}
+            description="It appears on the board straight away."
+          />
           <ToolForm submitLabel="List it" uploadImage={uploadImage} onSubmit={(fields) => create(asImage(fields))} />
         </Card>
       </div>

@@ -69,7 +69,11 @@ describe("request notification: Convex → n8n → Convex", () => {
       if (verified.json.duplicate) return new Response(JSON.stringify({ ok: true, duplicate: true }));
       const composed = await runCode(notify, "Check payload", { input: [verified], env });
       emails.push(composed[0].json);
-      const [signed] = await runCode(notify, "Mark sent and sign write-back", { nodes: { "Check payload": composed }, env, staticData });
+      const [signed] = await runCode(notify, "Mark sent and sign write-back", {
+        nodes: { "Check payload": composed },
+        env,
+        staticData,
+      });
       writeBacks.push(signed.json);
       return new Response(JSON.stringify({ ok: true }));
     });
@@ -77,7 +81,9 @@ describe("request notification: Convex → n8n → Convex", () => {
 
     const deliveries = await t.run((ctx) => ctx.db.query("webhookDeliveries").collect());
     expect(deliveries.map((d) => [d.event, d.status])).toEqual([["loan.requested", "delivered"]]);
-    expect(emails).toEqual([expect.objectContaining({ to: "olu@example.com", subject: "Remi wants to borrow your Ladder" })]);
+    expect(emails).toEqual([
+      expect.objectContaining({ to: "olu@example.com", subject: "Remi wants to borrow your Ladder" }),
+    ]);
     expect(JSON.stringify(emails)).not.toContain("remi@example.com");
     expect(JSON.stringify(emails)).not.toContain("Private note");
 
@@ -109,7 +115,11 @@ describe("request notification: Convex → n8n → Convex", () => {
     await requested(t);
     vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
       const headers = Object.fromEntries(new Headers(init.headers).entries());
-      const [verified] = await runCode(notify, "Verify signature", { input: [{ json: { headers } }], rawBody: init.body as string, env });
+      const [verified] = await runCode(notify, "Verify signature", {
+        input: [{ json: { headers } }],
+        rawBody: init.body as string,
+        env,
+      });
       return new Response("{}", { status: verified.json.valid ? 200 : 401 });
     });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -131,7 +141,11 @@ describe("overdue reminders: n8n → Convex → n8n → Convex", () => {
       expect(response.status).toBe(200);
       const perLoan = await runCode(remind, "One item per loan", { input: [{ json: await response.json() }] });
       const sent = perLoan.map(() => ({ json: sendFails ? { error: { message: "SMTP down" } } : {} }));
-      const signed = await runCode(remind, "Sign write-back", { input: sent, nodes: { "One item per loan": perLoan }, env });
+      const signed = await runCode(remind, "Sign write-back", {
+        input: sent,
+        nodes: { "One item per loan": perLoan },
+        env,
+      });
       for (const item of signed) expect((await postToConvex(t, "/n8n/automation-events", item.json)).status).toBe(200);
       return perLoan;
     };
@@ -139,7 +153,10 @@ describe("overdue reminders: n8n → Convex → n8n → Convex", () => {
     // First run: the email fails, so the failure is recorded and the loan stays due today.
     const firstRun = await runWorkflow(true);
     expect(firstRun.map((i) => i.json.loanId)).toEqual([loanId]);
-    expect(firstRun[0].json).toMatchObject({ daysOverdue: 2, borrower: { email: "remi@example.com", firstName: "Remi" } });
+    expect(firstRun[0].json).toMatchObject({
+      daysOverdue: 2,
+      borrower: { email: "remi@example.com", firstName: "Remi" },
+    });
     // Retry run succeeds and upgrades the same record.
     expect(await runWorkflow()).toHaveLength(1);
     // Third run the same day: already reminded, nothing to send.
@@ -148,6 +165,9 @@ describe("overdue reminders: n8n → Convex → n8n → Convex", () => {
     const events = await t.run((ctx) => ctx.db.query("automationEvents").collect());
     expect(events.map((e) => [e.kind, e.status])).toEqual([["overdue_reminder", "sent"]]);
     const [incoming] = (await owner.as.query(api.loans.incoming, ALL)).page;
-    expect(incoming).toMatchObject({ overdue: true, activity: [expect.objectContaining({ kind: "overdue_reminder", status: "sent" })] });
+    expect(incoming).toMatchObject({
+      overdue: true,
+      activity: [expect.objectContaining({ kind: "overdue_reminder", status: "sent" })],
+    });
   });
 });

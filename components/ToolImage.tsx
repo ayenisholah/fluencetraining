@@ -21,11 +21,22 @@ export function ToolImage({
 }) {
   const { color, Icon } = categoryStyle(category);
   if (src) {
-    // eslint-disable-next-line @next/next/no-img-element -- served from Convex storage; next/image would need remotePatterns per deployment
-    return <img src={src} alt={name} loading="lazy" decoding="async" className={cn("aspect-[4/3] w-full bg-surface-sunken object-cover", className)} />;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- served from Convex storage; next/image would need remotePatterns per deployment
+      <img
+        src={src}
+        alt={name}
+        loading="lazy"
+        decoding="async"
+        className={cn("aspect-[4/3] w-full bg-surface-sunken object-cover", className)}
+      />
+    );
   }
   return (
-    <div aria-hidden className={cn("flex aspect-[4/3] w-full items-center justify-center", PRESET_COLORS[color], className)}>
+    <div
+      aria-hidden
+      className={cn("flex aspect-[4/3] w-full items-center justify-center", PRESET_COLORS[color], className)}
+    >
       <Icon size={iconSize} />
     </div>
   );

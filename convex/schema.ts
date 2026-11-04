@@ -1,15 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
-export const categories = [
-  "power_tools",
-  "hand_tools",
-  "garden",
-  "kitchen",
-  "camping",
-  "cleaning",
-  "other",
-] as const;
+export const categories = ["power_tools", "hand_tools", "garden", "kitchen", "camping", "cleaning", "other"] as const;
 
 export const conditions = ["new", "good", "fair", "worn"] as const;
 
@@ -22,12 +14,7 @@ export const vCategory = v.union(
   v.literal("cleaning"),
   v.literal("other"),
 );
-export const vCondition = v.union(
-  v.literal("new"),
-  v.literal("good"),
-  v.literal("fair"),
-  v.literal("worn"),
-);
+export const vCondition = v.union(v.literal("new"), v.literal("good"), v.literal("fair"), v.literal("worn"));
 export const vRole = v.union(v.literal("admin"), v.literal("user"));
 export const vLoanStatus = v.union(
   v.literal("requested"),
@@ -74,11 +61,7 @@ export default defineSchema({
     category: vCategory,
     condition: vCondition,
     description: v.string(),
-    status: v.union(
-      v.literal("available"),
-      v.literal("on_loan"),
-      v.literal("removed"),
-    ),
+    status: v.union(v.literal("available"), v.literal("on_loan"), v.literal("removed")),
     removedBy: v.optional(v.id("users")),
     // Optional photo (Convex file storage), checked by convex/lib/images.ts.
     imageId: v.optional(v.id("_storage")),
@@ -132,11 +115,7 @@ export default defineSchema({
   webhookDeliveries: defineTable({
     loanId: v.id("loans"),
     event: vLoanEvent,
-    status: v.union(
-      v.literal("pending"),
-      v.literal("delivered"),
-      v.literal("failed"),
-    ),
+    status: v.union(v.literal("pending"), v.literal("delivered"), v.literal("failed")),
     attempts: v.number(),
     lastError: v.optional(v.string()),
     nextAttemptAt: v.optional(v.number()),

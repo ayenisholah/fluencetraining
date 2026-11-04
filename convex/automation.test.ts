@@ -24,9 +24,7 @@ async function overdueLoan(t: T) {
   });
   await ada.as.mutation(api.loans.approve, { loanId });
   // Back-date the loan so it is overdue.
-  await t.run((ctx) =>
-    ctx.db.patch(loanId, { startDate: isoDay(-5), endDate: isoDay(-2) }),
-  );
+  await t.run((ctx) => ctx.db.patch(loanId, { startDate: isoDay(-5), endDate: isoDay(-2) }));
   return { ada, bob, loanId };
 }
 
@@ -128,10 +126,16 @@ describe("n8n HTTP endpoints", () => {
     const { loanId } = await overdueLoan(t);
     const key = reminderKey(loanId, todayUtc());
     await signedPost(t, "/n8n/automation-events", {
-      idempotencyKey: key, loanId, kind: "overdue_reminder", status: "failed",
+      idempotencyKey: key,
+      loanId,
+      kind: "overdue_reminder",
+      status: "failed",
     });
     await signedPost(t, "/n8n/automation-events", {
-      idempotencyKey: key, loanId, kind: "overdue_reminder", status: "sent",
+      idempotencyKey: key,
+      loanId,
+      kind: "overdue_reminder",
+      status: "sent",
     });
     const rows = await t.run((ctx) => ctx.db.query("automationEvents").collect());
     expect(rows.map((r) => r.status)).toEqual(["sent"]);
@@ -296,9 +300,13 @@ describe("every loan event notifies the right person with only what's needed", (
     const ada = await signIn(t, "Ada Lovelace");
     const bob = await signIn(t, "Bob Builder");
     const toolId = await ada.as.mutation(api.tools.create, {
-      name: "Tent", category: "camping", condition: "good", description: "Secret campsite inside.",
+      name: "Tent",
+      category: "camping",
+      condition: "good",
+      description: "Secret campsite inside.",
     });
-    const req = (from: number, to: number) => bob.as.mutation(api.loans.request, { toolId, startDate: isoDay(from), endDate: isoDay(to) });
+    const req = (from: number, to: number) =>
+      bob.as.mutation(api.loans.request, { toolId, startDate: isoDay(from), endDate: isoDay(to) });
     const a = await req(1, 2);
     await bob.as.mutation(api.loans.cancel, { loanId: a });
     const b = await req(1, 2);
@@ -308,7 +316,12 @@ describe("every loan event notifies the right person with only what's needed", (
     await ada.as.mutation(api.loans.markReturned, { loanId: c });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
 
-    const sent = bodies.map((body) => [body.event, body.recipient.role, body.recipient.email, body.otherParty.firstName]);
+    const sent = bodies.map((body) => [
+      body.event,
+      body.recipient.role,
+      body.recipient.email,
+      body.otherParty.firstName,
+    ]);
     expect(sent.sort()).toEqual([
       ["loan.approved", "borrower", "bob.builder@example.com", "Ada"],
       ["loan.cancelled", "lender", "ada.lovelace@example.com", "Bob"],
@@ -320,7 +333,16 @@ describe("every loan event notifies the right person with only what's needed", (
     ]);
     for (const body of bodies) {
       // Exactly these fields, nothing else (no ids of people, no descriptions, no second email).
-      expect(Object.keys(body).sort()).toEqual(["deliveryId", "email", "event", "loan", "occurredAt", "otherParty", "recipient", "tool"]);
+      expect(Object.keys(body).sort()).toEqual([
+        "deliveryId",
+        "email",
+        "event",
+        "loan",
+        "occurredAt",
+        "otherParty",
+        "recipient",
+        "tool",
+      ]);
       expect(Object.keys(body.loan).sort()).toEqual(["endDate", "id", "startDate", "status"]);
       expect(Object.keys(body.tool).sort()).toEqual(["category", "name"]);
       // The rendered email (subject, html, text) is a view of these fields: no addresses in it.
@@ -343,7 +365,12 @@ describe("every loan event notifies the right person with only what's needed", (
     const ada = await signIn(t, "Ada");
     const bob = await signIn(t, "Bob");
     await t.run((ctx) => ctx.db.patch(ada.id, { email: undefined }));
-    const toolId = await ada.as.mutation(api.tools.create, { name: "Saw", category: "hand_tools", condition: "good", description: "" });
+    const toolId = await ada.as.mutation(api.tools.create, {
+      name: "Saw",
+      category: "hand_tools",
+      condition: "good",
+      description: "",
+    });
     await bob.as.mutation(api.loans.request, { toolId, startDate: isoDay(1), endDate: isoDay(2) });
     await t.finishAllScheduledFunctions(vi.runAllTimers);
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -361,33 +388,74 @@ describe("overdue endpoint selection and the signature window", () => {
     const t = setup();
     const { loanId, ada, bob } = await overdueLoan(t);
     // Not yet due: approved, ends today.
-    const dueToday = await ada.as.mutation(api.tools.create, { name: "Drill", category: "power_tools", condition: "good", description: "" });
-    const onTime = await bob.as.mutation(api.loans.request, { toolId: dueToday, startDate: isoDay(0), endDate: isoDay(0) });
+    const dueToday = await ada.as.mutation(api.tools.create, {
+      name: "Drill",
+      category: "power_tools",
+      condition: "good",
+      description: "",
+    });
+    const onTime = await bob.as.mutation(api.loans.request, {
+      toolId: dueToday,
+      startDate: isoDay(0),
+      endDate: isoDay(0),
+    });
     await ada.as.mutation(api.loans.approve, { loanId: onTime });
     // Overdue dates but returned already.
-    const done = await ada.as.mutation(api.tools.create, { name: "Rake", category: "garden", condition: "good", description: "" });
-    const returned = await bob.as.mutation(api.loans.request, { toolId: done, startDate: isoDay(0), endDate: isoDay(1) });
+    const done = await ada.as.mutation(api.tools.create, {
+      name: "Rake",
+      category: "garden",
+      condition: "good",
+      description: "",
+    });
+    const returned = await bob.as.mutation(api.loans.request, {
+      toolId: done,
+      startDate: isoDay(0),
+      endDate: isoDay(1),
+    });
     await ada.as.mutation(api.loans.approve, { loanId: returned });
     await ada.as.mutation(api.loans.markReturned, { loanId: returned });
     await t.run((ctx) => ctx.db.patch(returned, { startDate: isoDay(-9), endDate: isoDay(-8) }));
     // Overdue but still only requested (never approved).
-    const asked = await ada.as.mutation(api.tools.create, { name: "Tent", category: "camping", condition: "good", description: "" });
-    const pending = await bob.as.mutation(api.loans.request, { toolId: asked, startDate: isoDay(0), endDate: isoDay(1) });
+    const asked = await ada.as.mutation(api.tools.create, {
+      name: "Tent",
+      category: "camping",
+      condition: "good",
+      description: "",
+    });
+    const pending = await bob.as.mutation(api.loans.request, {
+      toolId: asked,
+      startDate: isoDay(0),
+      endDate: isoDay(1),
+    });
     await t.run((ctx) => ctx.db.patch(pending, { startDate: isoDay(-9), endDate: isoDay(-8) }));
 
-    const ids = async () => (await (await signedPost(t, "/n8n/overdue-loans", {})).json()).loans.map((l: { loanId: string }) => l.loanId);
+    const ids = async () =>
+      (await (await signedPost(t, "/n8n/overdue-loans", {})).json()).loans.map((l: { loanId: string }) => l.loanId);
     expect(await ids()).toEqual([loanId]);
 
     const key = reminderKey(loanId, todayUtc());
-    await signedPost(t, "/n8n/automation-events", { idempotencyKey: key, loanId, kind: "overdue_reminder", status: "failed" });
+    await signedPost(t, "/n8n/automation-events", {
+      idempotencyKey: key,
+      loanId,
+      kind: "overdue_reminder",
+      status: "failed",
+    });
     expect(await ids()).toEqual([loanId]); // failed today → retried
-    await signedPost(t, "/n8n/automation-events", { idempotencyKey: key, loanId, kind: "overdue_reminder", status: "sent" });
+    await signedPost(t, "/n8n/automation-events", {
+      idempotencyKey: key,
+      loanId,
+      kind: "overdue_reminder",
+      status: "sent",
+    });
     expect(await ids()).toEqual([]); // sent today → skipped
     // A reminder from yesterday doesn't count for today.
     await t.run((ctx) => ctx.db.patch(loanId, { endDate: isoDay(-3) }));
     const yesterday = reminderKey(loanId, isoDay(-1));
     await t.run(async (ctx) => {
-      const row = await ctx.db.query("automationEvents").withIndex("by_key", (q) => q.eq("idempotencyKey", key)).unique();
+      const row = await ctx.db
+        .query("automationEvents")
+        .withIndex("by_key", (q) => q.eq("idempotencyKey", key))
+        .unique();
       await ctx.db.patch(row!._id, { idempotencyKey: yesterday });
     });
     expect(await ids()).toEqual([loanId]);
@@ -398,11 +466,13 @@ describe("overdue endpoint selection and the signature window", () => {
     const raw = "{}";
     const at = async (offsetMs: number) => {
       const s = await sign(SECRET, raw, Date.now() + offsetMs);
-      return (await t.fetch("/n8n/overdue-loans", {
-        method: "POST",
-        headers: { "x-lendloop-timestamp": s.timestamp, "x-lendloop-signature": s.signature },
-        body: raw,
-      })).status;
+      return (
+        await t.fetch("/n8n/overdue-loans", {
+          method: "POST",
+          headers: { "x-lendloop-timestamp": s.timestamp, "x-lendloop-signature": s.signature },
+          body: raw,
+        })
+      ).status;
     };
     expect(await at(-4 * 60 * 1000)).toBe(200);
     expect(await at(4 * 60 * 1000)).toBe(200);
@@ -463,7 +533,14 @@ describe("activity on each loan (bonus)", () => {
       );
     }
     // Another loan's event never shows here.
-    await t.run((ctx) => ctx.db.insert("automationEvents", { idempotencyKey: "other", kind: "workflow_error", status: "failed", at: 9_999 }));
+    await t.run((ctx) =>
+      ctx.db.insert("automationEvents", {
+        idempotencyKey: "other",
+        kind: "workflow_error",
+        status: "failed",
+        at: 9_999,
+      }),
+    );
     const [lenderView] = (await ada.as.query(api.loans.incoming, { ...ALL })).page;
     const [borrowerView] = (await bob.as.query(api.loans.myRequests, { ...ALL })).page;
     for (const view of [lenderView, borrowerView]) {

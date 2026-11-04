@@ -52,7 +52,13 @@ const PUBLIC_FUNCTIONS: Record<string, "anyone" | "signed-in" | "owner" | "lende
 
 describe("coverage guard", () => {
   test("every public Convex function is accounted for, and operator tools stay internal", async () => {
-    const modules = import.meta.glob<Record<string, unknown>>(["./*.ts", "!./*.test.ts", "!./test.setup.ts", "!./schema.ts", "!./auth.config.ts"]);
+    const modules = import.meta.glob<Record<string, unknown>>([
+      "./*.ts",
+      "!./*.test.ts",
+      "!./test.setup.ts",
+      "!./schema.ts",
+      "!./auth.config.ts",
+    ]);
     const publicNames: string[] = [];
     const internalNames: string[] = [];
     for (const [path, load] of Object.entries(modules)) {
@@ -135,9 +141,9 @@ describe("user: listings are owner-only", () => {
   test("new listings always belong to the caller; ownerId, status and role can't be smuggled in", async () => {
     const w = await world();
     for (const extra of [{ ownerId: w.other.id }, { status: "on_loan" }, { role: "admin" }]) {
-      await expect(
-        w.borrower.as.mutation(api.tools.create, { ...drill, ...extra } as never),
-      ).rejects.toThrow(/extra field|Validator/i);
+      await expect(w.borrower.as.mutation(api.tools.create, { ...drill, ...extra } as never)).rejects.toThrow(
+        /extra field|Validator/i,
+      );
       await expect(
         w.owner.as.mutation(api.tools.update, { toolId: w.toolId, ...drill, ...extra } as never),
       ).rejects.toThrow(/extra field|Validator/i);
@@ -194,7 +200,11 @@ describe("user: loans only for their own tools or their own borrowing", () => {
     const w = await world();
     await w.owner.as.mutation(api.loans.approve, { loanId: w.loanId });
     await w.owner.as.mutation(api.loans.markReturned, { loanId: w.loanId });
-    const again = await w.borrower.as.mutation(api.loans.request, { toolId: w.toolId, startDate: isoDay(5), endDate: isoDay(6) });
+    const again = await w.borrower.as.mutation(api.loans.request, {
+      toolId: w.toolId,
+      startDate: isoDay(5),
+      endDate: isoDay(6),
+    });
     await w.borrower.as.mutation(api.loans.cancel, { loanId: again });
     expect(await status(w.t, again)).toBe("cancelled");
   });
@@ -231,14 +241,22 @@ describe("admin-only functions", () => {
     ["listings", (w, who) => client(w, who).query(api.admin.listings, { ...ALL })],
     ["stats", (w, who) => client(w, who).query(api.admin.stats, {})],
     ["automationHealth", (w, who) => client(w, who).query(api.admin.automationHealth, {})],
-    ["setTrustedLender", (w, who) => client(w, who).mutation(api.admin.setTrustedLender, { userId: w.owner.id, trusted: true })],
+    [
+      "setTrustedLender",
+      (w, who) => client(w, who).mutation(api.admin.setTrustedLender, { userId: w.owner.id, trusted: true }),
+    ],
     ["removeListings", (w, who) => client(w, who).mutation(api.admin.removeListings, { toolIds: [w.toolId] })],
     ["removeListing", (w, who) => client(w, who).mutation(api.admin.removeListing, { toolId: w.toolId })],
     [
       "retryDelivery",
       async (w, who) => {
         const deliveryId = await w.t.run((ctx) =>
-          ctx.db.insert("webhookDeliveries", { loanId: w.loanId, event: "loan.requested", status: "failed", attempts: 5 }),
+          ctx.db.insert("webhookDeliveries", {
+            loanId: w.loanId,
+            event: "loan.requested",
+            status: "failed",
+            attempts: 5,
+          }),
         );
         return client(w, who).mutation(api.admin.retryDelivery, { deliveryId });
       },
@@ -297,7 +315,11 @@ describe("admin abilities", () => {
     const w = await world();
     const first = await w.admin.as.query(api.admin.allLoans, page());
     expect(first.page).toHaveLength(1);
-    expect(first.page[0]).toMatchObject({ toolName: "Cordless drill", lenderName: "Olu Owner", borrowerName: "Bora Borrower" });
+    expect(first.page[0]).toMatchObject({
+      toolName: "Cordless drill",
+      lenderName: "Olu Owner",
+      borrowerName: "Bora Borrower",
+    });
 
     await w.t.run(async (ctx) => {
       for (let i = 0; i < 230; i++) {
@@ -314,8 +336,10 @@ describe("admin abilities", () => {
     const seen = new Set<string>();
     let pageNumber = 1;
     for (;;) {
-      const result: { page: { _id: string }[]; totalPages: number } =
-        await w.admin.as.query(api.admin.allLoans, page(100, pageNumber));
+      const result: { page: { _id: string }[]; totalPages: number } = await w.admin.as.query(
+        api.admin.allLoans,
+        page(100, pageNumber),
+      );
       for (const loan of result.page) seen.add(loan._id);
       if (pageNumber >= result.totalPages) break;
       pageNumber++;
@@ -326,26 +350,39 @@ describe("admin abilities", () => {
   test("marks and unmarks a trusted lender, shown on their listings", async () => {
     const w = await world();
     await w.admin.as.mutation(api.admin.setTrustedLender, { userId: w.owner.id, trusted: true });
-    expect(((await w.borrower.as.query(api.tools.list, { ...ALL })).page)[0].trustedLender).toBe(true);
-    expect(((await w.admin.as.query(api.admin.users, { ...ALL })).page).find((u) => u._id === w.owner.id)?.trustedLender).toBe(true);
+    expect((await w.borrower.as.query(api.tools.list, { ...ALL })).page[0].trustedLender).toBe(true);
+    expect(
+      (await w.admin.as.query(api.admin.users, { ...ALL })).page.find((u) => u._id === w.owner.id)?.trustedLender,
+    ).toBe(true);
     await w.admin.as.mutation(api.admin.setTrustedLender, { userId: w.owner.id, trusted: false });
-    expect(((await w.borrower.as.query(api.tools.list, { ...ALL })).page)[0].trustedLender).toBe(false);
+    expect((await w.borrower.as.query(api.tools.list, { ...ALL })).page[0].trustedLender).toBe(false);
   });
 
   test("trusting an unknown user is a not-found error", async () => {
     const w = await world();
     const ghost = await w.t.run(async (ctx) => {
-      const id = await ctx.db.insert("users", { tokenIdentifier: "x|ghost", name: "Ghost", role: "user", trustedLender: false });
+      const id = await ctx.db.insert("users", {
+        tokenIdentifier: "x|ghost",
+        name: "Ghost",
+        role: "user",
+        trustedLender: false,
+      });
       await ctx.db.delete(id);
       return id;
     });
-    await expect(w.admin.as.mutation(api.admin.setTrustedLender, { userId: ghost, trusted: true })).rejects.toThrow(/not found/);
+    await expect(w.admin.as.mutation(api.admin.setTrustedLender, { userId: ghost, trusted: true })).rejects.toThrow(
+      /not found/,
+    );
   });
 
   test("an admin is otherwise a normal user: can lend and borrow", async () => {
     const w = await world();
     const mine = await w.admin.as.mutation(api.tools.create, { ...drill, name: "Admin's saw" });
-    const loanId = await w.other.as.mutation(api.loans.request, { toolId: mine, startDate: isoDay(1), endDate: isoDay(2) });
+    const loanId = await w.other.as.mutation(api.loans.request, {
+      toolId: mine,
+      startDate: isoDay(1),
+      endDate: isoDay(2),
+    });
     await w.admin.as.mutation(api.loans.approve, { loanId });
     expect(await status(w.t, loanId)).toBe("approved");
   });
@@ -373,7 +410,11 @@ describe("roles can't be escalated", () => {
 
   test("users.store cleans the name from the identity token before storing it", async () => {
     const t = setup();
-    const as = t.withIdentity({ tokenIdentifier: "x|eve", name: "Eve\r\nBcc: x@evil.example\u202E" + "a".repeat(200), email: "eve@example.com" });
+    const as = t.withIdentity({
+      tokenIdentifier: "x|eve",
+      name: "Eve\r\nBcc: x@evil.example\u202E" + "a".repeat(200),
+      email: "eve@example.com",
+    });
     await as.mutation(api.users.store, {});
     const me = await as.query(api.users.me, {});
     expect(me?.name).not.toMatch(/[\r\n\u202E]/);

@@ -17,7 +17,9 @@ describe("email-provider guard", () => {
     expect(() => guard()).toThrow("E2E tests require Mailpit");
   });
   test("fails closed when Docker or the marker is missing", () => {
-    vi.mocked(execFileSync).mockImplementation(() => { throw new Error("unavailable"); });
+    vi.mocked(execFileSync).mockImplementation(() => {
+      throw new Error("unavailable");
+    });
     expect(() => guard()).toThrow("Cannot verify local email provider");
   });
   test("only suites that can send notifications depend on the provider check", () => {

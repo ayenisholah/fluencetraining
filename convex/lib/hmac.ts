@@ -8,21 +8,11 @@ export const TIMESTAMP_HEADER = "x-lendloop-timestamp";
 export const DEFAULT_TOLERANCE_MS = 5 * 60 * 1000;
 
 async function hmacHex(secret: string, message: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(message),
-  );
-  return Array.from(new Uint8Array(signature), (b) =>
-    b.toString(16).padStart(2, "0"),
-  ).join("");
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
+    "sign",
+  ]);
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(message));
+  return Array.from(new Uint8Array(signature), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export async function sign(
@@ -48,9 +38,7 @@ export function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export type VerifyResult =
-  | { ok: true }
-  | { ok: false; reason: "missing" | "stale" | "mismatch" };
+export type VerifyResult = { ok: true } | { ok: false; reason: "missing" | "stale" | "mismatch" };
 
 export async function verify(options: {
   secret: string;
@@ -69,7 +57,5 @@ export async function verify(options: {
     return { ok: false, reason: "stale" };
   }
   const expected = await sign(secret, rawBody, ts);
-  return safeEqual(expected.signature, signature)
-    ? { ok: true }
-    : { ok: false, reason: "mismatch" };
+  return safeEqual(expected.signature, signature) ? { ok: true } : { ok: false, reason: "mismatch" };
 }

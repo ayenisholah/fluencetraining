@@ -99,7 +99,10 @@ const pairs = [
 ];
 
 let failed = 0;
-for (const [label, theme] of [["day", day], ["night", night]]) {
+for (const [label, theme] of [
+  ["day", day],
+  ["night", night],
+]) {
   console.log(`\n${label}`);
   for (const [fg, bg, min, use] of pairs) {
     if (min <= 1) continue;

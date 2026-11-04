@@ -12,10 +12,14 @@ const env = { account: config.account, region: config.region };
 for (const [k, v] of Object.entries(config.tags)) Tags.of(app).add(k, v);
 
 // Public by design: it names the Clerk instance (same value the browser gets).
-const clerkPublishableKey = app.node.tryGetContext("clerkPublishableKey") ?? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const clerkPublishableKey =
+  app.node.tryGetContext("clerkPublishableKey") ?? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 if (!clerkPublishableKey) throw new Error("Set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY (or -c clerkPublishableKey=...)");
 
-const backend = new BackendStack(app, "LendLoop-Backend", { env, description: "LendLoop production host (Convex, n8n, Caddy)" });
+const backend = new BackendStack(app, "LendLoop-Backend", {
+  env,
+  description: "LendLoop production host (Convex, n8n, Caddy)",
+});
 const web = new WebStack(app, "LendLoop-Web", {
   env,
   description: "LendLoop web app on Amplify Hosting",
@@ -41,4 +45,3 @@ new DeployerStack(app, "LendLoop-Deployer", {
   instanceId: backend.instance.instanceId,
   amplifyAppId: web.appId,
 });
-

@@ -50,14 +50,16 @@ export function LoanListScreen({
           }}
           className="sm:max-w-md sm:flex-1"
         />
-        <SegmentedControl<Phase> aria-label="Status" size="sm" value={phase} onChange={(value) => setUrl({ phase: value })} options={PHASES} className="sm:ml-auto" />
+        <SegmentedControl<Phase>
+          aria-label="Status"
+          size="sm"
+          value={phase}
+          onChange={(value) => setUrl({ phase: value })}
+          options={PHASES}
+          className="sm:ml-auto"
+        />
       </div>
-      <LoanList
-        loans={results}
-        status={status}
-        as={as}
-        empty={filtered ? "Nothing matches that search." : empty}
-      />
+      <LoanList loans={results} status={status} as={as} empty={filtered ? "Nothing matches that search." : empty} />
       <Pagination pagination={pagination} noun="requests" />
     </>
   );

@@ -10,11 +10,7 @@ import { searchTerm } from "./search";
 export const ACTIVITY_LIMIT = 5;
 
 /** Loan rows enriched for display, with recent automation activity. */
-export async function describeLoan(
-  ctx: QueryCtx,
-  loan: Doc<"loans">,
-  viewer: "lender" | "borrower" | "admin",
-) {
+export async function describeLoan(ctx: QueryCtx, loan: Doc<"loans">, viewer: "lender" | "borrower" | "admin") {
   const [tool, lender, borrower] = await Promise.all([
     ctx.db.get(loan.toolId),
     ctx.db.get(loan.lenderId),
@@ -35,9 +31,7 @@ export async function describeLoan(
     status: loan.status,
     overdue: loan.status === "approved" && loan.endDate < todayUtc(),
     counterpartName: firstName(counterpart?.name),
-    ...(viewer === "admin"
-      ? { lenderName: lender?.name, borrowerName: borrower?.name }
-      : {}),
+    ...(viewer === "admin" ? { lenderName: lender?.name, borrowerName: borrower?.name } : {}),
     activity: activity.map((event) => ({
       kind: event.kind,
       status: event.status,
@@ -61,13 +55,12 @@ function loanQuery(ctx: QueryCtx, { search, phase, party }: LoanListArgs) {
   const term = searchTerm(search);
   const loans = ctx.db.query("loans");
   if (term) {
-    return loans
-      .withSearchIndex("search", (q) => {
-        let s = q.search("toolName", term);
-        if (party) s = s.eq(party.field, party.userId);
-        if (phase) s = s.eq("phase", phase);
-        return s;
-      });
+    return loans.withSearchIndex("search", (q) => {
+      let s = q.search("toolName", term);
+      if (party) s = s.eq(party.field, party.userId);
+      if (phase) s = s.eq("phase", phase);
+      return s;
+    });
   }
   if (party?.field === "borrowerId") {
     return phase
@@ -79,9 +72,7 @@ function loanQuery(ctx: QueryCtx, { search, phase, party }: LoanListArgs) {
       ? loans.withIndex("by_lender_phase", (q) => q.eq("lenderId", party.userId).eq("phase", phase)).order("desc")
       : loans.withIndex("by_lender", (q) => q.eq("lenderId", party.userId)).order("desc");
   }
-  return phase
-    ? loans.withIndex("by_phase", (q) => q.eq("phase", phase)).order("desc")
-    : loans.order("desc");
+  return phase ? loans.withIndex("by_phase", (q) => q.eq("phase", phase)).order("desc") : loans.order("desc");
 }
 
 export async function pageLoans(ctx: QueryCtx, args: LoanListArgs) {

@@ -10,7 +10,11 @@ describe("Badge", () => {
     expect(badgeVariants({ variant: "ghost", tone: "brand" })).toContain("border-brand");
   });
   test("bubble shape for counts", () => {
-    render(<Badge shape="bubble" variant="solid">3</Badge>);
+    render(
+      <Badge shape="bubble" variant="solid">
+        3
+      </Badge>,
+    );
     expect(screen.getByText("3").className).toContain("rounded-full");
   });
 });

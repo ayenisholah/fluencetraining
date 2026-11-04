@@ -4,7 +4,16 @@
 // display order.
 import type { ComponentType } from "react";
 import type { PresetColor } from "@/components/ui/Badge/Badge";
-import { BoltIcon, BoxIcon, PotIcon, SparkleIcon, SproutIcon, TentIcon, WrenchIcon, type IconProps } from "@/components/ui/icons";
+import {
+  BoltIcon,
+  BoxIcon,
+  PotIcon,
+  SparkleIcon,
+  SproutIcon,
+  TentIcon,
+  WrenchIcon,
+  type IconProps,
+} from "@/components/ui/icons";
 import type { Doc } from "@/convex/_generated/dataModel";
 
 export type Category = Doc<"tools">["category"];

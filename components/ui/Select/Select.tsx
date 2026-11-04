@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import chevron from "../assets/chevron-down.svg";
 import { controlVariants } from "../Control/Control";
@@ -155,9 +148,11 @@ export function Select({
   return (
     <FieldShell id={id} hint={hint} error={error} invalid={invalid} bare className={className}>
       <div ref={rootRef} className="relative">
-        {!labelledBy && <span id={labelId} className="sr-only">
-          {label}
-        </span>}
+        {!labelledBy && (
+          <span id={labelId} className="sr-only">
+            {label}
+          </span>
+        )}
         <button
           ref={triggerRef}
           id={id}
@@ -175,9 +170,13 @@ export function Select({
           onKeyDown={onKeyDown}
           className={cn(
             appearance === "control"
-              ? cn(controlVariants({ variant: "ghost", kind: "body" }), "w-full justify-between gap-2 bg-surface text-left")
+              ? cn(
+                  controlVariants({ variant: "ghost", kind: "body" }),
+                  "w-full justify-between gap-2 bg-surface text-left",
+                )
               : outlineFieldClass,
-            invalid && "border-danger", error && "rounded-b-none",
+            invalid && "border-danger",
+            error && "rounded-b-none",
           )}
         >
           <span className="flex min-w-0 flex-1 flex-col">
@@ -189,7 +188,13 @@ export function Select({
             <span
               className={cn(
                 "flex items-center gap-2 truncate text-body",
-                appearance === "control" ? "font-semibold tabular-nums text-inherit" : hideLabel ? "text-fg-muted" : selected ? "text-fg" : "text-field-placeholder",
+                appearance === "control"
+                  ? "font-semibold tabular-nums text-inherit"
+                  : hideLabel
+                    ? "text-fg-muted"
+                    : selected
+                      ? "text-fg"
+                      : "text-field-placeholder",
               )}
             >
               {selected?.icon}

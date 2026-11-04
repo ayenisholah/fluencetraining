@@ -32,7 +32,10 @@ export function SegmentedControl<T extends string>({
   ...aria
 }: SegmentedControlProps<T>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const index = Math.max(0, options.findIndex((o) => o.value === value));
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  );
 
   const move = (next: number) => {
     const i = (next + options.length) % options.length;

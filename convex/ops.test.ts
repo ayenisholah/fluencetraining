@@ -22,7 +22,11 @@ async function post(t: T, secret: string, body: unknown = { request: "metrics" }
   const { timestamp, signature } = await sign(secret, raw);
   return t.fetch("/ops/metrics", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-lendloop-timestamp": timestamp, "x-lendloop-signature": signature },
+    headers: {
+      "content-type": "application/json",
+      "x-lendloop-timestamp": timestamp,
+      "x-lendloop-signature": signature,
+    },
     body: raw,
   });
 }
@@ -50,7 +54,12 @@ describe("POST /ops/metrics", () => {
     await ada.as.mutation(api.loans.approve, { loanId });
     await t.run(async (ctx) => {
       await ctx.db.patch(loanId, { startDate: isoDay(-5), endDate: isoDay(-2) });
-      await ctx.db.insert("automationEvents", { idempotencyKey: "error:1", kind: "workflow_error", status: "failed", at: Date.now() });
+      await ctx.db.insert("automationEvents", {
+        idempotencyKey: "error:1",
+        kind: "workflow_error",
+        status: "failed",
+        at: Date.now(),
+      });
     });
     // Deliveries really run in tests (and fail: no N8N_WEBHOOK_URL), moving from
     // pending to failed while we read, so check the stable total.
@@ -73,7 +82,13 @@ describe("POST /ops/metrics", () => {
 
     // Once today's reminder is recorded as sent, the loan no longer counts as un-reminded.
     await t.run((ctx) =>
-      ctx.db.insert("automationEvents", { idempotencyKey: reminderKey(loanId, todayUtc()), loanId, kind: "overdue_reminder", status: "sent", at: Date.now() }),
+      ctx.db.insert("automationEvents", {
+        idempotencyKey: reminderKey(loanId, todayUtc()),
+        loanId,
+        kind: "overdue_reminder",
+        status: "sent",
+        at: Date.now(),
+      }),
     );
     expect((await (await post(t, OPS)).json()).OverdueNotRemindedToday).toBe(0);
   });

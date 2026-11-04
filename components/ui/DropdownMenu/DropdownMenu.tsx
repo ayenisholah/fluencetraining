@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ComponentType,
-  type KeyboardEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useId, useRef, useState, type ComponentType, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { popoverCardClass } from "../Popover/usePopover";
 
@@ -164,36 +156,39 @@ export function DropdownMenu({
             const divider = item.separatorBefore ? (
               <div key={`${item.key}-sep`} role="separator" className="mx-3 my-1 h-px bg-line" />
             ) : null;
-            return [divider, item.href ? (
-              <Link
-                key={item.key}
-                ref={(el: HTMLAnchorElement | null) => {
-                  itemRefs.current[i] = el;
-                }}
-                href={item.href}
-                role="menuitem"
-                tabIndex={-1}
-                onClick={select}
-                aria-current={item.active ? "page" : undefined}
-                className={cls}
-              >
-                {content}
-              </Link>
-            ) : (
-              <button
-                key={item.key}
-                ref={(el) => {
-                  itemRefs.current[i] = el;
-                }}
-                type="button"
-                role="menuitem"
-                tabIndex={-1}
-                onClick={select}
-                className={cls}
-              >
-                {content}
-              </button>
-            )];
+            return [
+              divider,
+              item.href ? (
+                <Link
+                  key={item.key}
+                  ref={(el: HTMLAnchorElement | null) => {
+                    itemRefs.current[i] = el;
+                  }}
+                  href={item.href}
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={select}
+                  aria-current={item.active ? "page" : undefined}
+                  className={cls}
+                >
+                  {content}
+                </Link>
+              ) : (
+                <button
+                  key={item.key}
+                  ref={(el) => {
+                    itemRefs.current[i] = el;
+                  }}
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  onClick={select}
+                  className={cls}
+                >
+                  {content}
+                </button>
+              ),
+            ];
           })}
         </div>
       )}

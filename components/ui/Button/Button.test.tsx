@@ -16,7 +16,11 @@ describe("Button", () => {
   });
 
   test("applies variant and size classes", () => {
-    render(<Button variant="ghost" size="lg">Go</Button>);
+    render(
+      <Button variant="ghost" size="lg">
+        Go
+      </Button>,
+    );
     const cls = screen.getByRole("button").className;
     expect(cls).toContain("border-dim");
     expect(cls).toContain("h-14");
@@ -25,7 +29,11 @@ describe("Button", () => {
 
   test("loading blocks clicks and announces busy", async () => {
     const onClick = vi.fn();
-    render(<Button loading onClick={onClick} leftIcon={<PlusIcon data-testid="icon" />}>Saving</Button>);
+    render(
+      <Button loading onClick={onClick} leftIcon={<PlusIcon data-testid="icon" />}>
+        Saving
+      </Button>,
+    );
     const button = screen.getByRole("button", { name: /saving/i });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
@@ -36,7 +44,11 @@ describe("Button", () => {
 
   test("forwards refs and native attributes", () => {
     const ref = { current: null as HTMLButtonElement | null };
-    render(<Button ref={ref} type="submit" form="f" aria-describedby="x">Send</Button>);
+    render(
+      <Button ref={ref} type="submit" form="f" aria-describedby="x">
+        Send
+      </Button>,
+    );
     expect(ref.current).toBeInstanceOf(HTMLButtonElement);
     expect(ref.current).toHaveAttribute("type", "submit");
     expect(ref.current).toHaveAttribute("form", "f");

@@ -6,8 +6,19 @@ import type { PageControls } from "@/lib/pagination";
 import { Pagination } from "./Pagination";
 
 const page = (over: Partial<PageControls> = {}): PageControls => ({
-  page: 1, pageSize: 10, count: 10, totalCount: 100, totalPages: 10, loading: false, hasPrevious: false, hasNext: true,
-  goToPage: vi.fn(), previous: vi.fn(), next: vi.fn(), setPageSize: vi.fn(), ...over,
+  page: 1,
+  pageSize: 10,
+  count: 10,
+  totalCount: 100,
+  totalPages: 10,
+  loading: false,
+  hasPrevious: false,
+  hasNext: true,
+  goToPage: vi.fn(),
+  previous: vi.fn(),
+  next: vi.fn(),
+  setPageSize: vi.fn(),
+  ...over,
 });
 
 test("page size options and navigation are accessible", async () => {
@@ -30,7 +41,9 @@ test("page size options and navigation are accessible", async () => {
 });
 
 test("empty and loading pages retain controls with unavailable actions disabled", () => {
-  const { rerender } = render(<Pagination pagination={page({ count: 0, totalCount: 0, totalPages: 0, hasNext: false })} />);
+  const { rerender } = render(
+    <Pagination pagination={page({ count: 0, totalCount: 0, totalPages: 0, hasNext: false })} />,
+  );
   expect(screen.getByText("0 items")).toHaveTextContent("Page 1 · 0 items");
   expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
   rerender(<Pagination pagination={page({ page: 2, loading: true, hasPrevious: true })} />);
@@ -55,7 +68,6 @@ test("compact selector supports keyboard selection and Escape returns focus", as
   expect(screen.getByRole("button", { name: "Page 1" })).toHaveFocus();
 });
 
-
 test("middle pages expose endpoints and accurate result ranges", async () => {
   const pagination = page({ page: 5, totalPages: 11, totalCount: 105, hasPrevious: true });
   const { rerender } = render(<Pagination pagination={pagination} noun="tools" />);
@@ -65,7 +77,12 @@ test("middle pages expose endpoints and accurate result ranges", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Page 11" }));
   expect(pagination.goToPage).toHaveBeenCalledWith(11);
   expect(screen.getAllByText("…")).toHaveLength(2);
-  rerender(<Pagination pagination={page({ page: 11, count: 5, totalCount: 105, totalPages: 11, hasPrevious: true, hasNext: false })} noun="tools" />);
+  rerender(
+    <Pagination
+      pagination={page({ page: 11, count: 5, totalCount: 105, totalPages: 11, hasPrevious: true, hasNext: false })}
+      noun="tools"
+    />,
+  );
   expect(screen.getByText("Showing 101–105 of 105 tools")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
 });

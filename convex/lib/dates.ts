@@ -7,11 +7,7 @@ export function todayUtc(now: number = Date.now()): string {
   return isoDay(now);
 }
 
-export function validateLoanDates(
-  startDate: string,
-  endDate: string,
-  now: number = Date.now(),
-): void {
+export function validateLoanDates(startDate: string, endDate: string, now: number = Date.now()): void {
   const error = loanDateError(startDate, endDate, now);
   if (error) badRequest(error);
 }

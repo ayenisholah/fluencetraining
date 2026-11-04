@@ -20,10 +20,11 @@ export function HomeScreen() {
   const [search, setSearch] = useState(url.q);
   const term = useDebouncedValue(search.trim());
   const category = url.category in CATEGORY_STYLES ? (url.category as Category) : "";
-  const { results: tools, status, pagination } = useNumberedPage(
-    api.tools.listPublic,
-    { search: term || undefined, category: category || undefined },
-  );
+  const {
+    results: tools,
+    status,
+    pagination,
+  } = useNumberedPage(api.tools.listPublic, { search: term || undefined, category: category || undefined });
 
   return (
     <div className="space-y-10">
@@ -52,7 +53,9 @@ export function HomeScreen() {
 
       <section aria-labelledby="available" className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <h2 id="available" className="text-h7 text-fg">Available now</h2>
+          <h2 id="available" className="text-h7 text-fg">
+            Available now
+          </h2>
           <SearchField
             label="Search available tools"
             placeholder="Search tools"

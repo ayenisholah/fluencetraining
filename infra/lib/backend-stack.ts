@@ -187,7 +187,10 @@ ENV`,
       instanceType: new ec2.InstanceType(config.instanceType),
       // Pinned in cdk.context.json: a new AMI must never silently replace the
       // host (and its data). Refresh deliberately with `cdk context --reset`.
-      machineImage: ec2.MachineImage.latestAmazonLinux2023({ cpuType: ec2.AmazonLinuxCpuType.ARM_64, cachedInContext: true }),
+      machineImage: ec2.MachineImage.latestAmazonLinux2023({
+        cpuType: ec2.AmazonLinuxCpuType.ARM_64,
+        cachedInContext: true,
+      }),
       securityGroup: sg,
       role,
       userData,
@@ -204,7 +207,10 @@ ENV`,
     (this.instance.node.defaultChild as ec2.CfnInstance).disableApiTermination = true;
     // Containers don't call AWS (the awslogs driver uses dockerd's host
     // credentials), so IMDS stays at one hop.
-    new ec2.CfnEIPAssociation(this, "EipAssociation", { allocationId: eip.attrAllocationId, instanceId: this.instance.instanceId });
+    new ec2.CfnEIPAssociation(this, "EipAssociation", {
+      allocationId: eip.attrAllocationId,
+      instanceId: this.instance.instanceId,
+    });
 
     // ── Recovery: auto-recover on hardware failure; daily EBS snapshots ─────
     new cloudwatch.Alarm(this, "AutoRecover", {

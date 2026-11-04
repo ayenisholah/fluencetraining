@@ -71,13 +71,33 @@ export function LoanCard({
       )}
       {(can.approve || can.decline || can.markReturned || can.cancel) && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {can.approve && <Button size="sm" onClick={actions.onApprove}>Approve</Button>}
-          {can.decline && <Button size="sm" variant="ghost" onClick={actions.onDecline}>Decline</Button>}
-          {can.markReturned && <Button size="sm" variant="ghost" onClick={actions.onMarkReturned}>Mark returned</Button>}
-          {can.cancel && <Button size="sm" variant="ghost" onClick={actions.onCancel}>Cancel request</Button>}
+          {can.approve && (
+            <Button size="sm" onClick={actions.onApprove}>
+              Approve
+            </Button>
+          )}
+          {can.decline && (
+            <Button size="sm" variant="ghost" onClick={actions.onDecline}>
+              Decline
+            </Button>
+          )}
+          {can.markReturned && (
+            <Button size="sm" variant="ghost" onClick={actions.onMarkReturned}>
+              Mark returned
+            </Button>
+          )}
+          {can.cancel && (
+            <Button size="sm" variant="ghost" onClick={actions.onCancel}>
+              Cancel request
+            </Button>
+          )}
         </div>
       )}
-      {error && <Alert tone="danger" className="mt-3">{error}</Alert>}
+      {error && (
+        <Alert tone="danger" className="mt-3">
+          {error}
+        </Alert>
+      )}
     </Card>
   );
 }

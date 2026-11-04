@@ -19,8 +19,7 @@ export const controlVariants = cva(
   },
 );
 
-export type ControlProps = ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof controlVariants>;
+export type ControlProps = ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof controlVariants>;
 
 export const Control = forwardRef<HTMLButtonElement, ControlProps>(function Control(
   { className, variant, kind, type = "button", ...props },
@@ -30,13 +29,12 @@ export const Control = forwardRef<HTMLButtonElement, ControlProps>(function Cont
 });
 
 /** Round icon-only control. `label` is required because there's no visible text. */
-export const IconButton = forwardRef<
-  HTMLButtonElement,
-  Omit<ControlProps, "kind" | "aria-label"> & { label: string }
->(function IconButton({ label, children, ...props }, ref) {
-  return (
-    <Control ref={ref} kind="icon" aria-label={label} title={label} {...props}>
-      {children}
-    </Control>
-  );
-});
+export const IconButton = forwardRef<HTMLButtonElement, Omit<ControlProps, "kind" | "aria-label"> & { label: string }>(
+  function IconButton({ label, children, ...props }, ref) {
+    return (
+      <Control ref={ref} kind="icon" aria-label={label} title={label} {...props}>
+        {children}
+      </Control>
+    );
+  },
+);

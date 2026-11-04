@@ -69,9 +69,22 @@ function convexRows<T>(table: string): T[] {
 
 function runReminderWorkflow() {
   // The running n8n holds the task broker port, so the one-off CLI run uses another.
-  const out = cli("docker", [
-    "compose", "exec", "-T", "-e", "N8N_RUNNERS_BROKER_PORT=5699", "n8n", "n8n", "execute", "--id", "LendLoopRemindWf",
-  ], 180_000);
+  const out = cli(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "-e",
+      "N8N_RUNNERS_BROKER_PORT=5699",
+      "n8n",
+      "n8n",
+      "execute",
+      "--id",
+      "LendLoopRemindWf",
+    ],
+    180_000,
+  );
   expect(out).toContain('"status": "success"');
 }
 
@@ -123,9 +136,15 @@ test("a new request emails the lender with only what they need", async ({ reques
   const toolId = tools.find((t) => t.name === toolName)!._id;
   loanId = convexRows<{ _id: string; toolId: string }>("loans").find((l) => l.toolId === toolId)!._id;
   expect(loanId).toBeTruthy();
-  await expect.poll(() => convexRows<{ loanId?: string; kind: string; status: string }>("automationEvents")
-    .filter((e) => e.loanId === loanId && e.kind === "request_notification" && e.status === "sent").length,
-    { timeout: 30_000 }).toBe(1);
+  await expect
+    .poll(
+      () =>
+        convexRows<{ loanId?: string; kind: string; status: string }>("automationEvents").filter(
+          (e) => e.loanId === loanId && e.kind === "request_notification" && e.status === "sent",
+        ).length,
+      { timeout: 30_000 },
+    )
+    .toBe(1);
 });
 
 test("a status change emails the borrower, and both sides see the activity", async ({ request }) => {
@@ -199,8 +218,9 @@ test("the daily workflow reminds an overdue borrower and writes the status back"
   await owner.goto("/incoming");
   await expect(loanCard(owner, "Overdue").getByText(/Reminder sent/)).toBeVisible();
 
-  const events = convexRows<{ idempotencyKey: string; kind: string; status: string; loanId?: string }>("automationEvents")
-    .filter((e) => e.loanId === loanId && e.kind === "overdue_reminder");
+  const events = convexRows<{ idempotencyKey: string; kind: string; status: string; loanId?: string }>(
+    "automationEvents",
+  ).filter((e) => e.loanId === loanId && e.kind === "overdue_reminder");
   expect(events.map((e) => e.status)).toEqual(["sent"]);
   expect(events[0].idempotencyKey).toMatch(new RegExp(`^overdue:${loanId}:\\d{4}-\\d{2}-\\d{2}$`));
 });
@@ -211,8 +231,9 @@ test("re-running the reminder workflow the same day sends nothing new", async ({
   // Give a duplicate time to arrive if there were going to be one.
   await new Promise((r) => setTimeout(r, 3_000));
   expect(await searchMail(request, `subject:"Reminder: please return ${toolName}"`)).toHaveLength(1);
-  const events = convexRows<{ kind: string; loanId?: string }>("automationEvents")
-    .filter((e) => e.loanId === loanId && e.kind === "overdue_reminder");
+  const events = convexRows<{ kind: string; loanId?: string }>("automationEvents").filter(
+    (e) => e.loanId === loanId && e.kind === "overdue_reminder",
+  );
   expect(events).toHaveLength(1);
 });
 
@@ -233,7 +254,9 @@ test("a redelivered webhook is acknowledged but not emailed twice", async ({ req
     otherParty: { firstName: OWNER.firstName },
   });
   const writeBacks = () =>
-    convexRows<{ idempotencyKey: string }>("automationEvents").filter((e) => e.idempotencyKey === `notify:${deliveryId}`).length;
+    convexRows<{ idempotencyKey: string }>("automationEvents").filter(
+      (e) => e.idempotencyKey === `notify:${deliveryId}`,
+    ).length;
 
   const first = await request.post(N8N_WEBHOOK, { headers: signed(TO_N8N, body), data: body });
   expect(first.status()).toBe(200);
@@ -272,16 +295,21 @@ test("a failing run triggers the error workflow: ops are emailed and Admin shows
   expect(res.status()).toBeGreaterThanOrEqual(500);
 
   await expect
-    .poll(async () => {
-      for (const mail of await searchMail(request, `subject:"[LendLoop] Automation failed"`)) {
-        if ((await mailText(request, mail.ID)).includes(marker)) return true;
-      }
-      return false;
-    }, { timeout: 45_000, message: "ops alert email" })
+    .poll(
+      async () => {
+        for (const mail of await searchMail(request, `subject:"[LendLoop] Automation failed"`)) {
+          if ((await mailText(request, mail.ID)).includes(marker)) return true;
+        }
+        return false;
+      },
+      { timeout: 45_000, message: "ops alert email" },
+    )
     .toBe(true);
 
   await admin.goto("/admin");
-  const health = admin.locator("section").filter({ has: admin.getByRole("heading", { name: "Automation health", exact: true }) });
+  const health = admin
+    .locator("section")
+    .filter({ has: admin.getByRole("heading", { name: "Automation health", exact: true }) });
   // A plain substring match: no regular expression, so nothing to escape.
   await expect(health.getByText(`Unknown event type: ${marker}`)).toBeVisible({ timeout: 20_000 });
   await expect(health.getByText("n8n error").first()).toBeVisible();
@@ -291,10 +319,20 @@ test("SMTP outage is visible and the queued request recovers automatically", asy
   test.skip(process.env.LENDLOOP_TEST_SMTP_OUTAGE !== "1", "Run npm run test:automation for the local outage drill");
   test.setTimeout(240_000);
   // Never stop a service while pointing the test app at a remote deployment.
-  for (const url of [process.env.E2E_BASE_URL ?? "http://localhost:3000", process.env.NEXT_PUBLIC_CONVEX_URL!, CONVEX_SITE]) {
+  for (const url of [
+    process.env.E2E_BASE_URL ?? "http://localhost:3000",
+    process.env.NEXT_PUBLIC_CONVEX_URL!,
+    CONVEX_SITE,
+  ]) {
     expect(["localhost", "127.0.0.1", "[::1]"]).toContain(new URL(url).hostname);
   }
-  const endpoint = cli("docker", ["context", "inspect", process.env.DOCKER_CONTEXT ?? "default", "--format", "{{.Endpoints.docker.Host}}"]);
+  const endpoint = cli("docker", [
+    "context",
+    "inspect",
+    process.env.DOCKER_CONTEXT ?? "default",
+    "--format",
+    "{{.Endpoints.docker.Host}}",
+  ]);
   expect(endpoint.trim()).toMatch(/^unix:\/\//);
   expect((await request.get(`${MAILPIT}/messages`)).ok()).toBe(true);
   await listTool(owner, outageToolName, "Camping");
@@ -311,22 +349,43 @@ test("SMTP outage is visible and the queued request recovers automatically", asy
     expect(delivery()?.status).toBe("pending");
     expect(delivery()?.lastError).toBeTruthy();
     // Ops email also fails while SMTP is down, but the error must still reach Convex.
-    await expect.poll(() => convexRows<{ kind: string; at: number; detail?: string }>("automationEvents")
-      .some((e) => e.kind === "workflow_error" && e.at >= startedAt && e.detail?.includes("Send notification")),
-      { timeout: 60_000 }).toBe(true);
+    await expect
+      .poll(
+        () =>
+          convexRows<{ kind: string; at: number; detail?: string }>("automationEvents").some(
+            (e) => e.kind === "workflow_error" && e.at >= startedAt && e.detail?.includes("Send notification"),
+          ),
+        { timeout: 60_000 },
+      )
+      .toBe(true);
   } finally {
     cli("docker", ["compose", "start", "mailpit"]);
   }
-  await expect.poll(async () => {
-    try { return (await request.get(`${MAILPIT}/messages`)).ok(); } catch { return false; }
-  }, { timeout: 30_000 }).toBe(true);
+  await expect
+    .poll(
+      async () => {
+        try {
+          return (await request.get(`${MAILPIT}/messages`)).ok();
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
   await expect.poll(() => delivery()?.status, { timeout: 160_000 }).toBe("delivered");
   expect(delivery()!.attempts).toBeGreaterThan(1);
   const mail = await onlyMail(request, `subject:"${RENTER.firstName} wants to borrow your ${outageToolName}"`);
   expect(mail.To.map((t) => t.Address)).toEqual([OWNER.email]);
-  await expect.poll(() => convexRows<{ idempotencyKey: string; status: string }>("automationEvents")
-    .filter((e) => e.idempotencyKey === `notify:${delivery()!._id}` && e.status === "sent").length,
-    { timeout: 30_000 }).toBe(1);
+  await expect
+    .poll(
+      () =>
+        convexRows<{ idempotencyKey: string; status: string }>("automationEvents").filter(
+          (e) => e.idempotencyKey === `notify:${delivery()!._id}` && e.status === "sent",
+        ).length,
+      { timeout: 30_000 },
+    )
+    .toBe(1);
 });
 
 test("clean up: the lender marks the loan returned", async () => {

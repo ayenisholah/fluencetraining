@@ -11,7 +11,10 @@ export type NumberedPage<T> = NumberedPageArgs & { page: T[]; totalCount: number
  * transaction, retaining only the requested and final page. Enrichment happens
  * afterwards. Larger deployments should maintain counts rather than scan them.
  */
-export async function numberedPage<T>(source: AsyncIterable<T>, { pageNumber, pageSize }: NumberedPageArgs): Promise<NumberedPage<T>> {
+export async function numberedPage<T>(
+  source: AsyncIterable<T>,
+  { pageNumber, pageSize }: NumberedPageArgs,
+): Promise<NumberedPage<T>> {
   if (!Number.isSafeInteger(pageNumber) || pageNumber < 1) badRequest("Page number must be a positive integer.");
   if (!PAGE_SIZES.some((size) => size === pageSize)) badRequest("Page size must be 10, 25, 50 or 100.");
   let totalCount = 0;
@@ -25,5 +28,11 @@ export async function numberedPage<T>(source: AsyncIterable<T>, { pageNumber, pa
   }
   const totalPages = Math.ceil(totalCount / pageSize);
   const effectivePage = Math.min(pageNumber, Math.max(1, totalPages));
-  return { page: effectivePage === pageNumber ? selected : last, pageNumber: effectivePage, pageSize, totalCount, totalPages };
+  return {
+    page: effectivePage === pageNumber ? selected : last,
+    pageNumber: effectivePage,
+    pageSize,
+    totalCount,
+    totalPages,
+  };
 }

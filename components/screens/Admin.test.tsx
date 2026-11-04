@@ -31,7 +31,14 @@ function seedAdminData() {
   queryResults["admin:automationHealth"] = { deliveries: [], workflowErrors: [] };
   paginated["admin:listings"] = {
     results: [
-      { _id: "t1", name: "Ladder", category: "hand_tools", status: "available", imageUrl: null, ownerName: "Olu Owner" },
+      {
+        _id: "t1",
+        name: "Ladder",
+        category: "hand_tools",
+        status: "available",
+        imageUrl: null,
+        ownerName: "Olu Owner",
+      },
       { _id: "t2", name: "Tent", category: "camping", status: "on_loan", imageUrl: null, ownerName: "Ada" },
     ],
     status: "Exhausted",
@@ -140,13 +147,17 @@ describe("AdminScreen for an admin", () => {
   test("a refused action is shown where it happened instead of failing silently", async () => {
     render(<AdminScreen />);
     await userEvent.click(screen.getByRole("switch", { name: "Olu Owner: Trusted" }));
-    mutations["admin:setTrustedLender"].mockRejectedValueOnce(new ConvexError({ code: "FORBIDDEN", message: "Admins only." }));
+    mutations["admin:setTrustedLender"].mockRejectedValueOnce(
+      new ConvexError({ code: "FORBIDDEN", message: "Admins only." }),
+    );
     await userEvent.click(screen.getByRole("switch", { name: "Olu Owner: Trusted" }));
     const members = section("Members");
     expect(await within(row(members, "olu@example.com")).findByText("Admins only.")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Remove Ladder" }));
-    mutations["admin:removeListing"].mockRejectedValueOnce(new ConvexError({ code: "NOT_FOUND", message: "Tool not found." }));
+    mutations["admin:removeListing"].mockRejectedValueOnce(
+      new ConvexError({ code: "NOT_FOUND", message: "Tool not found." }),
+    );
     await userEvent.click(screen.getByRole("button", { name: "Remove listing" }));
     expect(await within(screen.getByRole("alertdialog")).findByText("Tool not found.")).toBeInTheDocument();
   });
@@ -198,7 +209,9 @@ describe("bulk listing removal", () => {
     render(<AdminScreen />);
     await userEvent.click(screen.getByRole("checkbox", { name: "Select Ladder" }));
     await userEvent.click(screen.getByRole("button", { name: "Remove selected (1)" }));
-    mutations["admin:removeListings"].mockRejectedValueOnce(new ConvexError({ code: "BAD_REQUEST", message: "Try again" }));
+    mutations["admin:removeListings"].mockRejectedValueOnce(
+      new ConvexError({ code: "BAD_REQUEST", message: "Try again" }),
+    );
     await userEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Remove selected" }));
     expect(await screen.findByText("Try again")).toBeVisible();
     expect(screen.getByRole("checkbox", { name: "Select Ladder" })).toBeChecked();
@@ -241,7 +254,6 @@ describe("bulk listing removal", () => {
   });
 });
 
-
 test("bulk confirmation snapshots IDs and prevents repeat submission while pending", async () => {
   signInAs("admin");
   const { rerender } = render(<AdminScreen />);
@@ -250,7 +262,11 @@ test("bulk confirmation snapshots IDs and prevents repeat submission while pendi
   paginated["admin:listings"].results = paginated["admin:listings"].results.slice(1);
   rerender(<AdminScreen />);
   let resolve!: (value: { removedCount: number; skippedCount: number }) => void;
-  mutations["admin:removeListings"].mockReturnValueOnce(new Promise((done) => { resolve = done; }));
+  mutations["admin:removeListings"].mockReturnValueOnce(
+    new Promise((done) => {
+      resolve = done;
+    }),
+  );
   const dialog = within(screen.getByRole("alertdialog"));
   const submit = dialog.getByRole("button", { name: "Remove selected" });
   await userEvent.click(submit);

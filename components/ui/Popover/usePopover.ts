@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /** Card styling shared by every popover (Figma dropdowns: white card, big soft shadow). */
-export const popoverCardClass =
-  "absolute z-50 rounded-md border border-line bg-surface shadow-popover";
+export const popoverCardClass = "absolute z-50 rounded-md border border-line bg-surface shadow-popover";
 
 /**
  * Open/close state for a trigger + floating panel: closes on outside pointer

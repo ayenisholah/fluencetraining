@@ -2,7 +2,10 @@ import { describe, expect, test } from "vitest";
 import { api, internal } from "./_generated/api";
 import { ALL, isoDay, setup, signIn, type T } from "./test.setup";
 
-const tool = (name: string, extra: Partial<{ category: "garden" | "power_tools" | "camping"; description: string }> = {}) => ({
+const tool = (
+  name: string,
+  extra: Partial<{ category: "garden" | "power_tools" | "camping"; description: string }> = {},
+) => ({
   name,
   category: extra.category ?? ("power_tools" as const),
   condition: "good" as const,
@@ -34,11 +37,16 @@ describe("board search, filters and pagination (tools.list)", () => {
   test("search matches name and description, combined with category and availability", async () => {
     const t = setup();
     const { ada, bob, drill } = await board(t);
-    const names = async (args: Record<string, unknown>) => (await bob.as.query(api.tools.list, { ...ALL, ...args })).page.map((r) => r.name).sort();
+    const names = async (args: Record<string, unknown>) =>
+      (await bob.as.query(api.tools.list, { ...ALL, ...args })).page.map((r) => r.name).sort();
     expect(await names({ search: "cordless" })).toEqual(["Cordless drill", "Hedge trimmer"]);
     expect(await names({ search: "cordless", category: "garden" })).toEqual(["Hedge trimmer"]);
     // Put the drill on loan: it stays on the board but not under "Available only".
-    const loanId = await bob.as.mutation(api.loans.request, { toolId: drill, startDate: isoDay(1), endDate: isoDay(2) });
+    const loanId = await bob.as.mutation(api.loans.request, {
+      toolId: drill,
+      startDate: isoDay(1),
+      endDate: isoDay(2),
+    });
     await ada.as.mutation(api.loans.approve, { loanId });
     expect(await names({ search: "cordless" })).toEqual(["Cordless drill", "Hedge trimmer"]);
     expect(await names({ search: "cordless", availableOnly: true })).toEqual(["Hedge trimmer"]);
@@ -66,13 +74,17 @@ describe("board search, filters and pagination (tools.list)", () => {
     const { ada, bob, drill } = await board(t);
     await ada.as.mutation(api.tools.update, { toolId: drill, ...tool("Impact driver") });
     expect((await bob.as.query(api.tools.list, { ...ALL, search: "drill" })).page).toEqual([]);
-    expect((await bob.as.query(api.tools.list, { ...ALL, search: "impact" })).page.map((r) => r.name)).toEqual(["Impact driver"]);
+    expect((await bob.as.query(api.tools.list, { ...ALL, search: "impact" })).page.map((r) => r.name)).toEqual([
+      "Impact driver",
+    ]);
   });
 
   test("search text is trimmed and capped", async () => {
     const t = setup();
     const { bob } = await board(t);
-    expect((await bob.as.query(api.tools.list, { ...ALL, search: "   rake   " })).page.map((r) => r.name)).toEqual(["Leaf rake"]);
+    expect((await bob.as.query(api.tools.list, { ...ALL, search: "   rake   " })).page.map((r) => r.name)).toEqual([
+      "Leaf rake",
+    ]);
     await expect(bob.as.query(api.tools.list, { ...ALL, search: "x".repeat(10_000) })).resolves.toBeDefined();
   });
 });
@@ -82,11 +94,21 @@ describe("My listings search (tools.mine)", () => {
     const t = setup();
     const { ada, bob, drill } = await board(t);
     expect((await ada.as.query(api.tools.mine, { ...ALL, search: "trimmer" })).page).toEqual([]); // Bob's, not Ada's
-    expect((await ada.as.query(api.tools.mine, { ...ALL, search: "rake" })).page.map((r) => r.name)).toEqual(["Leaf rake"]);
-    const loanId = await bob.as.mutation(api.loans.request, { toolId: drill, startDate: isoDay(1), endDate: isoDay(2) });
+    expect((await ada.as.query(api.tools.mine, { ...ALL, search: "rake" })).page.map((r) => r.name)).toEqual([
+      "Leaf rake",
+    ]);
+    const loanId = await bob.as.mutation(api.loans.request, {
+      toolId: drill,
+      startDate: isoDay(1),
+      endDate: isoDay(2),
+    });
     await ada.as.mutation(api.loans.approve, { loanId });
-    expect((await ada.as.query(api.tools.mine, { ...ALL, status: "on_loan" })).page.map((r) => r.name)).toEqual(["Cordless drill"]);
-    expect((await ada.as.query(api.tools.mine, { ...ALL, status: "available" })).page.map((r) => r.name)).toEqual(["Leaf rake"]);
+    expect((await ada.as.query(api.tools.mine, { ...ALL, status: "on_loan" })).page.map((r) => r.name)).toEqual([
+      "Cordless drill",
+    ]);
+    expect((await ada.as.query(api.tools.mine, { ...ALL, status: "available" })).page.map((r) => r.name)).toEqual([
+      "Leaf rake",
+    ]);
   });
 });
 
@@ -111,16 +133,22 @@ describe("loan lists: search by tool name and phase tabs", () => {
     expect(await phase("open")).toEqual(["Cordless drill"]);
     expect(await phase("active")).toEqual(["Leaf rake"]);
     expect(await phase("closed")).toEqual([]);
-    expect((await bob.as.query(api.loans.myRequests, { ...ALL, phase: "open" })).page.map((l) => l.toolName)).toEqual(["Cordless drill"]);
+    expect((await bob.as.query(api.loans.myRequests, { ...ALL, phase: "open" })).page.map((l) => l.toolName)).toEqual([
+      "Cordless drill",
+    ]);
   });
 
   test("search is scoped to the caller: nobody finds someone else's loans", async () => {
     const t = setup();
     const { ada, bob, eve } = await loans(t);
-    expect((await ada.as.query(api.loans.incoming, { ...ALL, search: "drill" })).page.map((l) => l.toolName)).toEqual(["Cordless drill"]);
+    expect((await ada.as.query(api.loans.incoming, { ...ALL, search: "drill" })).page.map((l) => l.toolName)).toEqual([
+      "Cordless drill",
+    ]);
     expect((await eve.as.query(api.loans.incoming, { ...ALL, search: "drill" })).page).toEqual([]);
     expect((await eve.as.query(api.loans.myRequests, { ...ALL, search: "drill" })).page).toEqual([]);
-    expect((await bob.as.query(api.loans.incoming, { ...ALL, search: "tent" })).page.map((l) => l.toolName)).toEqual(["Tent"]);
+    expect((await bob.as.query(api.loans.incoming, { ...ALL, search: "tent" })).page.map((l) => l.toolName)).toEqual([
+      "Tent",
+    ]);
   });
 
   test("admin sees all loans, searchable and by phase; renamed tools stay findable", async () => {
@@ -128,10 +156,14 @@ describe("loan lists: search by tool name and phase tabs", () => {
     const { ada } = await loans(t);
     const admin = await signIn(t, "Root", { role: "admin" });
     expect((await admin.as.query(api.admin.allLoans, ALL)).page).toHaveLength(3);
-    expect((await admin.as.query(api.admin.allLoans, { ...ALL, phase: "closed" })).page.map((l) => l.toolName)).toEqual(["Tent"]);
+    expect((await admin.as.query(api.admin.allLoans, { ...ALL, phase: "closed" })).page.map((l) => l.toolName)).toEqual(
+      ["Tent"],
+    );
     const rake = (await ada.as.query(api.tools.mine, { ...ALL, search: "rake" })).page[0]._id;
     await ada.as.mutation(api.tools.update, { toolId: rake, ...tool("Garden rake", { category: "garden" }) });
-    expect((await admin.as.query(api.admin.allLoans, { ...ALL, search: "garden rake" })).page.map((l) => l.toolName)).toEqual(["Garden rake"]);
+    expect(
+      (await admin.as.query(api.admin.allLoans, { ...ALL, search: "garden rake" })).page.map((l) => l.toolName),
+    ).toEqual(["Garden rake"]);
   });
 
   test("the sidebar count is the caller's open incoming requests", async () => {
@@ -150,7 +182,8 @@ describe("admin search", () => {
     const { ada } = await board(t);
     await t.mutation(internal.migrations.backfillSearch, {}); // signIn() inserts users without searchText
     await admin.as.mutation(api.admin.setTrustedLender, { userId: ada.id, trusted: true });
-    const names = async (args: Record<string, unknown>) => (await admin.as.query(api.admin.users, { ...ALL, ...args })).page.map((u) => u.name).sort();
+    const names = async (args: Record<string, unknown>) =>
+      (await admin.as.query(api.admin.users, { ...ALL, ...args })).page.map((u) => u.name).sort();
     expect(await names({ search: "bob@example" })).toEqual(["Bob Builder"]);
     expect(await names({ search: "lovelace" })).toEqual(["Ada Lovelace"]);
     expect(await names({ filter: "trusted" })).toEqual(["Ada Lovelace"]);
@@ -164,7 +197,9 @@ describe("admin search", () => {
     const rows = (await admin.as.query(api.admin.listings, { ...ALL, category: "garden" })).page;
     expect(rows.map((r) => r.name).sort()).toEqual(["Hedge trimmer", "Leaf rake"]);
     expect(rows[0]).toEqual(expect.objectContaining({ ownerName: expect.any(String), imageUrl: null }));
-    expect((await admin.as.query(api.admin.listings, { ...ALL, search: "hammer" })).page.map((r) => r.name)).toEqual(["Cordless drill"]);
+    expect((await admin.as.query(api.admin.listings, { ...ALL, search: "hammer" })).page.map((r) => r.name)).toEqual([
+      "Cordless drill",
+    ]);
   });
 });
 
@@ -175,7 +210,14 @@ describe("migrations:backfillSearch", () => {
     const { toolId, loanId } = await t.run(async (ctx) => {
       // Rows as they were before the derived fields existed.
       const toolId = await ctx.db.insert("tools", { ownerId: ada.id, ...tool("Old ladder"), status: "available" });
-      const loanId = await ctx.db.insert("loans", { toolId, borrowerId: ada.id, lenderId: ada.id, startDate: isoDay(1), endDate: isoDay(2), status: "returned" });
+      const loanId = await ctx.db.insert("loans", {
+        toolId,
+        borrowerId: ada.id,
+        lenderId: ada.id,
+        startDate: isoDay(1),
+        endDate: isoDay(2),
+        status: "returned",
+      });
       return { toolId, loanId };
     });
     const first = await t.mutation(internal.migrations.backfillSearch, {});
@@ -185,6 +227,8 @@ describe("migrations:backfillSearch", () => {
     expect(toolRow).toMatchObject({ searchText: "Old ladder", listed: true });
     expect(loanRow).toMatchObject({ phase: "closed", toolName: "Old ladder" });
     const viewer = await signIn(t, "Viewer");
-    expect((await viewer.as.query(api.tools.list, { ...ALL, search: "ladder" })).page.map((r) => r.name)).toEqual(["Old ladder"]);
+    expect((await viewer.as.query(api.tools.list, { ...ALL, search: "ladder" })).page.map((r) => r.name)).toEqual([
+      "Old ladder",
+    ]);
   });
 });

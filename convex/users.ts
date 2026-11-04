@@ -15,9 +15,7 @@ export const store = mutation({
     const name = cleanDisplayName(identity.name ?? identity.givenName ?? identity.nickname);
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) =>
-        q.eq("tokenIdentifier", identity.tokenIdentifier),
-      )
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
     const searchText = userSearchText(name, identity.email);
     if (existing) {

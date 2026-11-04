@@ -12,7 +12,13 @@ describe("shared validation rules", () => {
     expect(toolFieldErrors({ name: "Drill", description: "x".repeat(501) }).description).toMatch(/under 500/);
   });
   test("tool text is plain: no control or bidi characters (they reach email headers)", () => {
-    for (const name of ["Drill\r\nBcc: x@evil.example", "Drill\u0000", "Drill\u0085", "Drill\u202Eyrros", "Drill\u2066x\u2069"]) {
+    for (const name of [
+      "Drill\r\nBcc: x@evil.example",
+      "Drill\u0000",
+      "Drill\u0085",
+      "Drill\u202Eyrros",
+      "Drill\u2066x\u2069",
+    ]) {
       expect(toolFieldErrors({ name, description: "" }).name, JSON.stringify(name)).toMatch(/plain text/);
     }
     expect(toolFieldErrors({ name: "Drill", description: "Two lines\nand\ta tab" })).toEqual({});

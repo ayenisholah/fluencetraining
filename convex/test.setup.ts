@@ -2,12 +2,7 @@
 import { convexTest } from "convex-test";
 import schema from "./schema";
 
-export const modules = import.meta.glob([
-  "./**/*.{ts,js}",
-  "!./**/*.test.ts",
-  "!./**/*.d.ts",
-  "!./test.setup.ts",
-]);
+export const modules = import.meta.glob(["./**/*.{ts,js}", "!./**/*.test.ts", "!./**/*.d.ts", "!./test.setup.ts"]);
 
 export function setup() {
   return convexTest(schema, modules);
@@ -16,11 +11,7 @@ export function setup() {
 export type T = ReturnType<typeof setup>;
 
 /** Creates a user row and returns an authenticated client for them. */
-export async function signIn(
-  t: T,
-  name: string,
-  opts: { role?: "admin" | "user"; email?: string } = {},
-) {
+export async function signIn(t: T, name: string, opts: { role?: "admin" | "user"; email?: string } = {}) {
   const tokenIdentifier = `test|${name.toLowerCase()}`;
   const id = await t.run((ctx) =>
     ctx.db.insert("users", {

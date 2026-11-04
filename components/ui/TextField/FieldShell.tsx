@@ -43,7 +43,13 @@ export function FieldShell({
       {bare ? (
         children
       ) : (
-        <div className={cn(fieldBoxClass, invalid && "border-danger focus-within:border-danger", error ? "rounded-b-none" : "")}>
+        <div
+          className={cn(
+            fieldBoxClass,
+            invalid && "border-danger focus-within:border-danger",
+            error ? "rounded-b-none" : "",
+          )}
+        >
           {children}
         </div>
       )}

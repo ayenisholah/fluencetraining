@@ -21,8 +21,12 @@ export default function NotFound() {
             We couldn&apos;t find what you were looking for. It may have moved, or the link might be mistyped.
           </p>
           <div className="flex justify-center gap-2">
-            <Link href="/" className={buttonVariants()}>Back to home</Link>
-            <Link href="/tools" className={buttonVariants({ variant: "ghost" })}>Browse tools</Link>
+            <Link href="/" className={buttonVariants()}>
+              Back to home
+            </Link>
+            <Link href="/tools" className={buttonVariants({ variant: "ghost" })}>
+              Browse tools
+            </Link>
           </div>
         </section>
       </main>

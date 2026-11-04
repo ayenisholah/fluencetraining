@@ -22,9 +22,7 @@ export async function getCurrentUser(ctx: Ctx): Promise<Doc<"users"> | null> {
   if (!identity) return null;
   return await ctx.db
     .query("users")
-    .withIndex("by_token", (q) =>
-      q.eq("tokenIdentifier", identity.tokenIdentifier),
-    )
+    .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
     .unique();
 }
 

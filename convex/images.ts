@@ -17,7 +17,10 @@ export const deleteOrphans = internalMutation({
     let deleted = 0;
     for (const file of files) {
       if (file._creationTime > cutoff) continue;
-      const used = await ctx.db.query("tools").withIndex("by_image", (q) => q.eq("imageId", file._id)).first();
+      const used = await ctx.db
+        .query("tools")
+        .withIndex("by_image", (q) => q.eq("imageId", file._id))
+        .first();
       if (!used) {
         await ctx.storage.delete(file._id);
         deleted++;

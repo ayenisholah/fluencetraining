@@ -1,7 +1,18 @@
 // Loan-event notifications (rendered in Convex, sent by n8n workflow 01).
 // Inputs are the minimal webhook fields: first names, tool, dates.
 import { EMAIL_CATEGORIES, emailAppUrl } from "./branding";
-import { banner, buttons, card, categoryChip, escapeHtml, intro, note, wrapper, type RenderedEmail, type Tone } from "./layout";
+import {
+  banner,
+  buttons,
+  card,
+  categoryChip,
+  escapeHtml,
+  intro,
+  note,
+  wrapper,
+  type RenderedEmail,
+  type Tone,
+} from "./layout";
 
 export type LoanEventName = "loan.requested" | "loan.approved" | "loan.declined" | "loan.cancelled" | "loan.returned";
 
@@ -115,9 +126,17 @@ export function loanEventEmail(i: LoanEmailInput): RenderedEmail {
   const app = emailAppUrl();
   const greeting = `Hi ${i.recipientFirstName},`;
   const dates = dateRange(i.startDate, i.endDate);
-  const actions = c.actions.map((a, index) => ({ label: a.label, href: `${app}${a.path}`, variant: index === 0 ? ("solid" as const) : ("ghost" as const) }));
+  const actions = c.actions.map((a, index) => ({
+    label: a.label,
+    href: `${app}${a.path}`,
+    variant: index === 0 ? ("solid" as const) : ("ghost" as const),
+  }));
   if (i.event === "loan.approved") {
-    actions.push({ label: "Add to Google Calendar", href: calendarLink(i.toolName, i.otherFirstName, i.startDate, i.endDate), variant: "ghost" });
+    actions.push({
+      label: "Add to Google Calendar",
+      href: calendarLink(i.toolName, i.otherFirstName, i.startDate, i.endDate),
+      variant: "ghost",
+    });
   }
   const html = wrapper(
     [

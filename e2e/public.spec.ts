@@ -63,7 +63,11 @@ test.describe("signed-out visitor", () => {
   test("pages are served with a strict, per-request Content-Security-Policy", async ({ page }) => {
     const first = await page.goto("/");
     const csp = first?.headers()["content-security-policy"] ?? "";
-    const directive = (name: string) => csp.split(";").map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) ?? "";
+    const directive = (name: string) =>
+      csp
+        .split(";")
+        .map((d) => d.trim())
+        .find((d) => d.startsWith(`${name} `)) ?? "";
     expect(directive("script-src")).toMatch(/'nonce-[A-Za-z0-9+/=]+'/);
     expect(directive("script-src")).toContain("'strict-dynamic'");
     expect(directive("script-src")).not.toMatch(/(^|\s)(https?:|\*)(\s|$)/); // no blanket host allow-lists
@@ -120,7 +124,10 @@ test.describe("signed-out visitor", () => {
   });
 
   test("legal pages render with their own titles", async ({ page }) => {
-    for (const [path, title] of [["/privacy", "Privacy policy"], ["/terms", "Terms and conditions"]]) {
+    for (const [path, title] of [
+      ["/privacy", "Privacy policy"],
+      ["/terms", "Terms and conditions"],
+    ]) {
       await page.goto(path);
       await expect(page).toHaveTitle(`${title} · LendLoop`);
       await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();

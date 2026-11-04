@@ -76,8 +76,7 @@ export function isOutside(iso: string, min?: string, max?: string): boolean {
   return Boolean((min && iso < min) || (max && iso > max));
 }
 
-const fmt = (options: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...options });
+const fmt = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", ...options });
 const monthFmt = fmt({ month: "long", year: "numeric" });
 const longFmt = fmt({ weekday: "long", day: "numeric", month: "long", year: "numeric" });
 const shortFmt = fmt({ weekday: "short", day: "numeric", month: "short", year: "numeric" });

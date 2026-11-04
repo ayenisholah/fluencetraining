@@ -19,16 +19,17 @@ export const overdueLoans = internalQuery({
   handler: async (ctx, { asOf }) => {
     const loans = await ctx.db
       .query("loans")
-      .withIndex("by_status_end", (q) =>
-        q.eq("status", "approved").lt("endDate", asOf),
-      )
+      .withIndex("by_status_end", (q) => q.eq("status", "approved").lt("endDate", asOf))
       .take(500);
     // Per-loan lookups are independent; run them together and keep the order.
     const rows = await Promise.all(
       loans.map(async (loan) => {
         const idempotencyKey = reminderKey(loan._id, asOf);
         const [sent, tool, borrower, lender] = await Promise.all([
-          ctx.db.query("automationEvents").withIndex("by_key", (q) => q.eq("idempotencyKey", idempotencyKey)).unique(),
+          ctx.db
+            .query("automationEvents")
+            .withIndex("by_key", (q) => q.eq("idempotencyKey", idempotencyKey))
+            .unique(),
           ctx.db.get(loan.toolId),
           ctx.db.get(loan.borrowerId),
           ctx.db.get(loan.lenderId),
@@ -75,9 +76,7 @@ export const recordEvent = internalMutation({
     detail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const loanId = args.loanId
-      ? ctx.db.normalizeId("loans", args.loanId)
-      : undefined;
+    const loanId = args.loanId ? ctx.db.normalizeId("loans", args.loanId) : undefined;
     if (args.loanId && !loanId) return { ok: false as const, error: "unknown loan" };
     if (loanId && !(await ctx.db.get(loanId))) {
       return { ok: false as const, error: "unknown loan" };

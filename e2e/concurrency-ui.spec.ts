@@ -11,7 +11,9 @@ const prefix = `E2E browser race ${Date.now().toString(36)}`;
 const names = ["duplicate", "approvals", "cancel", "remove"].map((name) => `${prefix} ${name}`);
 async function client(page: Page) {
   const token = await page.evaluate(async () => {
-    const clerk = (window as unknown as { Clerk: { session: { getToken(options: { template: string }): Promise<string | null> } } }).Clerk;
+    const clerk = (
+      window as unknown as { Clerk: { session: { getToken(options: { template: string }): Promise<string | null> } } }
+    ).Clerk;
     return clerk.session.getToken({ template: "convex" });
   });
   if (!token) throw new Error("Missing signed-in Convex token.");
@@ -31,7 +33,9 @@ async function incoming(page: Page, name: string) {
   await expect(cardFor(page, name)).not.toHaveCount(0);
 }
 async function persisted(name: string) {
-  return (await (await client(owner)).query(api.loans.incoming, { pageNumber: 1, pageSize: 100, search: name })).page.filter((loan) => loan.toolName === name);
+  return (
+    await (await client(owner)).query(api.loans.incoming, { pageNumber: 1, pageSize: 100, search: name })
+  ).page.filter((loan) => loan.toolName === name);
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -53,27 +57,63 @@ test("duplicate submissions across tabs create one request and show a useful ref
   const second = await prepare(duplicateTab, names[0]);
   await Promise.all([first.click(), second.click()]);
   await expect.poll(async () => (await persisted(names[0])).length).toBe(1);
-  await expect.poll(async () => (await cardFor(a, names[0]).getByRole("alert").filter({ hasText: "You already have an open request for this tool." }).count()) + (await cardFor(duplicateTab, names[0]).getByRole("alert").filter({ hasText: "You already have an open request for this tool." }).count())).toBe(1);
-  await expect.poll(async () => (await a.getByText("Request sent. The lender has been notified.").count()) + (await duplicateTab.getByText("Request sent. The lender has been notified.").count())).toBe(1);
+  await expect
+    .poll(
+      async () =>
+        (await cardFor(a, names[0])
+          .getByRole("alert")
+          .filter({ hasText: "You already have an open request for this tool." })
+          .count()) +
+        (await cardFor(duplicateTab, names[0])
+          .getByRole("alert")
+          .filter({ hasText: "You already have an open request for this tool." })
+          .count()),
+    )
+    .toBe(1);
+  await expect
+    .poll(
+      async () =>
+        (await a.getByText("Request sent. The lender has been notified.").count()) +
+        (await duplicateTab.getByText("Request sent. The lender has been notified.").count()),
+    )
+    .toBe(1);
 });
 
 test("two lender tabs cannot approve different borrowers for the same tool", async () => {
   await listTool(owner, names[1], "Garden");
-  const first = await prepare(a, names[1]), second = await prepare(b, names[1]);
+  const first = await prepare(a, names[1]),
+    second = await prepare(b, names[1]);
   await Promise.all([first.click(), second.click()]);
   await expect.poll(async () => (await persisted(names[1])).length).toBe(2);
   await incoming(owner, names[1]);
   await incoming(ownerTab, names[1]);
   const firstRow = cardFor(owner, names[1]).filter({ hasText: "requested by RaceA" });
   const secondRow = cardFor(ownerTab, names[1]).filter({ hasText: "requested by RaceB" });
-  await Promise.all([firstRow.getByRole("button", { name: "Approve", exact: true }).click(), secondRow.getByRole("button", { name: "Approve", exact: true }).click()]);
+  await Promise.all([
+    firstRow.getByRole("button", { name: "Approve", exact: true }).click(),
+    secondRow.getByRole("button", { name: "Approve", exact: true }).click(),
+  ]);
   await expect.poll(async () => (await persisted(names[1])).filter((l) => l.status === "approved").length).toBe(1);
-  await expect.poll(async () => (await cardFor(owner, names[1]).getByRole("alert").filter({ hasText: "The tool is already lent out. Mark it returned first." }).count()) + (await cardFor(ownerTab, names[1]).getByRole("alert").filter({ hasText: "The tool is already lent out. Mark it returned first." }).count())).toBe(1);
+  await expect
+    .poll(
+      async () =>
+        (await cardFor(owner, names[1])
+          .getByRole("alert")
+          .filter({ hasText: "The tool is already lent out. Mark it returned first." })
+          .count()) +
+        (await cardFor(ownerTab, names[1])
+          .getByRole("alert")
+          .filter({ hasText: "The tool is already lent out. Mark it returned first." })
+          .count()),
+    )
+    .toBe(1);
   for (const page of [a, b]) {
     await page.goto("/requests");
     await page.getByRole("searchbox").fill(names[1]);
   }
-  await expect.poll(async () => (await cardFor(a, names[1], "On loan").count()) + (await cardFor(b, names[1], "On loan").count())).toBe(1);
+  await expect
+    .poll(async () => (await cardFor(a, names[1], "On loan").count()) + (await cardFor(b, names[1], "On loan").count()))
+    .toBe(1);
 });
 
 test("a cancellation dialog opened before approval cannot cancel an active loan", async () => {

@@ -149,7 +149,10 @@ export function DatePicker({
           <span className="flex min-w-0 flex-1 flex-col">
             <span className={hideLabel ? "sr-only" : "text-description text-field-label"}>{label}</span>{" "}
             <span
-              className={cn("truncate text-body", hasValue ? (hideLabel ? "text-fg-muted" : "text-fg") : "text-field-placeholder")}
+              className={cn(
+                "truncate text-body",
+                hasValue ? (hideLabel ? "text-fg-muted" : "text-fg") : "text-field-placeholder",
+              )}
             >
               {hasValue ? formatCompact(value) : placeholder}
             </span>
@@ -203,7 +206,12 @@ export function DatePicker({
               <thead>
                 <tr>
                   {labels.map((d) => (
-                    <th key={d.long} scope="col" abbr={d.long} className="pb-1 text-description font-medium text-fg-muted">
+                    <th
+                      key={d.long}
+                      scope="col"
+                      abbr={d.long}
+                      className="pb-1 text-description font-medium text-fg-muted"
+                    >
                       {d.short}
                     </th>
                   ))}
