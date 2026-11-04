@@ -21,6 +21,7 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 ### Changed
 - The borrow confirmation says "Request sent. We'll email the lender." instead of claiming the lender was already notified (delivery is asynchronous and retried).
 - The privacy page describes account deletion as the operator process it actually is.
+- Signed-in pages show a page-shaped skeleton while the user's record loads, instead of a corner spinner saying "Setting up your account…" on every visit. That message now appears only on a first sign-in, while the account row is created.
 
 ### Added
 - The SES SMTP IAM user (`lendloop-prod-ses-smtp`) and its send policy are defined in CDK instead of by hand. The policy covers recipient identities, which the SES sandbox requires.
