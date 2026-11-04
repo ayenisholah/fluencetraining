@@ -4,6 +4,7 @@ import * as cwActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sns from "aws-cdk-lib/aws-sns";
+import * as subs from "aws-cdk-lib/aws-sns-subscriptions";
 import * as synthetics from "aws-cdk-lib/aws-synthetics";
 import type { Construct } from "constructs";
 import { config } from "./config";
@@ -14,6 +15,8 @@ export type ObservabilityStackProps = StackProps & {
   appUrl: string;
   amplifyAppId: string;
   logGroupNames: Record<"caddy" | "convex" | "n8n" | "mailpit", string>;
+  /** Operator address subscribed to the alerts topic (repo variable ALERT_EMAIL; kept out of this public repo). */
+  alertEmail?: string;
 };
 
 const NS = config.metricsNamespace;
@@ -34,6 +37,8 @@ export class ObservabilityStack extends Stack {
       displayName: "LendLoop production alerts",
       enforceSSL: true,
     });
+    // Email subscriptions stay PendingConfirmation until the recipient clicks the AWS link.
+    if (props.alertEmail) topic.addSubscription(new subs.EmailSubscription(props.alertEmail));
     const notify = new cwActions.SnsAction(topic);
 
     const lendloop = (metricName: string, statistic = "Maximum", period = FIVE_MIN) =>
