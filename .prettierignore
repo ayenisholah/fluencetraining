@@ -1,0 +1,22 @@
+# Generated
+convex/_generated/
+next-env.d.ts
+package-lock.json
+infra/package-lock.json
+infra/cdk.out/
+# Build and test output
+.next/
+out/
+build/
+storybook-static/
+coverage/
+test-results/
+playwright-report/
+playwright-responsive-results/
+email-previews/
+# Exported from n8n by scripts/n8n-export.sh; keep the exporter's formatting.
+n8n/workflows/
+n8n/credentials/
+# Prose: formatting is reviewed by hand.
+*.md
+*.mdx
