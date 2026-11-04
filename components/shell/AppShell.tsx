@@ -13,7 +13,6 @@ import {
   SendIcon,
   ShieldIcon,
   SidebarItem,
-  Spinner,
   ThemeToggle,
   ToolIcon,
 } from "@/components/ui";
@@ -21,6 +20,7 @@ import { api } from "@/convex/_generated/api";
 import { appNav, isActive, type NavIcon } from "@/lib/nav";
 import { Footer } from "./Footer";
 import { Logo } from "./Logo";
+import { PageSkeleton } from "./PageSkeleton";
 
 const icons: Record<NavIcon, ReactNode> = {
   tools: <ToolIcon />,
@@ -34,9 +34,10 @@ const icons: Record<NavIcon, ReactNode> = {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const me = useQuery(api.users.me);
-  // Pages call queries that need the user's row. On a first sign-in that row
-  // is created by users.store just after auth reaches Convex, so wait for it
-  // instead of letting those queries throw.
+  // Pages call queries that need the user's row, so wait for it instead of
+  // letting those queries throw. `undefined` is the usual brief load; `null`
+  // means signed in but the row doesn't exist yet: a first sign-in, while
+  // users.store creates it.
   const ready = Boolean(me);
   const pending = useQuery(api.loans.pendingIncomingCount, ready ? {} : "skip") ?? 0;
   const links = appNav(me?.role);
@@ -96,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="w-full flex-1 px-4 py-8 lg:px-8">
-          {ready ? children : <Spinner label="Setting up your account…" />}
+          {ready ? children : <PageSkeleton settingUp={me === null} />}
         </main>
         <Footer className="px-4 lg:px-8" />
       </div>
