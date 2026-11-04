@@ -24,7 +24,7 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 
 ### Added
 - The SES SMTP IAM user (`lendloop-prod-ses-smtp`) and its send policy are defined in CDK instead of by hand. The policy covers recipient identities, which the SES sandbox requires.
-- A $1/month AWS Budget emails `ALERT_EMAIL` as soon as real (or forecast) spend appears on the free-plan account.
+- A $1/month AWS Budget emails `ALERT_EMAIL` as soon as real (or forecast) spend appears on the free-plan account. Create it once with `scripts/aws/create-cost-budget.sh` (Budgets is global and unavailable to CloudFormation in eu-north-1).
 - `.git-blame-ignore-revs` skips the repo-wide formatting commit.
 
 ### Fixed
