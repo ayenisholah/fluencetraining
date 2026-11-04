@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { redactDetail, RETENTION_DAYS } from "./automation";
+import { OVERDUE_BATCH, redactDetail, RETENTION_DAYS } from "./automation";
 import { isoDay, setup, signIn, type T } from "./test.setup";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -112,5 +112,57 @@ describe("error details are stored without email addresses", () => {
         .unique(),
     );
     expect(row?.detail).toBe("Send notification: 550 mailbox unavailable for [email]");
+  });
+});
+
+describe("automation:overdueLoans batching", () => {
+  test("loans already reminded today don't use up the batch", async () => {
+    const t = setup();
+    const ada = await signIn(t, "Ada", { email: "ada@example.com" });
+    const asOf = isoDay(0);
+    const total = OVERDUE_BATCH + 1;
+    const loanIds = await t.run(async (ctx) => {
+      const toolId = await ctx.db.insert("tools", {
+        ownerId: ada.id,
+        name: "Ladder",
+        category: "garden",
+        condition: "good",
+        description: "",
+        status: "on_loan",
+      });
+      const ids: Id<"loans">[] = [];
+      for (let i = 0; i < total; i++) {
+        ids.push(
+          await ctx.db.insert("loans", {
+            toolId,
+            borrowerId: ada.id,
+            lenderId: ada.id,
+            startDate: isoDay(-10),
+            endDate: isoDay(-1),
+            status: "approved",
+          }),
+        );
+      }
+      return ids;
+    });
+    // The first run reaches the first 500.
+    const first = await t.query(internal.automation.overdueLoans, { asOf });
+    expect(first).toHaveLength(OVERDUE_BATCH);
+    // They're reminded (as n8n's write-back records them)...
+    await t.run(async (ctx) => {
+      for (const row of first) {
+        await ctx.db.insert("automationEvents", {
+          idempotencyKey: row.idempotencyKey,
+          loanId: row.loanId as Id<"loans">,
+          kind: "overdue_reminder",
+          status: "sent",
+          at: Date.now(),
+        });
+      }
+    });
+    // ...so a re-run returns the one loan the first run didn't get to.
+    const second = await t.query(internal.automation.overdueLoans, { asOf });
+    expect(second.map((r) => r.loanId)).toEqual(loanIds.filter((id) => !first.some((r) => r.loanId === id)));
+    expect(second).toHaveLength(1);
   });
 });

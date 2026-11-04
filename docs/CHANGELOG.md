@@ -4,6 +4,12 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 
 ## Unreleased
 
+### Fixed
+- The overdue query filters already-reminded loans *while* scanning (up to 500 returned, 4,000 scanned), so a partial run no longer leaves later overdue loans permanently unreminded.
+
+### Documentation
+- README and ADR 0005 state the delivery guarantees precisely: idempotent records, best-effort email deduplication, and why the webhook is acknowledged before the activity write-back.
+
 ### Security
 - The signed-out landing page searches tool **names only** (new `searchPublic` index on `publicSearchText`). Before, a description-only word still matched, which let anyone probe descriptions they aren't shown.
 - Error details written back from n8n have email addresses masked before storage.
