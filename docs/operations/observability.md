@@ -80,4 +80,4 @@ All operational alarm actions target SNS topic `lendloop-prod-alerts`, exposed a
 4. For web failures, inspect the Amplify build and runtime logs, DNS and Clerk configuration. For landing-only canary failures, check whether public listings exist.
 5. For disk pressure, inspect volume usage before deleting anything. Convex/n8n volumes are persistent application data, not disposable container caches.
 
-SES bounce/complaint monitoring is deferred and is not implemented by this stack. Do not confuse the SNS infrastructure alarm topic with SES delivery-event monitoring.
+SES reputation: `lendloop-prod-ses-bounce-rate` (hourly maximum above 2%) and `lendloop-prod-ses-complaint-rate` (above 0.05%) notify the alerts topic. AWS reviews accounts at 5% bounces or 0.1% complaints. The account-level suppression list (bounces and complaints) stops mail to those addresses. Do not confuse the SNS infrastructure alarm topic with SES delivery-event monitoring.
