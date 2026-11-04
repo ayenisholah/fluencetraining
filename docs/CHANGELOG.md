@@ -8,6 +8,8 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 - The overdue query filters already-reminded loans *while* scanning (up to 500 returned, 4,000 scanned), so a partial run no longer leaves later overdue loans permanently unreminded.
 
 ### Documentation
+- README opens with a live-demo walkthrough, including the SES sandbox limit and how a reviewer gets admin, and the production note is rewritten as a short, current priority list.
+- README, ADR 0004 and `AGENTS.md` no longer overstate what per-direction HMAC secrets protect, and match the code on the Node version, admin removal of on-loan tools, admin access to names and emails, and pagination state.
 - README and ADR 0005 state the delivery guarantees precisely: idempotent records, best-effort email deduplication, and why the webhook is acknowledged before the activity write-back.
 
 ### Security

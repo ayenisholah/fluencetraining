@@ -58,14 +58,14 @@ Tests live next to the code they test (`Foo.tsx` + `Foo.test.tsx`).
 - Write loan status with `setLoanStatus` (`convex/lib/loanRecord.ts`), and tool name, description or status with `setToolStatus` / `toolSearchFields` (`convex/lib/toolRecord.ts`). Don't patch those fields directly.
 - Anything that should notify someone goes through `enqueueLoanEvent` (`convex/lib/outbox.ts`) in the same mutation. Never call n8n directly.
 - Validation shared with forms lives in `convex/lib/rules.ts`, which must not import Convex server code (the browser bundle uses it).
-- Other users only ever see a **first name** (`firstName` in `convex/lib/people.ts`). Never return another user's email or full name, and never put them in notification payloads.
+- Other users only ever see a **first name** (`firstName` in `convex/lib/people.ts`). Never return another user's email or full name, and never put them in notification payloads. The one exception is admin screens behind `requireAdmin` (`convex/admin.ts`), which show full names and emails.
 - Lists are paginated on the server with `pageArgs` + `numberedPage` (`convex/lib/pagination.ts`; page sizes 10, 25, 50 or 100) and searched with `vSearch` / `searchTerm` (`convex/lib/search.ts`). Writes that users can repeat are rate limited with `assertWithinRateLimit`.
 - New derived or indexed fields are optional, maintained by the `*Record.ts` helper, and backfilled in `convex/migrations.ts`.
 
 **UI (client)**
 - Colours come from tokens in `app/globals.css`. **No hex values** in components.
 - Destructive actions confirm with `useConfirm()` (`components/ui/ConfirmDialog`). `window.confirm` and `alert` are lint errors.
-- Filters, search, page and view live in the URL via `useUrlState` (`lib/useUrlState.ts`), rendered under `<Suspense>`.
+- Filters, search and view live in the URL via `useUrlState` (`lib/useUrlState.ts`), rendered under `<Suspense>`. Page number and page size are local state (`lib/useNumberedPage.ts`).
 - Form errors appear only after a submit attempt, then update live.
 - Every new screen or component gets an axe test (`test/axe.ts`), keyboard support and visible focus. New `components/ui` parts also get a story.
 - Client code must not import `convex/_generated/server`, `convex/lib/auth` or `convex/lib/outbox` (lint error). Call the server through `api.*` from `convex/_generated/api`.
