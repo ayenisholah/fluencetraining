@@ -1,5 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { acceptEssentialOnly, signedInPage, promoteToAdmin, listTool, purgeTestTool, cardFor, expectNoHorizontalScroll } from "./helpers";
+import {
+  acceptEssentialOnly,
+  signedInPage,
+  promoteToAdmin,
+  listTool,
+  purgeTestTool,
+  cardFor,
+  expectNoHorizontalScroll,
+} from "./helpers";
 import { ADMIN, RENTER } from "./users";
 
 test.use({ actionTimeout: 15_000 });
@@ -13,7 +21,18 @@ test("pages fit across Tailwind breakpoints in both themes", async ({ browser })
   try {
     for (const theme of ["light", "dark"]) {
       await page.evaluate((value) => localStorage.setItem("lendloop.theme", value), theme);
-      for (const path of ["/tools?view=cards", "/tools?view=tiles", "/tools?view=list", "/listings", "/requests", "/incoming", "/admin", "/", "/privacy", "/terms"]) {
+      for (const path of [
+        "/tools?view=cards",
+        "/tools?view=tiles",
+        "/tools?view=list",
+        "/listings",
+        "/requests",
+        "/incoming",
+        "/admin",
+        "/",
+        "/privacy",
+        "/terms",
+      ]) {
         await page.goto(path);
         await acceptEssentialOnly(page);
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -27,9 +46,10 @@ test("pages fit across Tailwind breakpoints in both themes", async ({ browser })
         }
       }
     }
-  } finally { await page.context().close(); }
+  } finally {
+    await page.context().close();
+  }
 });
-
 
 test("long listings, borrowing calendars and bulk actions remain usable", async ({ browser }, testInfo) => {
   test.setTimeout(600_000);
@@ -40,7 +60,8 @@ test("long listings, borrowing calendars and bulk actions remain usable", async 
   try {
     await listTool(owner, name, "Camping");
     for (const theme of ["light", "dark"]) {
-      for (const page of [owner, renter]) await page.evaluate((value) => localStorage.setItem("lendloop.theme", value), theme);
+      for (const page of [owner, renter])
+        await page.evaluate((value) => localStorage.setItem("lendloop.theme", value), theme);
       for (const width of [320, 375, 640, 768, 1024, 1280, 1536]) {
         for (const view of ["cards", "tiles", "list"]) {
           await renter.setViewportSize({ width, height: 900 });
@@ -57,7 +78,8 @@ test("long listings, borrowing calendars and bulk actions remain usable", async 
           expect(box!.x, `${view} calendar at ${width}`).toBeGreaterThanOrEqual(0);
           expect(box!.x + box!.width).toBeLessThanOrEqual(width);
           await expectNoHorizontalScroll(renter);
-          if (width === 320 && view === "tiles") await renter.screenshot({ path: testInfo.outputPath(`borrow-${theme}.png`) });
+          if (width === 320 && view === "tiles")
+            await renter.screenshot({ path: testInfo.outputPath(`borrow-${theme}.png`) });
           if (width === 375) {
             await renter.keyboard.press("ArrowRight");
             await renter.keyboard.press("Enter");
@@ -75,7 +97,9 @@ test("long listings, borrowing calendars and bulk actions remain usable", async 
         await owner.goto("/admin");
         await expect(owner.getByRole("heading", { level: 1, name: "Admin" })).toBeVisible();
         await acceptEssentialOnly(owner);
-        const section = owner.locator("section").filter({ has: owner.getByRole("heading", { name: "Listings", exact: true }) });
+        const section = owner
+          .locator("section")
+          .filter({ has: owner.getByRole("heading", { name: "Listings", exact: true }) });
         await section.getByRole("searchbox", { name: "Search listings" }).fill(marker);
         await expect(section.getByRole("checkbox", { name: `Select ${name}`, exact: true })).toBeVisible();
         await expect(section.getByRole("checkbox")).toHaveCount(2);
@@ -95,6 +119,8 @@ test("long listings, borrowing calendars and bulk actions remain usable", async 
   } finally {
     try {
       await Promise.allSettled([owner.context().close(), renter.context().close()]);
-    } finally { purgeTestTool(name); }
+    } finally {
+      purgeTestTool(name);
+    }
   }
 });

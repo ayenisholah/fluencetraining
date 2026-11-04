@@ -48,7 +48,9 @@ describe("BorrowForm", () => {
     expect(screen.getByRole("button", { name: formatLong(addDays(start, 30)) })).toHaveFocus();
     await userEvent.keyboard("{Escape}");
     await userEvent.click(until);
-    expect(screen.getByRole("button", { name: formatLong(todayIso(2)) }).closest("td")?.className).toContain("bg-brand-soft");
+    expect(screen.getByRole("button", { name: formatLong(todayIso(2)) }).closest("td")?.className).toContain(
+      "bg-brand-soft",
+    );
   });
 
   test("cancel calls back", async () => {
@@ -64,23 +66,34 @@ describe("BorrowForm", () => {
   });
 });
 
-
 test("repeated submit events while a request is pending send only once", async () => {
   let finish!: () => void;
-  const onSubmit = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+  const onSubmit = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+  );
   const onSent = vi.fn();
   render(<BorrowForm onSubmit={onSubmit} onSent={onSent} onCancel={vi.fn()} />);
   const button = screen.getByRole("button", { name: "Send request" });
-  act(() => { fireEvent.submit(button.closest("form")!); fireEvent.submit(button.closest("form")!); });
+  act(() => {
+    fireEvent.submit(button.closest("form")!);
+    fireEvent.submit(button.closest("form")!);
+  });
   expect(onSubmit).toHaveBeenCalledTimes(1);
   expect(button).toBeDisabled();
   await act(async () => finish());
   expect(onSent).toHaveBeenCalledOnce();
 });
 
-
 test("a server refusal is shown and releases the submit guard for retry", async () => {
-  const onSubmit = vi.fn().mockRejectedValueOnce(new ConvexError({ code: "BAD_REQUEST", message: "The tool is already lent out for those dates." })).mockResolvedValueOnce(undefined);
+  const onSubmit = vi
+    .fn()
+    .mockRejectedValueOnce(
+      new ConvexError({ code: "BAD_REQUEST", message: "The tool is already lent out for those dates." }),
+    )
+    .mockResolvedValueOnce(undefined);
   const onSent = vi.fn();
   render(<BorrowForm onSubmit={onSubmit} onSent={onSent} onCancel={vi.fn()} />);
   const button = screen.getByRole("button", { name: "Send request" });

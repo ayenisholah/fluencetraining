@@ -32,11 +32,10 @@ export const users = query({
     const term = searchTerm(search);
     const users = ctx.db.query("users");
     const source = term
-      ? users
-          .withSearchIndex("search", (q) => {
-            const s = q.search("searchText", term);
-            return filter === "admins" ? s.eq("role", "admin") : filter === "trusted" ? s.eq("trustedLender", true) : s;
-          })
+      ? users.withSearchIndex("search", (q) => {
+          const s = q.search("searchText", term);
+          return filter === "admins" ? s.eq("role", "admin") : filter === "trusted" ? s.eq("trustedLender", true) : s;
+        })
       : filter === "admins"
         ? users.withIndex("by_role", (q) => q.eq("role", "admin")).order("desc")
         : filter === "trusted"
@@ -64,11 +63,10 @@ export const listings = query({
     const term = searchTerm(search);
     const tools = ctx.db.query("tools");
     const source = term
-      ? tools
-          .withSearchIndex("search", (q) => {
-            const s = q.search("searchText", term).eq("listed", true);
-            return category ? s.eq("category", category) : s;
-          })
+      ? tools.withSearchIndex("search", (q) => {
+          const s = q.search("searchText", term).eq("listed", true);
+          return category ? s.eq("category", category) : s;
+        })
       : category
         ? tools.withIndex("by_listed_category", (q) => q.eq("listed", true).eq("category", category)).order("desc")
         : tools.withIndex("by_listed", (q) => q.eq("listed", true)).order("desc");
@@ -118,7 +116,10 @@ export const removeListings = mutation({
     let skippedCount = 0;
     for (const toolId of new Set(toolIds)) {
       const tool = await ctx.db.get(toolId);
-      if (!tool || tool.status === "removed") { skippedCount++; continue; }
+      if (!tool || tool.status === "removed") {
+        skippedCount++;
+        continue;
+      }
       await removeTool(ctx, tool, admin, { allowOnLoan: true });
       removedCount++;
     }
@@ -190,9 +191,18 @@ export const stats = query({
     await requireAdmin(ctx);
     const today = todayUtc();
     const [requested, approved, failed] = await Promise.all([
-      ctx.db.query("loans").withIndex("by_status_end", (q) => q.eq("status", "requested")).collect(),
-      ctx.db.query("loans").withIndex("by_status_end", (q) => q.eq("status", "approved")).collect(),
-      ctx.db.query("webhookDeliveries").withIndex("by_status", (q) => q.eq("status", "failed")).collect(),
+      ctx.db
+        .query("loans")
+        .withIndex("by_status_end", (q) => q.eq("status", "requested"))
+        .collect(),
+      ctx.db
+        .query("loans")
+        .withIndex("by_status_end", (q) => q.eq("status", "approved"))
+        .collect(),
+      ctx.db
+        .query("webhookDeliveries")
+        .withIndex("by_status", (q) => q.eq("status", "failed"))
+        .collect(),
     ]);
     return {
       openRequests: requested.length,

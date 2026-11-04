@@ -54,7 +54,12 @@ describe("ToolForm", () => {
     await userEvent.click(screen.getByRole("option", { name: "Fair" }));
     await userEvent.type(screen.getByLabelText("Short description"), "3m");
     await userEvent.click(screen.getByRole("button", { name: "List it" }));
-    expect(onSubmit).toHaveBeenCalledWith({ name: "Ladder", category: "hand_tools", condition: "fair", description: "3m" });
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: "Ladder",
+      category: "hand_tools",
+      condition: "fair",
+      description: "3m",
+    });
     expect(screen.getByLabelText("Name")).toHaveValue("");
   });
 

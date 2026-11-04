@@ -48,7 +48,11 @@ describe("HomeScreen (public landing)", () => {
   test("each tool shows its name and a coloured category badge, nothing else", () => {
     render(<HomeScreen />);
     const items = within(list()).getAllByRole("listitem");
-    expect(items.map((li) => li.textContent)).toEqual(["Cordless drillPower tools", "Two-person tentCamping", "Leaf rakeGarden"]);
+    expect(items.map((li) => li.textContent)).toEqual([
+      "Cordless drillPower tools",
+      "Two-person tentCamping",
+      "Leaf rakeGarden",
+    ]);
     // Scoped to the tool cards: the category chips above repeat the labels.
     expect(within(items[0]).getByText("Power tools").className).toContain("bg-preset-orange-soft");
     expect(within(items[2]).getByText("Garden").className).toContain("bg-preset-green-soft");
@@ -93,8 +97,14 @@ describe("HomeScreen (public landing)", () => {
 
   test("signed out: both Clerk buttons land on /tools after sign-in", () => {
     render(<HomeScreen />);
-    expect(within(screen.getByTestId("clerk-sign-in")).getByRole("button", { name: "Sign in to lend or borrow" })).toBeInTheDocument();
-    expect(signInProps.at(-1)).toMatchObject({ mode: "modal", forceRedirectUrl: "/tools", signUpForceRedirectUrl: "/tools" });
+    expect(
+      within(screen.getByTestId("clerk-sign-in")).getByRole("button", { name: "Sign in to lend or borrow" }),
+    ).toBeInTheDocument();
+    expect(signInProps.at(-1)).toMatchObject({
+      mode: "modal",
+      forceRedirectUrl: "/tools",
+      signUpForceRedirectUrl: "/tools",
+    });
   });
 
   test("signed in: the sign-in button is replaced by a link into the app", () => {

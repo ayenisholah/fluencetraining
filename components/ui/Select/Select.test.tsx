@@ -17,7 +17,14 @@ function Harness(props: { hideLabel?: boolean; name?: string; initial?: string }
   const [value, setValue] = useState(props.initial ?? "power");
   return (
     <form data-testid="form">
-      <Select label="Category" options={options} value={value} onValueChange={setValue} hideLabel={props.hideLabel} name={props.name} />
+      <Select
+        label="Category"
+        options={options}
+        value={value}
+        onValueChange={setValue}
+        hideLabel={props.hideLabel}
+        name={props.name}
+      />
       <button type="button">After</button>
     </form>
   );

@@ -1,5 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
-import { acceptEssentialOnly, cardFor, cli, expectNoAxeViolations, expectNoHorizontalScroll, listTool, promoteToAdmin, purgeTestTool, requestToBorrow, signedInPage } from "./helpers";
+import {
+  acceptEssentialOnly,
+  cardFor,
+  cli,
+  expectNoAxeViolations,
+  expectNoHorizontalScroll,
+  listTool,
+  promoteToAdmin,
+  purgeTestTool,
+  requestToBorrow,
+  signedInPage,
+} from "./helpers";
 import { ADMIN, OWNER, RENTER } from "./users";
 
 // Roles & rules end to end. Needs the local stack (docker compose) and Clerk
@@ -160,14 +171,15 @@ test("admin page passes axe", async () => {
   await expectNoAxeViolations(admin);
 });
 
-
 test("admin bulk removal selects only the visible page and clamps the final page", async () => {
   test.setTimeout(180_000);
   for (let i = 1; i <= 11; i++) await listTool(i <= 6 ? owner : renter, `${bulkName} ${i}`, "Garden");
   await admin.goto("/admin");
   const listings = section(admin, "Listings");
   await listings.getByRole("searchbox").fill(bulkName);
-  await expect(listings.getByRole("navigation", { name: "listings pagination" })).toContainText("Showing 1–10 of 11 listings");
+  await expect(listings.getByRole("navigation", { name: "listings pagination" })).toContainText(
+    "Showing 1–10 of 11 listings",
+  );
   await expect(listings.getByRole("listitem")).toHaveCount(10);
   await listings.getByRole("button", { name: "Next" }).click();
   await expect(listings.getByRole("listitem")).toHaveCount(1);

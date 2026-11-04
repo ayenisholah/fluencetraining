@@ -37,9 +37,17 @@ const open: Story["play"] = async ({ canvasElement }) => {
 };
 
 export const Danger: Story = { play: open };
-export const Brand: Story = { args: { tone: "brand", title: "Send this request?", confirmLabel: "Send", description: "The lender gets an email." }, play: open };
+export const Brand: Story = {
+  args: { tone: "brand", title: "Send this request?", confirmLabel: "Send", description: "The lender gets an email." },
+  play: open,
+};
 export const ServerRefusal: Story = {
-  args: { onConfirm: () => Promise.reject(new ConvexError({ code: "BAD_REQUEST", message: "This tool is on loan. Mark it returned first." })) },
+  args: {
+    onConfirm: () =>
+      Promise.reject(
+        new ConvexError({ code: "BAD_REQUEST", message: "This tool is on loan. Mark it returned first." }),
+      ),
+  },
   play: async (ctx) => {
     await open(ctx);
     await userEvent.click(within(document.body).getByRole("button", { name: "Delete listing" }));

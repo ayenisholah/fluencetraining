@@ -35,7 +35,11 @@ describe("tool photos", () => {
 
   test.each([
     ["HTML", new Blob(["<script>alert(1)</script>"], { type: "text/html" }), /JPEG, PNG or WebP/],
-    ["SVG (can carry script)", new Blob(["<svg xmlns='http://www.w3.org/2000/svg'/>"], { type: "image/svg+xml" }), /JPEG, PNG or WebP/],
+    [
+      "SVG (can carry script)",
+      new Blob(["<svg xmlns='http://www.w3.org/2000/svg'/>"], { type: "image/svg+xml" }),
+      /JPEG, PNG or WebP/,
+    ],
     ["over 5 MB", new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: "image/jpeg" }), /5 MB/],
   ])("refuses %s", async (_name, blob, message) => {
     const t = setup();
@@ -52,7 +56,9 @@ describe("tool photos", () => {
     await ada.as.mutation(api.tools.create, { ...drill, imageId });
     await expect(eve.as.mutation(api.tools.create, { ...drill, imageId })).rejects.toThrow(/already used/);
     const eveTool = await eve.as.mutation(api.tools.create, drill);
-    await expect(eve.as.mutation(api.tools.update, { toolId: eveTool, ...drill, imageId })).rejects.toThrow(/already used/);
+    await expect(eve.as.mutation(api.tools.update, { toolId: eveTool, ...drill, imageId })).rejects.toThrow(
+      /already used/,
+    );
   });
 
   test("replacing, removing, or deleting the listing deletes the old file", async () => {

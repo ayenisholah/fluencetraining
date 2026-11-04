@@ -14,7 +14,13 @@ async function toolWithHistory(t: T, name: string) {
   const toolId = await owner.as.mutation(api.tools.create, tool(name));
   const loanId = await borrower.as.mutation(api.loans.request, { toolId, startDate: isoDay(1), endDate: isoDay(2) });
   await t.run((ctx) =>
-    ctx.db.insert("automationEvents", { idempotencyKey: `notify:${name}`, loanId, kind: "request_notification", status: "sent", at: 1 }),
+    ctx.db.insert("automationEvents", {
+      idempotencyKey: `notify:${name}`,
+      loanId,
+      kind: "request_notification",
+      status: "sent",
+      at: 1,
+    }),
   );
   return { toolId, loanId };
 }
@@ -30,18 +36,41 @@ describe("dev:purgeTestData", () => {
     const real = await toolWithHistory(t, "Wheelbarrow");
     await t.run((ctx) =>
       Promise.all([
-        ctx.db.insert("automationEvents", { idempotencyKey: "error:1", kind: "workflow_error", status: "failed", detail: "x: Unknown event type: loan.e2e-broken-1", at: 1 }),
-        ctx.db.insert("automationEvents", { idempotencyKey: "error:3", kind: "workflow_error", status: "failed", detail: "x: Unknown event type: loan.e2e-broken-2", at: 1 }),
-        ctx.db.insert("automationEvents", { idempotencyKey: "error:2", kind: "workflow_error", status: "failed", detail: "real outage", at: 1 }),
+        ctx.db.insert("automationEvents", {
+          idempotencyKey: "error:1",
+          kind: "workflow_error",
+          status: "failed",
+          detail: "x: Unknown event type: loan.e2e-broken-1",
+          at: 1,
+        }),
+        ctx.db.insert("automationEvents", {
+          idempotencyKey: "error:3",
+          kind: "workflow_error",
+          status: "failed",
+          detail: "x: Unknown event type: loan.e2e-broken-2",
+          at: 1,
+        }),
+        ctx.db.insert("automationEvents", {
+          idempotencyKey: "error:2",
+          kind: "workflow_error",
+          status: "failed",
+          detail: "real outage",
+          at: 1,
+        }),
       ]),
     );
 
     // Names mode only touches this run's error rows (marker run 1, not run 2).
-    const counts = await t.mutation(internal.dev.purgeTestData, { names: ["E2E ladder run1"], errorMarkers: ["e2e-broken-1"] });
+    const counts = await t.mutation(internal.dev.purgeTestData, {
+      names: ["E2E ladder run1"],
+      errorMarkers: ["e2e-broken-1"],
+    });
     expect(counts).toEqual({ tools: 1, loans: 1, deliveries: 1, events: 2 });
-    expect(await t.run(async (ctx) => (await ctx.db.query("automationEvents").collect()).map((e) => e.idempotencyKey).sort())).toEqual(
-      ["error:2", "error:3", "notify:E2E ladder run2", "notify:Wheelbarrow"],
-    );
+    expect(
+      await t.run(async (ctx) =>
+        (await ctx.db.query("automationEvents").collect()).map((e) => e.idempotencyKey).sort(),
+      ),
+    ).toEqual(["error:2", "error:3", "notify:E2E ladder run2", "notify:Wheelbarrow"]);
     expect(await t.run((ctx) => ctx.db.get(a.toolId))).toBeNull();
     expect(await t.run((ctx) => ctx.db.get(a.loanId))).toBeNull();
 
@@ -61,7 +90,9 @@ describe("dev:purgeTestData", () => {
     await expect(t.mutation(internal.dev.purgeTestData, {})).rejects.toThrow(/names.*prefix/);
     await expect(t.mutation(internal.dev.purgeTestData, { prefix: "" })).rejects.toThrow(/must start with/);
     await expect(t.mutation(internal.dev.purgeTestData, { prefix: "W" })).rejects.toThrow(/must start with/);
-    await expect(t.mutation(internal.dev.purgeTestData, { names: ["Wheelbarrow"] })).rejects.toThrow(/Only tools named/);
+    await expect(t.mutation(internal.dev.purgeTestData, { names: ["Wheelbarrow"] })).rejects.toThrow(
+      /Only tools named/,
+    );
     await expect(
       t.mutation(internal.dev.purgeTestData, { names: ["E2E x"], errorMarkers: ["outage"] }),
     ).rejects.toThrow(/errorMarkers/);
@@ -96,14 +127,19 @@ describe("dev:seedNeighbourhood", () => {
     const owner = await signIn(t, "Real owner");
     const realId = await owner.as.mutation(api.tools.create, tool("Personal rake"));
     await t.mutation(internal.dev.seedNeighbourhood, {});
-    const seeded = await t.run(async (ctx) => (await ctx.db.query("tools").collect()).filter((row) => row._id !== realId));
+    const seeded = await t.run(async (ctx) =>
+      (await ctx.db.query("tools").collect()).filter((row) => row._id !== realId),
+    );
     await t.run(async (ctx) => {
       await ctx.db.patch(seeded[0]._id, { description: "Owner edited this", status: "on_loan" });
       await ctx.db.delete(seeded[1]._id);
     });
     expect(await t.mutation(internal.dev.seedNeighbourhood, {})).toEqual({ users: 0, tools: 1 });
     expect(await t.run((ctx) => ctx.db.get(realId))).toMatchObject({ name: "Personal rake" });
-    expect(await t.run((ctx) => ctx.db.get(seeded[0]._id))).toMatchObject({ description: "Owner edited this", status: "on_loan" });
+    expect(await t.run((ctx) => ctx.db.get(seeded[0]._id))).toMatchObject({
+      description: "Owner edited this",
+      status: "on_loan",
+    });
     expect(await count(t, "tools")).toBe(101);
   });
 
@@ -116,7 +152,11 @@ describe("dev:seedNeighbourhood", () => {
       const seen: string[] = [];
       let pageNumber = 1;
       do {
-        const result: typeof expected = await reader.as.query(api.tools.list, { ...filters, pageNumber, pageSize: numItems });
+        const result: typeof expected = await reader.as.query(api.tools.list, {
+          ...filters,
+          pageNumber,
+          pageSize: numItems,
+        });
         expect(result.page.length).toBeLessThanOrEqual(numItems);
         seen.push(...result.page.map((row) => row._id));
         if (pageNumber >= result.totalPages) break;

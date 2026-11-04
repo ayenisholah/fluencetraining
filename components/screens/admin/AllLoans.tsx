@@ -17,10 +17,11 @@ type Phase = "" | "open" | "active" | "closed";
 export function AllLoans() {
   const { search, setSearch, term } = useSectionSearch();
   const [phase, setPhase] = useState<Phase>("");
-  const { results: loans, status, pagination } = useNumberedPage(
-    api.admin.allLoans,
-    { search: term, phase: phase || undefined },
-  );
+  const {
+    results: loans,
+    status,
+    pagination,
+  } = useNumberedPage(api.admin.allLoans, { search: term, phase: phase || undefined });
   return (
     <Section title="All loans">
       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -54,7 +55,9 @@ export function AllLoans() {
                   <span className="text-fg-muted">
                     · {l.lenderName} → {l.borrowerName} · {formatDate(l.startDate)} – {formatDate(l.endDate)}
                   </span>
-                  {l.activity[0] && <p className="mt-1 text-description text-fg-muted">{activityText(l.activity[0])}</p>}
+                  {l.activity[0] && (
+                    <p className="mt-1 text-description text-fg-muted">{activityText(l.activity[0])}</p>
+                  )}
                 </div>
                 <Badge tone={badge.tone}>{badge.label}</Badge>
               </li>

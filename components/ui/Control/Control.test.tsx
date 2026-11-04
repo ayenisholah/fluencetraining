@@ -10,7 +10,11 @@ describe("Control", () => {
     expect(screen.getByRole("button", { name: "Filter" }).className).toContain("rounded-pill");
   });
   test("IconButton requires and exposes a label", async () => {
-    const { container } = render(<IconButton label="Add tool"><PlusIcon /></IconButton>);
+    const { container } = render(
+      <IconButton label="Add tool">
+        <PlusIcon />
+      </IconButton>,
+    );
     expect(screen.getByRole("button", { name: "Add tool" })).toHaveAttribute("title", "Add tool");
     expect(await axeViolations(container)).toEqual([]);
   });

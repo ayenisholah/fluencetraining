@@ -55,7 +55,7 @@ describe("tools.listPublic (landing page)", () => {
     await ada.as.mutation(api.loans.approve, { loanId });
     expect((await t.query(api.tools.listPublic, { ...ALL })).page).toEqual([]);
     await ada.as.mutation(api.loans.markReturned, { loanId });
-    expect(((await t.query(api.tools.listPublic, { ...ALL })).page).map((r) => r.name)).toEqual(["Drill"]);
+    expect((await t.query(api.tools.listPublic, { ...ALL })).page.map((r) => r.name)).toEqual(["Drill"]);
   });
 
   test("removed tools are gone; edits show up", async () => {
@@ -65,7 +65,9 @@ describe("tools.listPublic (landing page)", () => {
     const rake = await ada.as.mutation(api.tools.create, tool("Rake", "garden"));
     await ada.as.mutation(api.tools.remove, { toolId: drill });
     await ada.as.mutation(api.tools.update, { toolId: rake, ...tool("Leaf rake", "garden") });
-    expect((await t.query(api.tools.listPublic, { ...ALL })).page).toEqual([{ _id: rake, name: "Leaf rake", category: "garden" }]);
+    expect((await t.query(api.tools.listPublic, { ...ALL })).page).toEqual([
+      { _id: rake, name: "Leaf rake", category: "garden" },
+    ]);
   });
 
   test("pages through every available tool without repeats", async () => {
@@ -82,7 +84,8 @@ describe("tools.listPublic (landing page)", () => {
     let pageNumber = 1;
     for (;;) {
       const result: { page: { name: string }[]; totalPages: number } = await t.query(api.tools.listPublic, {
-        pageNumber, pageSize: 10,
+        pageNumber,
+        pageSize: 10,
       });
       seen.push(...result.page.map((r) => r.name));
       if (pageNumber >= result.totalPages) break;

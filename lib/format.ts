@@ -21,13 +21,13 @@ export const CATEGORIES = (Object.entries(CATEGORY_STYLES) as [Category, Categor
 );
 export const CONDITIONS = Object.entries(conditionLabels) as [Condition, string][];
 
-export const categoryLabel = (c?: string) => (c ? CATEGORY_STYLES[c as Category]?.label ?? c : "");
+export const categoryLabel = (c?: string) => (c ? (CATEGORY_STYLES[c as Category]?.label ?? c) : "");
 export const conditionLabel = (c: string) => conditionLabels[c as Condition] ?? c;
 
 export function errorMessage(err: unknown): string {
   if (err instanceof ConvexError) {
     const data = err.data as { message?: string } | string;
-    return typeof data === "string" ? data : data.message ?? "Something went wrong.";
+    return typeof data === "string" ? data : (data.message ?? "Something went wrong.");
   }
   return "Something went wrong. Please try again.";
 }

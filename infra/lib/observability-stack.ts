@@ -47,7 +47,8 @@ export class ObservabilityStack extends Stack {
     // ── Log metric filters ──────────────────────────────────────────────────
     const imported = new Map<string, logs.ILogGroup>();
     const logGroup = (name: keyof ObservabilityStackProps["logGroupNames"]) => {
-      if (!imported.has(name)) imported.set(name, logs.LogGroup.fromLogGroupName(this, `Lg${name}`, props.logGroupNames[name]));
+      if (!imported.has(name))
+        imported.set(name, logs.LogGroup.fromLogGroupName(this, `Lg${name}`, props.logGroupNames[name]));
       return imported.get(name)!;
     };
     const filter = (name: string, group: logs.ILogGroup, pattern: logs.IFilterPattern) =>
@@ -60,7 +61,11 @@ export class ObservabilityStack extends Stack {
         defaultValue: 0,
       }).metric({ statistic: "Sum", period: FIVE_MIN });
     const n8nErrors = filter("N8nErrorLogs", logGroup("n8n"), logs.FilterPattern.anyTerm("ERROR", "Error:"));
-    const convexErrors = filter("ConvexErrorLogs", logGroup("convex"), logs.FilterPattern.anyTerm("Uncaught", "[ERROR]"));
+    const convexErrors = filter(
+      "ConvexErrorLogs",
+      logGroup("convex"),
+      logs.FilterPattern.anyTerm("Uncaught", "[ERROR]"),
+    );
     const rejectedSigned = filter(
       "SignedRequestsRejected",
       logGroup("convex"),
@@ -114,7 +119,11 @@ exports.handler = async () => {
   await synthetics.takeScreenshot("landing", "loaded");
 };`,
       ),
-      canary("N8nCanary", "lendloop-n8n-webhook", http(`https://n8n.${props.baseDomain}/webhook/lendloop-loan-events`, 401, "POST")),
+      canary(
+        "N8nCanary",
+        "lendloop-n8n-webhook",
+        http(`https://n8n.${props.baseDomain}/webhook/lendloop-loan-events`, 401, "POST"),
+      ),
       canary("ConvexCanary", "lendloop-convex", http(`https://convex.${props.baseDomain}/version`, 200)),
     ];
 
@@ -186,7 +195,10 @@ exports.handler = async () => {
         `Synthetic check ${c.canaryName} failing.`,
         c.metricSuccessPercent({ period: Duration.minutes(15), statistic: "Average" }),
         100,
-        { comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD, treatMissingData: cloudwatch.TreatMissingData.BREACHING },
+        {
+          comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
+          treatMissingData: cloudwatch.TreatMissingData.BREACHING,
+        },
       ),
     );
     const hostMetric = (metricName: string, extra: Record<string, string> = {}) =>
@@ -211,10 +223,16 @@ exports.handler = async () => {
       { evaluationPeriods: 3, datapointsToAlarm: 3 },
     );
     const memory = alarm("host-memory", "Host memory above 85%.", hostMetric("mem_used_percent"), 85);
-    const disk = alarm("host-disk", "Host root disk above 85%.", hostMetric("disk_used_percent", { path: "/", fstype: "xfs" }), 85, {
-      evaluationPeriods: 1,
-      datapointsToAlarm: 1,
-    });
+    const disk = alarm(
+      "host-disk",
+      "Host root disk above 85%.",
+      hostMetric("disk_used_percent", { path: "/", fstype: "xfs" }),
+      85,
+      {
+        evaluationPeriods: 1,
+        datapointsToAlarm: 1,
+      },
+    );
     const statusCheck = alarm(
       "host-status-check",
       "EC2 status check failing (auto-recover is configured in the backend stack).",
@@ -243,7 +261,9 @@ exports.handler = async () => {
     const unhealthy = new cloudwatch.CompositeAlarm(this, "Unhealthy", {
       compositeAlarmName: "lendloop-prod-unhealthy",
       alarmDescription: "Any critical LendLoop alarm is firing.",
-      alarmRule: cloudwatch.AlarmRule.anyOf(...critical.map((a) => cloudwatch.AlarmRule.fromAlarm(a, cloudwatch.AlarmState.ALARM))),
+      alarmRule: cloudwatch.AlarmRule.anyOf(
+        ...critical.map((a) => cloudwatch.AlarmRule.fromAlarm(a, cloudwatch.AlarmState.ALARM)),
+      ),
     });
     unhealthy.addAlarmAction(notify);
     unhealthy.addOkAction(notify);
@@ -258,7 +278,18 @@ exports.handler = async () => {
     dash.addWidgets(
       new cloudwatch.AlarmStatusWidget({
         title: "Alarms",
-        alarms: [unhealthy, failedDeliveries, workflowErrors, remindersMissed, cpu, memory, disk, web5xx, webLatency, ...critical],
+        alarms: [
+          unhealthy,
+          failedDeliveries,
+          workflowErrors,
+          remindersMissed,
+          cpu,
+          memory,
+          disk,
+          web5xx,
+          webLatency,
+          ...critical,
+        ],
         width: 24,
         height: 4,
       }),
@@ -277,10 +308,19 @@ exports.handler = async () => {
       ),
     );
     dash.addWidgets(
-      graph("Web: requests and 5xx", [amplify("Requests", "Sum"), amplify("5xxErrors", "Sum"), amplify("4xxErrors", "Sum")]),
+      graph("Web: requests and 5xx", [
+        amplify("Requests", "Sum"),
+        amplify("5xxErrors", "Sum"),
+        amplify("4xxErrors", "Sum"),
+      ]),
       graph("Web: latency p50 / p99 (ms)", [amplify("Latency", "p50"), amplify("Latency", "p99")]),
       graph("Host: CPU, memory, disk (%)", [
-        new cloudwatch.Metric({ namespace: "AWS/EC2", metricName: "CPUUtilization", dimensionsMap: { InstanceId: props.instanceId }, period: FIVE_MIN }),
+        new cloudwatch.Metric({
+          namespace: "AWS/EC2",
+          metricName: "CPUUtilization",
+          dimensionsMap: { InstanceId: props.instanceId },
+          period: FIVE_MIN,
+        }),
         hostMetric("mem_used_percent"),
         hostMetric("disk_used_percent", { path: "/", fstype: "xfs" }),
       ]),
@@ -291,7 +331,7 @@ exports.handler = async () => {
         logGroupNames: Object.values(props.logGroupNames),
         queryLines: [
           "fields @timestamp, @logStream, @message",
-          "filter @message like /(?i)(error|uncaught|signed_request_rejected|\"status\":5\\d\\d)/",
+          'filter @message like /(?i)(error|uncaught|signed_request_rejected|"status":5\\d\\d)/',
           "sort @timestamp desc",
           "limit 50",
         ],

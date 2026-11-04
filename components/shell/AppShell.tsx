@@ -71,7 +71,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <DropdownMenu
               triggerLabel="Open navigation"
               align="start"
-              trigger={<span className="flex size-10 items-center justify-center rounded-pill border border-line text-fg"><MenuIcon size={20} /></span>}
+              trigger={
+                <span className="flex size-10 items-center justify-center rounded-pill border border-line text-fg">
+                  <MenuIcon size={20} />
+                </span>
+              }
               linkComponent={Link as never}
               items={links.map((link) => ({
                 key: link.href,

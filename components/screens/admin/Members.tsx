@@ -14,7 +14,11 @@ type Filter = "" | "admins" | "trusted";
 export function Members({ actions }: { actions: RowActions }) {
   const { search, setSearch, term } = useSectionSearch();
   const [filter, setFilter] = useState<Filter>("");
-  const { results: users, status, pagination } = useNumberedPage(api.admin.users, { search: term, filter: filter || undefined });
+  const {
+    results: users,
+    status,
+    pagination,
+  } = useNumberedPage(api.admin.users, { search: term, filter: filter || undefined });
   const setTrusted = useMutation(api.admin.setTrustedLender);
   return (
     <Section title="Members" description="Trusted lenders get a badge on their listings.">
@@ -45,7 +49,12 @@ export function Members({ actions }: { actions: RowActions }) {
                 <Avatar name={u.name} size={36} />
                 <span className="min-w-0">
                   <span className="block truncate text-body-bold text-fg">
-                    {u.name} {u.role === "admin" && <Badge variant="ghost" tone="brand">admin</Badge>}
+                    {u.name}{" "}
+                    {u.role === "admin" && (
+                      <Badge variant="ghost" tone="brand">
+                        admin
+                      </Badge>
+                    )}
                   </span>
                   <span className="block truncate text-description text-fg-muted">{u.email}</span>
                 </span>
@@ -53,7 +62,11 @@ export function Members({ actions }: { actions: RowActions }) {
               <Toggle
                 size="sm"
                 // The hidden name makes each switch distinguishable ("Olu Owner: Trusted").
-                label={<><span className="sr-only">{`${u.name}:`}</span>{" "}Trusted</>}
+                label={
+                  <>
+                    <span className="sr-only">{`${u.name}:`}</span> Trusted
+                  </>
+                }
                 checked={u.trustedLender}
                 onCheckedChange={(trusted) => void actions.run(u._id, () => setTrusted({ userId: u._id, trusted }))}
               />

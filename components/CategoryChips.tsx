@@ -17,14 +17,26 @@ export function CategoryChips({ value, onChange }: { value: Category | ""; onCha
   const index = Math.max(0, options.indexOf(value));
   const onKeyDown = (e: KeyboardEvent) => {
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
-    const target = e.key === "Home" ? 0 : e.key === "End" ? options.length - 1 : step !== undefined ? (index + step + options.length) % options.length : -1;
+    const target =
+      e.key === "Home"
+        ? 0
+        : e.key === "End"
+          ? options.length - 1
+          : step !== undefined
+            ? (index + step + options.length) % options.length
+            : -1;
     if (target < 0) return;
     e.preventDefault();
     onChange(options[target]);
     refs.current[target]?.focus();
   };
   return (
-    <div role="radiogroup" aria-label="Category" onKeyDown={onKeyDown} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
+    <div
+      role="radiogroup"
+      aria-label="Category"
+      onKeyDown={onKeyDown}
+      className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]"
+    >
       {options.map((option, i) => {
         const selected = option === value;
         const style = option ? CATEGORY_STYLES[option] : undefined;

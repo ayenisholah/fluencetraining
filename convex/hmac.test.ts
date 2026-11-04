@@ -11,15 +11,17 @@ describe("hmac", () => {
   });
   test("detects a tampered body", async () => {
     const { timestamp, signature } = await sign(secret, '{"a":1}');
-    expect(
-      await verify({ secret, rawBody: '{"a":2}', timestamp, signature }),
-    ).toEqual({ ok: false, reason: "mismatch" });
+    expect(await verify({ secret, rawBody: '{"a":2}', timestamp, signature })).toEqual({
+      ok: false,
+      reason: "mismatch",
+    });
   });
   test("detects a re-used signature with a new timestamp", async () => {
     const { signature } = await sign(secret, "{}", 1_000);
-    expect(
-      await verify({ secret, rawBody: "{}", timestamp: "2000", signature, now: 2_000 }),
-    ).toEqual({ ok: false, reason: "mismatch" });
+    expect(await verify({ secret, rawBody: "{}", timestamp: "2000", signature, now: 2_000 })).toEqual({
+      ok: false,
+      reason: "mismatch",
+    });
   });
   test("rejects stale and missing headers", async () => {
     const { timestamp, signature } = await sign(secret, "{}", 0);
@@ -27,9 +29,10 @@ describe("hmac", () => {
       ok: false,
       reason: "stale",
     });
-    expect(
-      await verify({ secret, rawBody: "{}", timestamp: null, signature }),
-    ).toEqual({ ok: false, reason: "missing" });
+    expect(await verify({ secret, rawBody: "{}", timestamp: null, signature })).toEqual({
+      ok: false,
+      reason: "missing",
+    });
   });
   test("matches the n8n Code node implementation (Node crypto)", async () => {
     const { createHmac } = await import("node:crypto");

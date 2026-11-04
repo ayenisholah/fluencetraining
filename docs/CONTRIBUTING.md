@@ -1,9 +1,19 @@
 # Contributing
 
+## Setup
+- Use Node 22 (`nvm use` reads `.nvmrc`). `npm install` also installs the git hooks (husky).
+- Change dependencies with npm 10, the version bundled with Node 22 and used in CI. Newer npm versions write a `package-lock.json` that CI's `npm ci` rejects. On another Node version, use `npx npm@10 install <pkg>`.
+- Follow [README › Local setup](../README.md#local-setup) for Docker, Convex, Clerk and n8n.
+
+## Using AI agents
+[AGENTS.md](../AGENTS.md) is the rulebook for coding agents (Claude Code reads it through [CLAUDE.md](../CLAUDE.md)). The same rules apply to you. If you use an agent, you're responsible for its diff: review every line, and don't let it add AI attribution (`Co-Authored-By` trailers, "Generated with ..." lines) to commits or PRs.
+
 ## Workflow
 1. Branch from `main` (`feature/…`, `fix/…`).
 2. Make small, **atomic commits**: one logical change each, and each one passes `npm run typecheck`. Message style: an imperative subject (≤ 72 characters) saying what and why ("Refuse to approve expired requests"), then a body explaining the reasoning.
-3. Before pushing: `npm run lint && npm run typecheck && npm test`. If you touched UI, also run `npm run test:storybook` and `npm run check:contrast`.
+3. Before pushing: `npm run format:check && npm run lint && npm run typecheck && npm test`. If you touched UI, also run `npm run test:storybook` and `npm run check:contrast`. If you touched `infra/`: `cd infra && npm run typecheck && npm run lint && npx cdk synth --strict -q`.
+   - The pre-commit hook formats (Prettier) and lints (ESLint, zero warnings) staged files. Don't bypass it with `--no-verify`.
+   - Never loosen a lint rule, type check or test to get green. An `eslint-disable` needs a `-- reason`.
 4. Open a PR. CI must be green. Run the signed-in Playwright project locally for changes to flows (see the [test plan](testing/test-plan.md)).
 
 ## Where code goes
@@ -15,6 +25,7 @@
 | A domain component | `components/` (e.g. `ToolCard.tsx`, `CategoryBadge.tsx`) |
 | A page | `app/(site)` or `app/(app)` route + `components/screens/<Name>.tsx` |
 | Client helpers | `lib/` |
+| AWS infrastructure | `infra/` (a separate npm package) and `deploy/ec2/` |
 
 ## Conventions
 - **Authorisation lives in Convex.** Every public function starts with a guard from `convex/lib/auth.ts`. The UI only hides what the server would refuse anyway.

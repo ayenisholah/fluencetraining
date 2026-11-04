@@ -14,8 +14,12 @@ describe("httpsRedirectUrl", () => {
   });
 
   test("upgrades an http site URL and drops the proxy port when none is configured", () => {
-    expect(httpsRedirectUrl(new URL("http://lendloop.example/a"), "http://lendloop.example").toString()).toBe("https://lendloop.example/a");
-    expect(httpsRedirectUrl(new URL("http://lendloop.example:8080/a?b=1"), undefined).toString()).toBe("https://lendloop.example/a?b=1");
+    expect(httpsRedirectUrl(new URL("http://lendloop.example/a"), "http://lendloop.example").toString()).toBe(
+      "https://lendloop.example/a",
+    );
+    expect(httpsRedirectUrl(new URL("http://lendloop.example:8080/a?b=1"), undefined).toString()).toBe(
+      "https://lendloop.example/a?b=1",
+    );
   });
 
   test("a protocol-relative path (//evil.example) can't change the host", () => {

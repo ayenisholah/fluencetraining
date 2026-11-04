@@ -2,7 +2,9 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { Mark } from "@/lib/brand";
 import { Logo } from "./Logo";
 
-const meta = { title: "Foundations/Brand", component: Logo, parameters: { layout: "fullscreen" } } satisfies Meta<typeof Logo>;
+const meta = { title: "Foundations/Brand", component: Logo, parameters: { layout: "fullscreen" } } satisfies Meta<
+  typeof Logo
+>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 

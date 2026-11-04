@@ -25,6 +25,9 @@ export async function setLoanStatus(
 
 /** After a tool is renamed, keep its loans findable by the new name. */
 export async function renameToolOnLoans(ctx: MutationCtx, toolId: Id<"tools">, toolName: string): Promise<void> {
-  const loans = await ctx.db.query("loans").withIndex("by_tool", (q) => q.eq("toolId", toolId)).collect();
+  const loans = await ctx.db
+    .query("loans")
+    .withIndex("by_tool", (q) => q.eq("toolId", toolId))
+    .collect();
   for (const loan of loans) if (loan.toolName !== toolName) await ctx.db.patch(loan._id, { toolName });
 }

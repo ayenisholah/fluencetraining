@@ -8,10 +8,7 @@ import { cn } from "@/lib/cn";
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 
-export type PhotoValue =
-  | { kind: "none" }
-  | { kind: "existing"; url: string }
-  | { kind: "new"; file: File };
+export type PhotoValue = { kind: "none" } | { kind: "existing"; url: string } | { kind: "new"; file: File };
 
 export function photoError(file: File): string | undefined {
   if (!PHOTO_TYPES.includes(file.type)) return "Choose a JPEG, PNG or WebP image.";
@@ -31,9 +28,12 @@ export function PhotoPicker({ value, onChange }: { value: PhotoValue; onChange: 
   const [dragging, setDragging] = useState(false);
   // Object URL for a local preview; revoked when the file changes or on unmount.
   const preview = useMemo(() => (value.kind === "new" ? URL.createObjectURL(value.file) : undefined), [value]);
-  useEffect(() => () => {
-    if (preview) URL.revokeObjectURL(preview);
-  }, [preview]);
+  useEffect(
+    () => () => {
+      if (preview) URL.revokeObjectURL(preview);
+    },
+    [preview],
+  );
 
   const pick = (file: File | undefined) => {
     if (!file) return;
@@ -95,7 +95,11 @@ export function PhotoPicker({ value, onChange }: { value: PhotoValue; onChange: 
             dragging ? "border-brand bg-brand-soft" : "border-line-strong hover:border-brand",
           )}
         >
-          {dragging ? <ImageIcon size={24} className="text-brand-fg" /> : <UploadIcon size={24} className="text-brand-fg" />}
+          {dragging ? (
+            <ImageIcon size={24} className="text-brand-fg" />
+          ) : (
+            <UploadIcon size={24} className="text-brand-fg" />
+          )}
           <span>
             <span className="font-semibold text-brand-fg">Choose a photo</span> or drop it here
           </span>

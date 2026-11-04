@@ -10,7 +10,12 @@ async function fixture(count = 1) {
   const data = await t.mutation(internal.concurrencyFixtures.setup, { runId, toolCount: count });
   const actor = (name: string) => t.withIdentity(data.actors.find((a) => a.actor === name)!.identity);
   const inspect = () => t.query(internal.concurrencyFixtures.inspect, { runId });
-  const request = () => actor("borrower0").mutation(api.loans.request, { toolId: data.toolIds[0], startDate: isoDay(1), endDate: isoDay(3) });
+  const request = () =>
+    actor("borrower0").mutation(api.loans.request, {
+      toolId: data.toolIds[0],
+      startDate: isoDay(1),
+      endDate: isoDay(3),
+    });
   return { t, runId, ...data, actor, inspect, request };
 }
 
@@ -20,7 +25,9 @@ for (const first of ["approve", "cancel", "decline"] as const) {
       const f = await fixture();
       const loanId = await f.request();
       await f.actor(first === "cancel" ? "borrower0" : "owner").mutation(api.loans[first], { loanId });
-      await expect(f.actor(second === "cancel" ? "borrower0" : "owner").mutation(api.loans[second], { loanId })).rejects.toThrow(/not open|Only open requests/);
+      await expect(
+        f.actor(second === "cancel" ? "borrower0" : "owner").mutation(api.loans[second], { loanId }),
+      ).rejects.toThrow(/not open|Only open requests/);
       const state = await f.inspect();
       expect(state.loans[0].status).toBe({ approve: "approved", cancel: "cancelled", decline: "declined" }[first]);
       expect(state.deliveries).toHaveLength(2);
@@ -34,8 +41,13 @@ for (const removeFirst of [true, false]) {
     test("request cannot survive removal as an open loan", async () => {
       const f = await fixture();
       const remove = () => f.actor("admin").mutation(api.admin.removeListing, { toolId: f.toolIds[0] });
-      if (removeFirst) { await remove(); await expect(f.request()).rejects.toThrow(/not found/); }
-      else { await f.request(); await remove(); }
+      if (removeFirst) {
+        await remove();
+        await expect(f.request()).rejects.toThrow(/not found/);
+      } else {
+        await f.request();
+        await remove();
+      }
       const state = await f.inspect();
       expect(state.tools[0].status).toBe("removed");
       expect(state.loans.every((loan) => loan.status === "declined")).toBe(true);
@@ -46,8 +58,13 @@ for (const removeFirst of [true, false]) {
       const loanId = await f.request();
       const remove = () => f.actor("admin").mutation(api.admin.removeListing, { toolId: f.toolIds[0] });
       const approve = () => f.actor("owner").mutation(api.loans.approve, { loanId });
-      if (removeFirst) { await remove(); await expect(approve()).rejects.toThrow(/not open/); }
-      else { await approve(); await remove(); }
+      if (removeFirst) {
+        await remove();
+        await expect(approve()).rejects.toThrow(/not open/);
+      } else {
+        await approve();
+        await remove();
+      }
       const state = await f.inspect();
       expect(state.tools[0].status).toBe("removed");
       expect(state.loans[0].status).toBe(removeFirst ? "declined" : "approved");
@@ -59,7 +76,13 @@ for (const removeFirst of [true, false]) {
       await f.actor("owner").mutation(api.loans.approve, { loanId });
       const remove = () => f.actor("admin").mutation(api.admin.removeListing, { toolId: f.toolIds[0] });
       const close = () => f.actor("owner").mutation(api.loans.markReturned, { loanId });
-      if (removeFirst) { await remove(); await close(); } else { await close(); await remove(); }
+      if (removeFirst) {
+        await remove();
+        await close();
+      } else {
+        await close();
+        await remove();
+      }
       await expect(close()).rejects.toThrow(/not active/);
       const state = await f.inspect();
       expect(state.tools[0].status).toBe("removed");
@@ -81,7 +104,8 @@ test("cleanup is scoped, idempotent, and removes all related fixture records", a
 });
 
 test("fixture writes roll back on invalid input", async () => {
-  const t = setup(), runId = crypto.randomUUID();
+  const t = setup(),
+    runId = crypto.randomUUID();
   await expect(t.mutation(internal.concurrencyFixtures.setup, { runId, toolCount: 41 })).rejects.toThrow(/1–40/);
   expect((await t.query(internal.concurrencyFixtures.inspect, { runId })).users).toHaveLength(0);
 });

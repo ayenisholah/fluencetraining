@@ -39,12 +39,10 @@ export const listPublic = query({
   handler: async (ctx, { pageNumber, pageSize, search, category }) => {
     const term = searchTerm(search);
     const source = term
-      ? ctx.db
-          .query("tools")
-          .withSearchIndex("search", (q) => {
-            const base = q.search("searchText", term).eq("status", "available");
-            return category ? base.eq("category", category) : base;
-          })
+      ? ctx.db.query("tools").withSearchIndex("search", (q) => {
+          const base = q.search("searchText", term).eq("status", "available");
+          return category ? base.eq("category", category) : base;
+        })
       : category
         ? ctx.db
             .query("tools")
@@ -55,7 +53,10 @@ export const listPublic = query({
             .withIndex("by_status", (q) => q.eq("status", "available"))
             .order("desc");
     const result = await numberedPage(source, { pageNumber, pageSize });
-    return { ...result, page: result.page.map((tool) => ({ _id: tool._id, name: tool.name, category: tool.category })) };
+    return {
+      ...result,
+      page: result.page.map((tool) => ({ _id: tool._id, name: tool.name, category: tool.category })),
+    };
   },
 });
 
@@ -74,14 +75,12 @@ export const list = query({
     const user = await requireUser(ctx);
     const term = searchTerm(search);
     const source = term
-      ? ctx.db
-          .query("tools")
-          .withSearchIndex("search", (q) => {
-            let s = q.search("searchText", term).eq("listed", true);
-            if (availableOnly) s = s.eq("status", "available");
-            if (category) s = s.eq("category", category);
-            return s;
-          })
+      ? ctx.db.query("tools").withSearchIndex("search", (q) => {
+          let s = q.search("searchText", term).eq("listed", true);
+          if (availableOnly) s = s.eq("status", "available");
+          if (category) s = s.eq("category", category);
+          return s;
+        })
       : availableOnly
         ? category
           ? ctx.db
@@ -136,12 +135,10 @@ export const mine = query({
     const user = await requireUser(ctx);
     const term = searchTerm(search);
     const source = term
-      ? ctx.db
-          .query("tools")
-          .withSearchIndex("search", (q) => {
-            const base = q.search("searchText", term).eq("ownerId", user._id).eq("listed", true);
-            return status ? base.eq("status", status) : base;
-          })
+      ? ctx.db.query("tools").withSearchIndex("search", (q) => {
+          const base = q.search("searchText", term).eq("ownerId", user._id).eq("listed", true);
+          return status ? base.eq("status", status) : base;
+        })
       : status
         ? ctx.db
             .query("tools")
@@ -211,7 +208,11 @@ export const update = mutation({
     // A new photo or an explicit removal replaces the old file; otherwise keep it.
     const nextImage = imageId ?? (removeImage ? undefined : tool.imageId);
     if (tool.imageId && tool.imageId !== nextImage) await deleteImage(ctx, tool.imageId);
-    await ctx.db.patch(toolId, { ...clean, ...toolSearchFields({ ...clean, status: tool.status }), imageId: nextImage });
+    await ctx.db.patch(toolId, {
+      ...clean,
+      ...toolSearchFields({ ...clean, status: tool.status }),
+      imageId: nextImage,
+    });
     if (clean.name !== tool.name) await renameToolOnLoans(ctx, toolId, clean.name);
   },
 });

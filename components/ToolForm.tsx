@@ -46,8 +46,7 @@ export function ToolForm({
   const [pending, setPending] = useState(false);
   const startPhoto: PhotoValue = initialImageUrl ? { kind: "existing", url: initialImageUrl } : { kind: "none" };
   const [photo, setPhoto] = useState<PhotoValue>(startPhoto);
-  const set = <K extends keyof ToolFields>(key: K, value: ToolFields[K]) =>
-    setFields((f) => ({ ...f, [key]: value }));
+  const set = <K extends keyof ToolFields>(key: K, value: ToolFields[K]) => setFields((f) => ({ ...f, [key]: value }));
 
   const errors = toolFieldErrors(fields);
   // Errors appear only once the user tries to submit, then update live as they

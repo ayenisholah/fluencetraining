@@ -13,9 +13,8 @@ export default function TermsPage() {
       <section>
         <h2>The service</h2>
         <p>
-          LendLoop is a noticeboard that helps neighbours lend and borrow tools. We
-          don&apos;t own, inspect, insure or deliver any tool, and we aren&apos;t a party to
-          any loan.
+          LendLoop is a noticeboard that helps neighbours lend and borrow tools. We don&apos;t own, inspect, insure or
+          deliver any tool, and we aren&apos;t a party to any loan.
         </p>
       </section>
 
@@ -53,25 +52,22 @@ export default function TermsPage() {
           <li>Spam, advertising, or repeated requests you don&apos;t intend to collect.</li>
           <li>Harassing other members, or using their details for anything except arranging a loan.</li>
         </ul>
-        <p>
-          Administrators can remove listings and close accounts that break these rules.
-        </p>
+        <p>Administrators can remove listings and close accounts that break these rules.</p>
       </section>
 
       <section>
         <h2>No warranty</h2>
         <p>
-          The service is provided as is. Lenders and borrowers are responsible for the
-          tools and for how they&apos;re used. To the extent the law allows, LendLoop
-          isn&apos;t liable for loss, damage or injury arising from a loan.
+          The service is provided as is. Lenders and borrowers are responsible for the tools and for how they&apos;re
+          used. To the extent the law allows, LendLoop isn&apos;t liable for loss, damage or injury arising from a loan.
         </p>
       </section>
 
       <section>
         <h2>Changes</h2>
         <p>
-          We&apos;ll post updates to these terms on this page and tell active members by
-          email before significant changes take effect.
+          We&apos;ll post updates to these terms on this page and tell active members by email before significant
+          changes take effect.
         </p>
       </section>
     </LegalPage>

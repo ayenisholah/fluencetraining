@@ -15,7 +15,14 @@ const categories: SelectOption[] = [
   { value: "other", label: "Other" },
 ];
 
-type Args = { label: string; hideLabel?: boolean; error?: string; hint?: string; disabled?: boolean; withIcons?: boolean };
+type Args = {
+  label: string;
+  hideLabel?: boolean;
+  error?: string;
+  hint?: string;
+  disabled?: boolean;
+  withIcons?: boolean;
+};
 
 function Demo({ withIcons, ...args }: Args) {
   const opts = withIcons

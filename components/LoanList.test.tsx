@@ -60,7 +60,9 @@ describe("LoanList", () => {
 
   test("a server error on approve is shown on that card only", async () => {
     render(list("lender"));
-    mutations["loans:approve"].mockRejectedValueOnce(new ConvexError({ code: "BAD_REQUEST", message: "The tool is already lent out. Mark it returned first." }));
+    mutations["loans:approve"].mockRejectedValueOnce(
+      new ConvexError({ code: "BAD_REQUEST", message: "The tool is already lent out. Mark it returned first." }),
+    );
     await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Approve" }));
     expect(await within(card("Ladder")).findByText(/already lent out/)).toBeInTheDocument();
     expect(within(card("Drill")).queryByText(/already lent out/)).toBeNull();

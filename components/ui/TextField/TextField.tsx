@@ -21,8 +21,7 @@ type Common = {
   className?: string;
 };
 
-export type TextFieldProps = Common &
-  Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & { multiline?: false };
+export type TextFieldProps = Common & Omit<InputHTMLAttributes<HTMLInputElement>, "className"> & { multiline?: false };
 export type TextAreaFieldProps = Common &
   Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className"> & { multiline: true };
 
@@ -36,14 +35,12 @@ const inputClass =
 export const TextField = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextFieldProps | TextAreaFieldProps>(
   function TextField(props, ref) {
     // `multiline` is ours, not a DOM attribute: keep it out of `rest`.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     const { label, hint, error, maxLengthHint, className, id: idProp, multiline: _multiline, ...rest } = props;
     const autoId = useId();
     const id = idProp ?? autoId;
     const [focused, setFocused] = useState(false);
-    const [uncontrolledLength, setUncontrolledLength] = useState(
-      String(rest.defaultValue ?? "").length,
-    );
+    const [uncontrolledLength, setUncontrolledLength] = useState(String(rest.defaultValue ?? "").length);
     const valueLength = rest.value !== undefined ? String(rest.value).length : uncontrolledLength;
     const isDate = !props.multiline && (props.type === "date" || props.type === "time");
     const floating = focused || valueLength > 0 || Boolean(rest.placeholder) || props.multiline || isDate;

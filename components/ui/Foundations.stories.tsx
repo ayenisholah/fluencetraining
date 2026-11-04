@@ -9,9 +9,16 @@ type Story = StoryObj<typeof meta>;
 const scale = ["0", "100", "200", "300", "400", "500", "600", "700", "800", "900", "1000", "1100"];
 const accents = ["blue", "green", "emerald", "yellow", "orange", "red", "pink", "fuchsia", "violet", "indigo", "sky"];
 const semantic: [string, string][] = [
-  ["fg", "surface"], ["fg-muted", "surface"], ["brand-fg", "surface"], ["on-brand", "brand"],
-  ["on-dim", "dim"], ["field-placeholder", "field-bg"], ["danger", "danger-soft"],
-  ["success", "success-soft"], ["warning", "warning-soft"], ["info", "info-soft"],
+  ["fg", "surface"],
+  ["fg-muted", "surface"],
+  ["brand-fg", "surface"],
+  ["on-brand", "brand"],
+  ["on-dim", "dim"],
+  ["field-placeholder", "field-bg"],
+  ["danger", "danger-soft"],
+  ["success", "success-soft"],
+  ["warning", "warning-soft"],
+  ["info", "info-soft"],
 ];
 
 function useToken(name: string) {
@@ -53,7 +60,10 @@ function Pair({ fg, bg }: { fg: string; bg: string }) {
     if (a && b) setRatio(contrastRatio(a, b));
   }, [fg, bg]);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-sm px-4 py-3" style={{ background: `var(--${bg})`, color: `var(--${fg})` }}>
+    <div
+      className="flex items-center justify-between gap-3 rounded-sm px-4 py-3"
+      style={{ background: `var(--${bg})`, color: `var(--${fg})` }}
+    >
       <span className="text-body-bold">
         {fg} on {bg}
       </span>
@@ -76,14 +86,18 @@ export const Colors: Story = {
       <section>
         <h2 className="mb-3 text-h6">Neutrals (swap per theme)</h2>
         <div className="grid gap-3 sm:grid-cols-4">
-          {scale.map((s) => <Swatch key={s} name={`neutral-${s}`} />)}
+          {scale.map((s) => (
+            <Swatch key={s} name={`neutral-${s}`} />
+          ))}
           <Swatch name="neutral-bg" />
         </div>
       </section>
       <section>
         <h2 className="mb-3 text-h6">Accents</h2>
         <div className="grid gap-3 sm:grid-cols-4">
-          {accents.map((a) => <Swatch key={a} name={`accent-${a}`} />)}
+          {accents.map((a) => (
+            <Swatch key={a} name={`accent-${a}`} />
+          ))}
         </div>
       </section>
       <section>
@@ -92,7 +106,9 @@ export const Colors: Story = {
           Components use these aliases. Where a Figma value failed WCAG AA, only the alias was adjusted.
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
-          {semantic.map(([fg, bg]) => <Pair key={`${fg}-${bg}`} fg={fg} bg={bg} />)}
+          {semantic.map(([fg, bg]) => (
+            <Pair key={`${fg}-${bg}`} fg={fg} bg={bg} />
+          ))}
         </div>
       </section>
     </div>
@@ -100,12 +116,20 @@ export const Colors: Story = {
 };
 
 const type: [string, string][] = [
-  ["text-h1", "h1 · 40/60 · 700"], ["text-h2", "h2 · 32/39 · 800"], ["text-h4", "h4 · 28/34 · 600"],
-  ["text-h5", "h5 · 24/30 · 700"], ["text-h6", "h6 · 20/24 · 600"], ["text-h7", "h7 · 18/22 · 700"],
-  ["text-subtitle", "subtitle · 16/16 · 500"], ["text-subtitle-semibold", "subtitle-semibold · 16/20 · 600"],
-  ["text-body", "text · 14 · 400"], ["text-body-bold", "text-bold · 14 · 600"],
-  ["text-button-label", "button-label · 16/16 · 700"], ["text-mini-button-label", "mini-button-label · 14/20 · 600"],
-  ["text-description", "description · 12/16 · 400"], ["text-mini-description uppercase", "mini-description · 9/11"],
+  ["text-h1", "h1 · 40/60 · 700"],
+  ["text-h2", "h2 · 32/39 · 800"],
+  ["text-h4", "h4 · 28/34 · 600"],
+  ["text-h5", "h5 · 24/30 · 700"],
+  ["text-h6", "h6 · 20/24 · 600"],
+  ["text-h7", "h7 · 18/22 · 700"],
+  ["text-subtitle", "subtitle · 16/16 · 500"],
+  ["text-subtitle-semibold", "subtitle-semibold · 16/20 · 600"],
+  ["text-body", "text · 14 · 400"],
+  ["text-body-bold", "text-bold · 14 · 600"],
+  ["text-button-label", "button-label · 16/16 · 700"],
+  ["text-mini-button-label", "mini-button-label · 14/20 · 600"],
+  ["text-description", "description · 12/16 · 400"],
+  ["text-mini-description uppercase", "mini-description · 9/11"],
 ];
 
 export const Typography: Story = {

@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --project convex --project ui --project n8n",
     "test:watch": "vitest",
@@ -32,7 +32,10 @@
     "test:concurrency:ui": "playwright test --project concurrency-ui --workers=1",
     "test:responsive": "playwright test --project responsive --workers=1 --output=playwright-responsive-results",
     "test:e2e:public": "playwright test --project public --project public-mobile",
-    "test:n8n:provider": "python3 scripts/test_n8n_provider.py"
+    "test:n8n:provider": "python3 scripts/test_n8n_provider.py",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.23",
@@ -65,8 +68,12 @@
     "convex-test": "^0.0.67",
     "eslint": "^9",
     "eslint-config-next": "16.4.4",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jsdom": "^30.1.3",
+    "lint-staged": "^17.6.0",
     "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
     "storybook": "^10.6.5",
     "tailwindcss": "^4",
     "typescript": "^5",
@@ -74,6 +81,13 @@
     "vitest": "^5.1.0"
   },
   "engines": {
-    "node": ">=20.9"
+    "node": ">=22"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mjs,mts,js,cjs}": [
+      "prettier --write",
+      "eslint --max-warnings=0 --no-warn-ignored --fix"
+    ],
+    "*.{json,css,yml,yaml}": "prettier --write"
   }
 }

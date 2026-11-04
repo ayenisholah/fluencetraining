@@ -26,7 +26,15 @@ export const LoanStates: Story = {
     <ul className="grid max-w-3xl gap-3 md:grid-cols-2">
       <LoanCard loan={base} viewer="lender" />
       <LoanCard loan={{ ...base, status: "approved" }} viewer="lender" />
-      <LoanCard loan={{ ...base, status: "approved", overdue: true, activity: [{ kind: "overdue_reminder", status: "sent", at: Date.now() - 2 * 86_400_000 }] }} viewer="borrower" />
+      <LoanCard
+        loan={{
+          ...base,
+          status: "approved",
+          overdue: true,
+          activity: [{ kind: "overdue_reminder", status: "sent", at: Date.now() - 2 * 86_400_000 }],
+        }}
+        viewer="borrower"
+      />
       <LoanCard loan={{ ...base, status: "declined", activity: [] }} viewer="borrower" />
       <LoanCard loan={{ ...base, status: "returned" }} viewer="lender" />
       <LoanCard loan={base} viewer="borrower" error="Only the borrower can do that." />
@@ -36,7 +44,11 @@ export const LoanStates: Story = {
 
 export const ToolFormValidation: Story = {
   args: { loan: base, viewer: "lender" },
-  render: () => <div className="max-w-sm"><ToolForm submitLabel="List it" onSubmit={fn()} /></div>,
+  render: () => (
+    <div className="max-w-sm">
+      <ToolForm submitLabel="List it" onSubmit={fn()} />
+    </div>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole("button", { name: "List it" }));
@@ -47,5 +59,9 @@ export const ToolFormValidation: Story = {
 
 export const BorrowDates: Story = {
   args: { loan: base, viewer: "lender" },
-  render: () => <div className="max-w-sm"><BorrowForm onSubmit={fn()} onSent={fn()} onCancel={fn()} /></div>,
+  render: () => (
+    <div className="max-w-sm">
+      <BorrowForm onSubmit={fn()} onSent={fn()} onCancel={fn()} />
+    </div>
+  ),
 };

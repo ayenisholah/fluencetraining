@@ -10,5 +10,9 @@ const BADGES = {
 /** A listed tool's availability, as shown on the board, My listings and Admin. */
 export function ToolStatusBadge({ status, className }: { status: Doc<"tools">["status"]; className?: string }) {
   const { tone, label } = BADGES[status];
-  return <Badge tone={tone} className={className}>{label}</Badge>;
+  return (
+    <Badge tone={tone} className={className}>
+      {label}
+    </Badge>
+  );
 }

@@ -32,7 +32,12 @@ export const convexReactMock = {
     const fixture = paginated[name];
     if (!fixture || fixture.status === "LoadingFirstPage") return undefined;
     const request = args as { pageNumber: number; pageSize: number };
-    return { page: fixture.results, ...request, totalPages: fixture.status === "Exhausted" ? request.pageNumber : 5, totalCount: fixture.status === "Exhausted" ? fixture.results.length : 50 };
+    return {
+      page: fixture.results,
+      ...request,
+      totalPages: fixture.status === "Exhausted" ? request.pageNumber : 5,
+      totalCount: fixture.status === "Exhausted" ? fixture.results.length : 50,
+    };
   },
   useMutation: (ref: FunctionReference<"mutation">) => (mutations[nameOf(ref)] ??= vi.fn().mockResolvedValue(null)),
 };

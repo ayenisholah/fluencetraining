@@ -4,6 +4,9 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 
 ## Unreleased
 
+### Added
+- Contributor and agent guard rails: `AGENTS.md` rules for coding agents (read by `CLAUDE.md`), Prettier, EditorConfig, `.nvmrc`, a husky + lint-staged pre-commit hook, stricter ESLint rules that enforce the CONTRIBUTING conventions, stricter TypeScript flags, and an `infra` CI job (typecheck, lint, `cdk synth`).
+
 ### Documentation
 - Document all four AWS CDK stacks and their services, DNS/TLS, IAM, secrets, deployment scripts, backups and recovery limits.
 - Add the CloudWatch/Synthetics/SNS monitoring guide with metric definitions, alarm thresholds and operator procedures.

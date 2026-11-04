@@ -11,7 +11,10 @@ export function AutomationHealth({ actions }: { actions: RowActions }) {
   const health = useQuery(api.admin.automationHealth);
   const retry = useMutation(api.admin.retryDelivery);
   return (
-    <Section title="Automation health" description="Webhook deliveries that haven't succeeded, and n8n workflow errors.">
+    <Section
+      title="Automation health"
+      description="Webhook deliveries that haven't succeeded, and n8n workflow errors."
+    >
       {health === undefined ? (
         <Spinner />
       ) : health.deliveries.length === 0 && health.workflowErrors.length === 0 ? (
@@ -29,7 +32,11 @@ export function AutomationHealth({ actions }: { actions: RowActions }) {
                 </p>
               </div>
               {d.status === "failed" && (
-                <Button size="sm" variant="ghost" onClick={() => void actions.run(d._id, () => retry({ deliveryId: d._id }))}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void actions.run(d._id, () => retry({ deliveryId: d._id }))}
+                >
                   Retry
                 </Button>
               )}

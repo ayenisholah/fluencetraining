@@ -14,12 +14,7 @@ export type RangeSliderProps = {
 };
 
 /** Keeps the low thumb ≤ the high thumb and both inside [min, max]. */
-export function clampRange(
-  next: [number, number],
-  min: number,
-  max: number,
-  moved: 0 | 1,
-): [number, number] {
+export function clampRange(next: [number, number], min: number, max: number, moved: 0 | 1): [number, number] {
   let [lo, hi] = next.map((n) => Math.min(max, Math.max(min, n))) as [number, number];
   if (lo > hi) {
     if (moved === 0) lo = hi;

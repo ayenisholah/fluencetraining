@@ -180,7 +180,11 @@ test("the board switches between cards, tiles and list", async () => {
   await borrower.goto("/tools");
   const views = borrower.getByRole("radiogroup", { name: "View" });
   const grid = borrower.locator("ul[data-view]");
-  for (const [label, view] of [["Tiles", "tiles"], ["List", "list"], ["Cards", "cards"]] as const) {
+  for (const [label, view] of [
+    ["Tiles", "tiles"],
+    ["List", "list"],
+    ["Cards", "cards"],
+  ] as const) {
     await views.getByRole("radio", { name: label }).click();
     await expect(grid).toHaveAttribute("data-view", view);
     await expect(toolCard(borrower).getByRole("img", { name: toolName })).toBeVisible();
@@ -335,7 +339,9 @@ test("the returned tool is available again, on the board and the landing page", 
 
 test("borrower cancels a new request", async () => {
   // Wait for the mutation to land before navigating away, or it may be dropped.
-  await expect((await requestFromTools(borrower)).getByText("Request sent. The lender has been notified.")).toBeVisible();
+  await expect(
+    (await requestFromTools(borrower)).getByText("Request sent. The lender has been notified."),
+  ).toBeVisible();
   await borrower.goto("/requests");
   const open = toolCard(borrower, "Requested");
   await open.getByRole("button", { name: "Cancel request" }).click();
@@ -346,7 +352,9 @@ test("borrower cancels a new request", async () => {
 
 test("lender declines a request; the borrower sees it declined", async () => {
   // Wait for the mutation to land before navigating away, or it may be dropped.
-  await expect((await requestFromTools(borrower)).getByText("Request sent. The lender has been notified.")).toBeVisible();
+  await expect(
+    (await requestFromTools(borrower)).getByText("Request sent. The lender has been notified."),
+  ).toBeVisible();
   await lender.goto("/incoming");
   const open = toolCard(lender, "Requested");
   await expect(open).toHaveCount(1);
@@ -408,7 +416,10 @@ test("signed-in pages work under the CSP: Clerk, the Convex socket and the app a
     // Live data arrived over the Convex websocket.
     await expect(page.getByRole("status")).toHaveCount(0);
   }
-  await page.getByRole("button", { name: /open user (button|menu)/i }).first().click();
+  await page
+    .getByRole("button", { name: /open user (button|menu)/i })
+    .first()
+    .click();
   // Clerk's account popover (rendered by its own script) opened without being blocked.
   await expect(page.locator(".cl-userButtonPopoverCard")).toBeVisible();
   expect(await violations()).toEqual([]);

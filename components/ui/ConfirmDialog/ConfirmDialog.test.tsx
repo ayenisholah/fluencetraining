@@ -9,7 +9,16 @@ function Harness({ onConfirm }: { onConfirm: () => Promise<unknown> }) {
   const { confirm, dialog } = useConfirm();
   return (
     <>
-      <button onClick={() => confirm({ title: 'Delete "Ladder"?', description: "Open requests will be declined.", confirmLabel: "Delete listing", onConfirm })}>
+      <button
+        onClick={() =>
+          confirm({
+            title: 'Delete "Ladder"?',
+            description: "Open requests will be declined.",
+            confirmLabel: "Delete listing",
+            onConfirm,
+          })
+        }
+      >
         Delete
       </button>
       {dialog}

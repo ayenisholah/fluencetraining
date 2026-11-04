@@ -20,7 +20,13 @@ const meta = {
   title: "Components/TextField",
   component: Field,
   args: { label: "Label" },
-  decorators: [(Story) => <div className="w-[306px]"><Story /></div>],
+  decorators: [
+    (Story) => (
+      <div className="w-[306px]">
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof Field>;
 export default meta;
 type Story = StoryObj<typeof meta>;

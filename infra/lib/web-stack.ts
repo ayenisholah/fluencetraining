@@ -24,8 +24,16 @@ export class WebStack extends Stack {
     super(scope, id, props);
 
     // Provided by the operator (scripts/aws/put-external-secrets.sh), never generated.
-    const githubToken = secretsmanager.Secret.fromSecretNameV2(this, "GithubToken", `${config.secretPrefix}/GITHUB_AMPLIFY_TOKEN`);
-    const clerkSecret = secretsmanager.Secret.fromSecretNameV2(this, "ClerkSecret", `${config.secretPrefix}/CLERK_SECRET_KEY`);
+    const githubToken = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "GithubToken",
+      `${config.secretPrefix}/GITHUB_AMPLIFY_TOKEN`,
+    );
+    const clerkSecret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "ClerkSecret",
+      `${config.secretPrefix}/CLERK_SECRET_KEY`,
+    );
 
     // Build role: may read exactly the one runtime secret the build writes into .env.production.
     const buildRole = new iam.Role(this, "BuildRole", {
@@ -52,7 +60,7 @@ export class WebStack extends Stack {
       "      commands:",
       // Amplify SSR only sees variables present at build time, so the server
       // secret is fetched here and written to .env.production (never logged).
-      "        - CLERK_SECRET_KEY=$(aws secretsmanager get-secret-value --secret-id \"$CLERK_SECRET_ID\" --query SecretString --output text)",
+      '        - CLERK_SECRET_KEY=$(aws secretsmanager get-secret-value --secret-id "$CLERK_SECRET_ID" --query SecretString --output text)',
       "        - printf 'CLERK_SECRET_KEY=%s\\n' \"$CLERK_SECRET_KEY\" >> .env.production",
       "        - env | grep -E '^NEXT_PUBLIC_' >> .env.production",
       "        - npm run build",

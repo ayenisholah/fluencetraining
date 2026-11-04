@@ -45,7 +45,13 @@ export function ToolCard({ tool, action, children }: { tool: BoardTool; action: 
             <span className="flex min-w-0 flex-wrap items-center gap-2">
               <Avatar name={tool.isMine ? "You" : tool.lenderName} size={28} />
               <span className="truncate text-description text-fg-muted">
-                {tool.isMine ? "Your listing" : <>Lent by <span className="font-semibold text-fg">{tool.lenderName}</span></>}
+                {tool.isMine ? (
+                  "Your listing"
+                ) : (
+                  <>
+                    Lent by <span className="font-semibold text-fg">{tool.lenderName}</span>
+                  </>
+                )}
               </span>
               {tool.trustedLender && (
                 <Badge tone="brand" className="gap-1" title="Trusted lender">
@@ -68,13 +74,21 @@ export function ToolTile({ tool, action, children }: { tool: BoardTool; action: 
   return (
     <li className="flex min-w-0 flex-col [overflow-wrap:anywhere] rounded-lg border border-line bg-surface">
       <div className="relative overflow-hidden rounded-t-lg">
-        <ToolImage src={tool.imageUrl} name={tool.name} category={tool.category} iconSize={28} className="aspect-square" />
+        <ToolImage
+          src={tool.imageUrl}
+          name={tool.name}
+          category={tool.category}
+          iconSize={28}
+          className="aspect-square"
+        />
         <ToolStatusBadge status={tool.status} className="absolute top-2 left-2 shadow-sm" />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <h2 className="line-clamp-2 text-body-bold text-fg">{tool.name}</h2>
         <CategoryBadge category={tool.category} className="self-start" />
-        <p className="truncate text-description text-fg-muted">{tool.isMine ? "Your listing" : `Lent by ${tool.lenderName}`}</p>
+        <p className="truncate text-description text-fg-muted">
+          {tool.isMine ? "Your listing" : `Lent by ${tool.lenderName}`}
+        </p>
         {action && <div className="mt-auto pt-1 [&>button]:w-full">{action}</div>}
         {children}
       </div>
@@ -87,7 +101,13 @@ export function ToolRow({ tool, action, children }: { tool: BoardTool; action: R
   return (
     <li className="rounded-lg border border-line bg-surface p-3">
       <div className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-x-4 gap-y-2 sm:flex sm:flex-wrap">
-        <ToolImage src={tool.imageUrl} name={tool.name} category={tool.category} iconSize={20} className="w-16 shrink-0 rounded-md" />
+        <ToolImage
+          src={tool.imageUrl}
+          name={tool.name}
+          category={tool.category}
+          iconSize={20}
+          className="w-16 shrink-0 rounded-md"
+        />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-body-bold text-fg">{tool.name}</h2>
           <p className="mt-0.5 truncate text-description text-fg-muted">

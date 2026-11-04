@@ -4,13 +4,7 @@ import { httpsRedirectUrl } from "@/lib/https";
 
 // Optimistic redirect for signed-out visitors. This is a UX convenience only:
 // every Convex function re-checks identity and role on the server.
-const isAppRoute = createRouteMatcher([
-  "/tools(.*)",
-  "/listings(.*)",
-  "/requests(.*)",
-  "/incoming(.*)",
-  "/admin(.*)",
-]);
+const isAppRoute = createRouteMatcher(["/tools(.*)", "/listings(.*)", "/requests(.*)", "/incoming(.*)", "/admin(.*)"]);
 
 /** An origin plus its WebSocket twin (Convex syncs over ws/wss). */
 function withSocket(url: string | undefined): string[] {
@@ -19,10 +13,9 @@ function withSocket(url: string | undefined): string[] {
   return [origin, `${protocol === "https:" ? "wss:" : "ws:"}//${host}`];
 }
 
-const analyticsOrigin =
-  process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
-    ? [new URL(process.env.NEXT_PUBLIC_PLAUSIBLE_SRC ?? "https://plausible.io/js/script.js").origin]
-    : [];
+const analyticsOrigin = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
+  ? [new URL(process.env.NEXT_PUBLIC_PLAUSIBLE_SRC ?? "https://plausible.io/js/script.js").origin]
+  : [];
 
 export default clerkMiddleware(
   async (auth, req) => {
@@ -33,6 +26,7 @@ export default clerkMiddleware(
       return NextResponse.redirect(httpsRedirectUrl(req.nextUrl, process.env.NEXT_PUBLIC_SITE_URL), 308);
     }
     if (isAppRoute(req)) await auth.protect();
+    return undefined;
   },
   {
     // Strict CSP: a fresh nonce per request, 'strict-dynamic' instead of host

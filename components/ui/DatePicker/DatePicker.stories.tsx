@@ -5,7 +5,15 @@ import { addDays, formatLong } from "@/lib/calendar";
 import { todayIso } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 
-type Args = { label: string; withLimits?: boolean; withRange?: boolean; error?: string; hint?: string; disabled?: boolean; empty?: boolean };
+type Args = {
+  label: string;
+  withLimits?: boolean;
+  withRange?: boolean;
+  error?: string;
+  hint?: string;
+  disabled?: boolean;
+  empty?: boolean;
+};
 
 function Demo({ withLimits, withRange, empty, ...args }: Args) {
   const today = todayIso();

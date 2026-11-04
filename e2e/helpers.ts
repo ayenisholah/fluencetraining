@@ -14,7 +14,9 @@ export async function acceptEssentialOnly(page: Page) {
 
 export async function expectNoAxeViolations(page: Page) {
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
-  const summary = results.violations.map((v) => `${v.id}: ${v.help} → ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
+  const summary = results.violations.map(
+    (v) => `${v.id}: ${v.help} → ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`,
+  );
   expect(summary).toEqual([]);
 }
 
@@ -97,17 +99,22 @@ export function purgeTestTool(name: string, errorMarkers: string[] = []) {
 export async function watchCsp(page: Page) {
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {
-    if (/Content Security Policy|Refused to (load|execute|connect|apply|frame)/i.test(msg.text())) consoleErrors.push(msg.text());
+    if (/Content Security Policy|Refused to (load|execute|connect|apply|frame)/i.test(msg.text()))
+      consoleErrors.push(msg.text());
   });
   await page.addInitScript(() => {
     const w = window as unknown as { __csp?: string[] };
     w.__csp = [];
     document.addEventListener("securitypolicyviolation", (e) => {
-      w.__csp!.push(`${e.violatedDirective} blocked ${e.blockedURI || "inline"} (${e.sourceFile ?? ""}:${e.lineNumber})`);
+      w.__csp!.push(
+        `${e.violatedDirective} blocked ${e.blockedURI || "inline"} (${e.sourceFile ?? ""}:${e.lineNumber})`,
+      );
     });
   });
   return async () => [
     ...consoleErrors,
-    ...((await page.evaluate(() => (window as unknown as { __csp?: string[] }).__csp ?? []).catch(() => [])) as string[]),
+    ...((await page
+      .evaluate(() => (window as unknown as { __csp?: string[] }).__csp ?? [])
+      .catch(() => [])) as string[]),
   ];
 }

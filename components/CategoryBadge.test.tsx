@@ -36,20 +36,26 @@ describe("PhotoPicker", () => {
   test("rejects SVG, other types and files over 5 MB before upload", () => {
     expect(photoError(new File(["<svg/>"], "a.svg", { type: "image/svg+xml" }))).toMatch(/JPEG, PNG or WebP/);
     expect(photoError(new File(["x"], "a.gif", { type: "image/gif" }))).toMatch(/JPEG, PNG or WebP/);
-    expect(photoError(new File([new Uint8Array(5 * 1024 * 1024 + 1)], "a.jpg", { type: "image/jpeg" }))).toMatch(/5 MB/);
+    expect(photoError(new File([new Uint8Array(5 * 1024 * 1024 + 1)], "a.jpg", { type: "image/jpeg" }))).toMatch(
+      /5 MB/,
+    );
     expect(photoError(new File(["x"], "a.webp", { type: "image/webp" }))).toBeUndefined();
   });
 
   test("an invalid choice shows an alert and doesn't change the value", async () => {
     const onChange = vi.fn();
     render(<PhotoPicker value={{ kind: "none" }} onChange={onChange} />);
-    await userEvent.upload(screen.getByLabelText("Choose a photo"), new File(["x"], "a.gif", { type: "image/gif" }), { applyAccept: false });
+    await userEvent.upload(screen.getByLabelText("Choose a photo"), new File(["x"], "a.gif", { type: "image/gif" }), {
+      applyAccept: false,
+    });
     expect(screen.getByRole("alert")).toHaveTextContent(/JPEG, PNG or WebP/);
     expect(onChange).not.toHaveBeenCalled();
   });
 
   test("has no axe violations", async () => {
-    const { container } = render(<PhotoPicker value={{ kind: "existing", url: "https://x/1.png" }} onChange={() => {}} />);
+    const { container } = render(
+      <PhotoPicker value={{ kind: "existing", url: "https://x/1.png" }} onChange={() => {}} />,
+    );
     expect(await axeViolations(container)).toEqual([]);
   });
 });

@@ -43,18 +43,24 @@ describe("listing a tool", () => {
     const t = setup();
     const ada = await signIn(t, "Ada");
     await expect(ada.as.mutation(api.tools.create, { ...drill, name: " x " })).rejects.toThrow(/name/);
-    await expect(
-      ada.as.mutation(api.tools.create, { ...drill, description: "a".repeat(501) }),
-    ).rejects.toThrow(/description/);
+    await expect(ada.as.mutation(api.tools.create, { ...drill, description: "a".repeat(501) })).rejects.toThrow(
+      /description/,
+    );
   });
 
   test("the server refuses control and bidi characters even if the form is bypassed", async () => {
     const t = setup();
     const ada = await signIn(t, "Ada");
-    await expect(ada.as.mutation(api.tools.create, { ...drill, name: "Drill\r\nBcc: x@evil.example" })).rejects.toThrow(/plain text/);
-    await expect(ada.as.mutation(api.tools.create, { ...drill, description: "fine\u202Eenif" })).rejects.toThrow(/plain text/);
+    await expect(ada.as.mutation(api.tools.create, { ...drill, name: "Drill\r\nBcc: x@evil.example" })).rejects.toThrow(
+      /plain text/,
+    );
+    await expect(ada.as.mutation(api.tools.create, { ...drill, description: "fine\u202Eenif" })).rejects.toThrow(
+      /plain text/,
+    );
     const toolId = await ada.as.mutation(api.tools.create, drill);
-    await expect(ada.as.mutation(api.tools.update, { toolId, ...drill, name: "Drill\u0000" })).rejects.toThrow(/plain text/);
+    await expect(ada.as.mutation(api.tools.update, { toolId, ...drill, name: "Drill\u0000" })).rejects.toThrow(
+      /plain text/,
+    );
   });
 
   test("rejects unknown categories and conditions", async () => {
@@ -74,7 +80,7 @@ describe("listing a tool", () => {
     const { ada, toolId } = await lenderAndBorrower();
     await expect(ada.as.mutation(api.tools.update, { toolId, ...drill, name: "" })).rejects.toThrow(/name/);
     await ada.as.mutation(api.tools.update, { toolId, ...drill, condition: "fair" });
-    expect(((await ada.as.query(api.tools.mine, { ...ALL })).page)[0].condition).toBe("fair");
+    expect((await ada.as.query(api.tools.mine, { ...ALL })).page[0].condition).toBe("fair");
   });
 });
 
@@ -101,8 +107,8 @@ describe("browsing tools", () => {
     const { ada, bob, toolId } = await lenderAndBorrower();
     await ada.as.mutation(api.tools.create, rake);
     await ada.as.mutation(api.tools.remove, { toolId });
-    expect(((await bob.as.query(api.tools.list, { ...ALL })).page).map((t) => t.name)).toEqual(["Leaf rake"]);
-    expect(((await ada.as.query(api.tools.mine, { ...ALL })).page).map((t) => t.name)).toEqual(["Leaf rake"]);
+    expect((await bob.as.query(api.tools.list, { ...ALL })).page.map((t) => t.name)).toEqual(["Leaf rake"]);
+    expect((await ada.as.query(api.tools.mine, { ...ALL })).page.map((t) => t.name)).toEqual(["Leaf rake"]);
   });
 
   test("My listings only shows the caller's tools", async () => {
@@ -171,7 +177,7 @@ describe("approving, declining and returning", () => {
     await ada.as.mutation(api.loans.decline, { loanId });
     const [mine] = (await bob.as.query(api.loans.myRequests, { ...ALL })).page;
     expect(mine.status).toBe("declined");
-    expect(((await bob.as.query(api.tools.list, { ...ALL })).page)[0].status).toBe("available");
+    expect((await bob.as.query(api.tools.list, { ...ALL })).page[0].status).toBe("available");
     await expect(ada.as.mutation(api.loans.decline, { loanId })).rejects.toThrow(/not open/);
     await expect(ada.as.mutation(api.loans.approve, { loanId })).rejects.toThrow(/not open/);
   });
@@ -213,7 +219,7 @@ describe("approving, declining and returning", () => {
     await expect(ada.as.mutation(api.loans.markReturned, { loanId })).rejects.toThrow(/not active/);
     await ada.as.mutation(api.loans.approve, { loanId });
     await ada.as.mutation(api.loans.markReturned, { loanId });
-    expect(((await bob.as.query(api.tools.list, { ...ALL })).page)[0].status).toBe("available");
+    expect((await bob.as.query(api.tools.list, { ...ALL })).page[0].status).toBe("available");
     await expect(ada.as.mutation(api.loans.markReturned, { loanId })).rejects.toThrow(/not active/);
   });
 });
@@ -248,6 +254,8 @@ describe("My requests and Incoming requests", () => {
     for (const m of [api.loans.approve, api.loans.decline, api.loans.markReturned, api.loans.cancel]) {
       await expect(t.mutation(m, { loanId })).rejects.toThrow(/Sign in/);
     }
-    await expect(t.mutation(api.loans.request, { toolId, startDate: isoDay(3), endDate: isoDay(4) })).rejects.toThrow(/Sign in/);
+    await expect(t.mutation(api.loans.request, { toolId, startDate: isoDay(3), endDate: isoDay(4) })).rejects.toThrow(
+      /Sign in/,
+    );
   });
 });

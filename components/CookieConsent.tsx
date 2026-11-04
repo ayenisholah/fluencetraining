@@ -30,32 +30,32 @@ export function CookieConsent() {
 
   return (
     <>
-    {/* Reserves space so the fixed banner never hides the footer links. */}
-    <div aria-hidden className="h-44 sm:h-24" />
-    <div
-      role="dialog"
-      aria-live="polite"
-      aria-label="Cookie preferences"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 backdrop-blur"
-    >
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center">
-        <p className="flex-1 text-body text-fg">
-          We use essential cookies to keep you signed in. With your permission we&apos;d also
-          count page views with cookie-free, privacy-friendly analytics.{" "}
-          <Link href="/privacy#cookies" className="text-brand-fg underline underline-offset-2">
-            How we use cookies
-          </Link>
-        </p>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={() => choose("declined")}>
-            Essential only
-          </Button>
-          <Button size="sm" onClick={() => choose("accepted")}>
-            Allow analytics
-          </Button>
+      {/* Reserves space so the fixed banner never hides the footer links. */}
+      <div aria-hidden className="h-44 sm:h-24" />
+      <div
+        role="dialog"
+        aria-live="polite"
+        aria-label="Cookie preferences"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface/95 backdrop-blur"
+      >
+        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center">
+          <p className="flex-1 text-body text-fg">
+            We use essential cookies to keep you signed in. With your permission we&apos;d also count page views with
+            cookie-free, privacy-friendly analytics.{" "}
+            <Link href="/privacy#cookies" className="text-brand-fg underline underline-offset-2">
+              How we use cookies
+            </Link>
+          </p>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => choose("declined")}>
+              Essential only
+            </Button>
+            <Button size="sm" onClick={() => choose("accepted")}>
+              Allow analytics
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 }

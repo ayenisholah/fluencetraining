@@ -35,8 +35,24 @@ describe("theme", () => {
   });
   test("ignores junk and survives storage errors", () => {
     expect(readTheme({ getItem: () => "purple" })).toBe("system");
-    expect(readTheme({ getItem: () => { throw new Error("blocked"); } })).toBe("system");
-    expect(() => writeTheme({ setItem: () => { throw new Error("blocked"); }, removeItem: () => {} }, "dark")).not.toThrow();
+    expect(
+      readTheme({
+        getItem: () => {
+          throw new Error("blocked");
+        },
+      }),
+    ).toBe("system");
+    expect(() =>
+      writeTheme(
+        {
+          setItem: () => {
+            throw new Error("blocked");
+          },
+          removeItem: () => {},
+        },
+        "dark",
+      ),
+    ).not.toThrow();
   });
   test("applyTheme sets or clears data-theme", () => {
     const el = document.createElement("html");
@@ -55,8 +71,18 @@ describe("loan status", () => {
     expect(loanStatusBadge("returned", true)).toEqual({ label: "Returned", tone: "success" });
   });
   test("actions mirror the server rules", () => {
-    expect(loanActions("requested", "lender")).toEqual({ approve: true, decline: true, markReturned: false, cancel: false });
-    expect(loanActions("requested", "borrower")).toEqual({ approve: false, decline: false, markReturned: false, cancel: true });
+    expect(loanActions("requested", "lender")).toEqual({
+      approve: true,
+      decline: true,
+      markReturned: false,
+      cancel: false,
+    });
+    expect(loanActions("requested", "borrower")).toEqual({
+      approve: false,
+      decline: false,
+      markReturned: false,
+      cancel: true,
+    });
     expect(loanActions("approved", "lender").markReturned).toBe(true);
     expect(Object.values(loanActions("returned", "lender")).some(Boolean)).toBe(false);
   });

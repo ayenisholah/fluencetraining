@@ -5,14 +5,22 @@ import { SidebarItem } from "../SidebarItem/SidebarItem";
 import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import { DropdownMenu } from "./DropdownMenu";
 
-const meta = { title: "Components/Navigation", component: DropdownMenu, args: { triggerLabel: "Menu", trigger: "Menu", items: [] } } satisfies Meta<typeof DropdownMenu>;
+const meta = {
+  title: "Components/Navigation",
+  component: DropdownMenu,
+  args: { triggerLabel: "Menu", trigger: "Menu", items: [] },
+} satisfies Meta<typeof DropdownMenu>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Dropdown: Story = {
   args: {
     triggerLabel: "Open navigation",
-    trigger: <span className="flex size-10 items-center justify-center rounded-pill border border-line"><MenuIcon size={20} /></span>,
+    trigger: (
+      <span className="flex size-10 items-center justify-center rounded-pill border border-line">
+        <MenuIcon size={20} />
+      </span>
+    ),
     align: "start",
     items: [
       { key: "a", label: "View profile", icon: <ToolIcon /> },

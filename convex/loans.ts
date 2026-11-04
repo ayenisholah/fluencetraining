@@ -2,12 +2,7 @@ import { pageArgs } from "./lib/pagination";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { mutation, query, type QueryCtx } from "./_generated/server";
-import {
-  badRequest,
-  notFound,
-  requireLoanParty,
-  requireUser,
-} from "./lib/auth";
+import { badRequest, notFound, requireLoanParty, requireUser } from "./lib/auth";
 import { rangesOverlap, todayUtc, validateLoanDates } from "./lib/dates";
 import { setToolStatus } from "./lib/toolRecord";
 import { loanPhase, setLoanStatus } from "./lib/loanRecord";
@@ -20,9 +15,7 @@ import { vLoanPhase } from "./schema";
 async function activeLoanFor(ctx: QueryCtx, toolId: Doc<"tools">["_id"]) {
   return await ctx.db
     .query("loans")
-    .withIndex("by_tool_status", (q) =>
-      q.eq("toolId", toolId).eq("status", "approved"),
-    )
+    .withIndex("by_tool_status", (q) => q.eq("toolId", toolId).eq("status", "approved"))
     .first();
 }
 

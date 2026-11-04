@@ -33,6 +33,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Formatting (Prettier)
+        run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
       - name: Unit, component and Convex tests
@@ -53,6 +55,29 @@ jobs:
           npm start -- --port 3000 &
           npx wait-on@8 http://localhost:3000/robots.txt
           npm run check:links
+
+  infra:
+    # The CDK app is its own package: typecheck, lint and synthesise it so a
+    # broken stack fails the PR, not the deploy. Synth needs no AWS
+    # credentials (the default-VPC lookup is cached in infra/cdk.context.json).
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - name: Synthesise every stack
+        run: npx cdk synth --strict -q
 
   storybook:
     runs-on: ubuntu-latest

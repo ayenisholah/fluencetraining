@@ -15,15 +15,7 @@ export type ToggleProps = {
 };
 
 /** On/off switch (Figma "Toggles"): 56×32 track, or the small inline variant. */
-export function Toggle({
-  checked,
-  onCheckedChange,
-  label,
-  size = "md",
-  disabled,
-  className,
-  ...aria
-}: ToggleProps) {
+export function Toggle({ checked, onCheckedChange, label, size = "md", disabled, className, ...aria }: ToggleProps) {
   const labelId = useId();
   const md = size === "md";
   const button = (

@@ -10,7 +10,11 @@ function Demo() {
       aria-label="Toggle"
       value={value}
       onChange={setValue}
-      options={[{ value: "1", label: "Toggle 1" }, { value: "2", label: "Toggle 2" }, { value: "3", label: "Toggle 3" }]}
+      options={[
+        { value: "1", label: "Toggle 1" },
+        { value: "2", label: "Toggle 2" },
+        { value: "3", label: "Toggle 3" },
+      ]}
     />
   );
 }

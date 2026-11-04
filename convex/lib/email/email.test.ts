@@ -20,11 +20,36 @@ afterEach(() => {
 });
 
 const EXPECT: Record<LoanEventName, { subject: string; banner: string; cta: string; path: string }> = {
-  "loan.requested": { subject: "Remi wants to borrow your Ladder", banner: "New borrow request", cta: "Review request", path: "/incoming?phase=open" },
-  "loan.approved": { subject: "Remi said yes: Ladder", banner: "Request approved", cta: "View my requests", path: "/requests" },
-  "loan.declined": { subject: "Your request for Ladder was declined", banner: "Request declined", cta: "Browse other tools", path: "/tools" },
-  "loan.cancelled": { subject: "Remi cancelled their request for your Ladder", banner: "Request cancelled", cta: "View incoming requests", path: "/incoming" },
-  "loan.returned": { subject: "Thanks for returning Ladder", banner: "Loan returned", cta: "Browse tools", path: "/tools" },
+  "loan.requested": {
+    subject: "Remi wants to borrow your Ladder",
+    banner: "New borrow request",
+    cta: "Review request",
+    path: "/incoming?phase=open",
+  },
+  "loan.approved": {
+    subject: "Remi said yes: Ladder",
+    banner: "Request approved",
+    cta: "View my requests",
+    path: "/requests",
+  },
+  "loan.declined": {
+    subject: "Your request for Ladder was declined",
+    banner: "Request declined",
+    cta: "Browse other tools",
+    path: "/tools",
+  },
+  "loan.cancelled": {
+    subject: "Remi cancelled their request for your Ladder",
+    banner: "Request cancelled",
+    cta: "View incoming requests",
+    path: "/incoming",
+  },
+  "loan.returned": {
+    subject: "Thanks for returning Ladder",
+    banner: "Loan returned",
+    cta: "Browse tools",
+    path: "/tools",
+  },
 };
 
 describe("loan event emails", () => {
@@ -98,7 +123,14 @@ describe("loan event emails", () => {
 });
 
 describe("overdue reminder email", () => {
-  const reminder = { borrowerFirstName: "Remi", lenderFirstName: "Olu", toolName: "Ladder", toolCategory: "hand_tools", endDate: "2026-11-01", daysOverdue: 2 };
+  const reminder = {
+    borrowerFirstName: "Remi",
+    lenderFirstName: "Olu",
+    toolName: "Ladder",
+    toolCategory: "hand_tools",
+    endDate: "2026-11-01",
+    daysOverdue: 2,
+  };
 
   test("warning banner, due date, days overdue, lender and CTA", () => {
     const { subject, html, text } = overdueReminderEmail(reminder);

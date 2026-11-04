@@ -20,7 +20,13 @@ const remind02 = () => remind;
 const all = [notify, remind, errors];
 const LOAN_EVENTS = vLoanEvent.members.map((m) => m.value);
 
-const LOAN_EVENT_NAMES = ["loan.requested", "loan.approved", "loan.declined", "loan.cancelled", "loan.returned"] as LoanEventName[];
+const LOAN_EVENT_NAMES = [
+  "loan.requested",
+  "loan.approved",
+  "loan.declined",
+  "loan.cancelled",
+  "loan.returned",
+] as LoanEventName[];
 const payload = (over: Record<string, unknown> = {}) => ({
   email: loanEventEmail({
     // A bogus event still carries a well-formed email, so the check that fails is the event's.
@@ -105,7 +111,9 @@ describe("exported workflow JSON", () => {
     for (const w of all) {
       for (const n of w.nodes.filter((n) => n.type === "n8n-nodes-base.httpRequest")) {
         expect(n.parameters.url).toMatch(/^=\{\{ \$env\.LENDLOOP_CONVEX_SITE_URL \}\}\/n8n\//);
-        const names = (n.parameters.headerParameters as { parameters: { name: string }[] }).parameters.map((h) => h.name);
+        const names = (n.parameters.headerParameters as { parameters: { name: string }[] }).parameters.map(
+          (h) => h.name,
+        );
         expect(names).toEqual(expect.arrayContaining(["x-lendloop-timestamp", "x-lendloop-signature"]));
       }
     }
@@ -126,8 +134,11 @@ describe("exported workflow JSON", () => {
 });
 
 describe("01 Request notifications › Verify signature", () => {
-  const verifyNode = (call: Awaited<ReturnType<typeof webhookCall>>, staticData = {}, e: Record<string, string | undefined> = env) =>
-    runCode(notify, "Verify signature", { ...call, env: e, staticData });
+  const verifyNode = (
+    call: Awaited<ReturnType<typeof webhookCall>>,
+    staticData = {},
+    e: Record<string, string | undefined> = env,
+  ) => runCode(notify, "Verify signature", { ...call, env: e, staticData });
 
   test("accepts a body signed by Convex's sign()", async () => {
     const body = JSON.stringify(payload());
@@ -136,19 +147,34 @@ describe("01 Request notifications › Verify signature", () => {
   });
 
   test.each([
-    ["tampered body", async () => ({ ...(await webhookCall(JSON.stringify(payload()))), rawBody: JSON.stringify(payload({ tool: { name: "Car" } })) }), "bad signature"],
+    [
+      "tampered body",
+      async () => ({
+        ...(await webhookCall(JSON.stringify(payload()))),
+        rawBody: JSON.stringify(payload({ tool: { name: "Car" } })),
+      }),
+      "bad signature",
+    ],
     ["wrong secret", () => webhookCall(JSON.stringify(payload()), { secret: "nope" }), "bad signature"],
-    ["stale timestamp", async () => {
-      const body = JSON.stringify(payload());
-      const old = Date.now() - 6 * 60 * 1000;
-      const s = await sign(TO_N8N, body, old);
-      return webhookCall(body, { timestamp: s.timestamp, signature: s.signature });
-    }, "stale"],
-    ["future timestamp", async () => {
-      const body = JSON.stringify(payload());
-      const s = await sign(TO_N8N, body, Date.now() + 6 * 60 * 1000);
-      return webhookCall(body, { timestamp: s.timestamp, signature: s.signature });
-    }, "stale"],
+    [
+      "stale timestamp",
+      async () => {
+        const body = JSON.stringify(payload());
+        const old = Date.now() - 6 * 60 * 1000;
+        const s = await sign(TO_N8N, body, old);
+        return webhookCall(body, { timestamp: s.timestamp, signature: s.signature });
+      },
+      "stale",
+    ],
+    [
+      "future timestamp",
+      async () => {
+        const body = JSON.stringify(payload());
+        const s = await sign(TO_N8N, body, Date.now() + 6 * 60 * 1000);
+        return webhookCall(body, { timestamp: s.timestamp, signature: s.signature });
+      },
+      "stale",
+    ],
     ["non-numeric timestamp", () => webhookCall(JSON.stringify(payload()), { timestamp: "soon" }), "stale"],
     ["missing signature", () => webhookCall(JSON.stringify(payload()), { signature: "" }), "missing signature"],
   ])("rejects a %s", async (_name, make, reason) => {
@@ -159,7 +185,10 @@ describe("01 Request notifications › Verify signature", () => {
   test("rejects when the secret isn't configured or the body is missing", async () => {
     const call = await webhookCall(JSON.stringify(payload()));
     expect((await verifyNode(call, {}, {}))[0].json).toEqual({ valid: false, reason: "not configured" });
-    expect((await verifyNode({ ...call, rawBody: undefined } as never))[0].json).toEqual({ valid: false, reason: "missing body" });
+    expect((await verifyNode({ ...call, rawBody: undefined } as never))[0].json).toEqual({
+      valid: false,
+      reason: "missing body",
+    });
   });
 
   test("flags a delivery it has already handled", async () => {
@@ -196,9 +225,19 @@ describe("01 Request notifications › Check payload", () => {
 
   test("both email nodes send HTML and text from the rendered message", () => {
     const send = node(notify, "Send notification").parameters;
-    expect(send).toMatchObject({ emailFormat: "both", html: "={{ $json.html }}", text: "={{ $json.text }}", subject: "={{ $json.subject }}" });
+    expect(send).toMatchObject({
+      emailFormat: "both",
+      html: "={{ $json.html }}",
+      text: "={{ $json.text }}",
+      subject: "={{ $json.subject }}",
+    });
     const remind = node(remind02(), "Send reminder").parameters;
-    expect(remind).toMatchObject({ emailFormat: "both", html: "={{ $json.email.html }}", text: "={{ $json.email.text }}", subject: "={{ $json.email.subject }}" });
+    expect(remind).toMatchObject({
+      emailFormat: "both",
+      html: "={{ $json.email.html }}",
+      text: "={{ $json.email.text }}",
+      subject: "={{ $json.email.subject }}",
+    });
   });
 });
 
@@ -207,7 +246,11 @@ describe("01 Request notifications › Mark sent and sign write-back", () => {
 
   test("signs an idempotent write-back that Convex will accept", async () => {
     const staticData: Record<string, unknown> = {};
-    const [out] = await runCode(notify, "Mark sent and sign write-back", { nodes: { "Check payload": composed }, env, staticData });
+    const [out] = await runCode(notify, "Mark sent and sign write-back", {
+      nodes: { "Check payload": composed },
+      env,
+      staticData,
+    });
     expect(JSON.parse(out.json.body as string)).toEqual({
       idempotencyKey: "notify:d9",
       loanId: "loan9",
@@ -245,9 +288,13 @@ describe("02 Overdue reminders", () => {
   });
 
   test("one item per overdue loan; none when nothing is overdue", async () => {
-    const two = await runCode(remind, "One item per loan", { input: [{ json: { asOf: "2026-11-03", loans: [loan("a"), loan("b")] } }] });
+    const two = await runCode(remind, "One item per loan", {
+      input: [{ json: { asOf: "2026-11-03", loans: [loan("a"), loan("b")] } }],
+    });
     expect(two.map((i) => i.json.loanId)).toEqual(["a", "b"]);
-    expect(await runCode(remind, "One item per loan", { input: [{ json: { asOf: "2026-11-03", loans: [] } }] })).toEqual([]);
+    expect(
+      await runCode(remind, "One item per loan", { input: [{ json: { asOf: "2026-11-03", loans: [] } }] }),
+    ).toEqual([]);
   });
 
   test("write-back is keyed per loan per day and records sent or failed", async () => {
@@ -259,7 +306,12 @@ describe("02 Overdue reminders", () => {
       env,
     });
     const bodies = out.map((i) => JSON.parse(i.json.body as string));
-    expect(bodies[0]).toEqual({ idempotencyKey: "overdue:a:2026-11-03", loanId: "a", kind: "overdue_reminder", status: "sent" });
+    expect(bodies[0]).toEqual({
+      idempotencyKey: "overdue:a:2026-11-03",
+      loanId: "a",
+      kind: "overdue_reminder",
+      status: "sent",
+    });
     expect(bodies[1]).toMatchObject({ idempotencyKey: "overdue:b:2026-11-03", loanId: "b", status: "failed" });
     expect(bodies[1].detail.length).toBeLessThanOrEqual(300);
     expect(out.map((i) => i.json.failed)).toEqual([false, true]);
@@ -268,9 +320,13 @@ describe("02 Overdue reminders", () => {
 
   test("a run with any failed reminder fails, so it reaches the error workflow", async () => {
     const ok: Item[] = [{ json: { failed: false } }, { json: { failed: false } }];
-    expect(await runCode(remind, "Fail run if any reminder failed", { nodes: { "Sign write-back": ok } })).toEqual([{ json: { reminded: 2 } }]);
+    expect(await runCode(remind, "Fail run if any reminder failed", { nodes: { "Sign write-back": ok } })).toEqual([
+      { json: { reminded: 2 } },
+    ]);
     const bad: Item[] = [{ json: { failed: false } }, { json: { failed: true } }];
-    await expect(runCode(remind, "Fail run if any reminder failed", { nodes: { "Sign write-back": bad } })).rejects.toThrow(/1 overdue reminder/);
+    await expect(
+      runCode(remind, "Fail run if any reminder failed", { nodes: { "Sign write-back": bad } }),
+    ).rejects.toThrow(/1 overdue reminder/);
   });
 
   test("the reminder email node keeps going on failure so the failure is written back", () => {
@@ -281,14 +337,21 @@ describe("02 Overdue reminders", () => {
 describe("03 Error handler", () => {
   test("records a signed, idempotent workflow_error without copying item data", async () => {
     const [out] = await runCode(errors, "Describe and sign", {
-      input: [{
-        json: {
-          execution: { id: "ex42", url: "http://n8n/ex42", lastNodeExecuted: "Send reminder", error: { message: "boom ".repeat(100) } },
-          workflow: { name: "LendLoop – Overdue reminders" },
-          // Data an error trigger might carry that must not leak into the alert.
-          items: [{ email: "remi@example.com" }],
+      input: [
+        {
+          json: {
+            execution: {
+              id: "ex42",
+              url: "http://n8n/ex42",
+              lastNodeExecuted: "Send reminder",
+              error: { message: "boom ".repeat(100) },
+            },
+            workflow: { name: "LendLoop – Overdue reminders" },
+            // Data an error trigger might carry that must not leak into the alert.
+            items: [{ email: "remi@example.com" }],
+          },
         },
-      }],
+      ],
       env,
     });
     const body = JSON.parse(out.json.body as string);

@@ -28,14 +28,29 @@ export default defineConfig({
   },
   projects: [
     { name: "mail-provider-setup", testMatch: /mail-provider\.setup\.ts/ },
-    { name: "concurrency", testMatch: /concurrency-backend\.spec\.ts/, dependencies: ["mail-provider-setup"], use: { trace: "off" } },
+    {
+      name: "concurrency",
+      testMatch: /concurrency-backend\.spec\.ts/,
+      dependencies: ["mail-provider-setup"],
+      use: { trace: "off" },
+    },
     { name: "public", testMatch: /public\.spec\.ts/, use: { ...devices["Desktop Chrome"], channel } },
     { name: "public-mobile", testMatch: /public\.spec\.ts/, use: { ...devices["Pixel 7"], channel } },
     ...(signedIn
       ? [
           { name: "clerk-setup", testMatch: /global\.setup\.ts/, dependencies: ["mail-provider-setup"] },
-          { name: "responsive", testMatch: /responsive\.spec\.ts/, dependencies: ["clerk-setup"], use: { ...devices["Desktop Chrome"], channel } },
-          { name: "concurrency-ui", testMatch: /concurrency-ui\.spec\.ts/, dependencies: ["clerk-setup"], use: { ...devices["Desktop Chrome"], channel, trace: "off" as const } },
+          {
+            name: "responsive",
+            testMatch: /responsive\.spec\.ts/,
+            dependencies: ["clerk-setup"],
+            use: { ...devices["Desktop Chrome"], channel },
+          },
+          {
+            name: "concurrency-ui",
+            testMatch: /concurrency-ui\.spec\.ts/,
+            dependencies: ["clerk-setup"],
+            use: { ...devices["Desktop Chrome"], channel, trace: "off" as const },
+          },
           {
             name: "signed-in",
             testMatch: /(signed-in|admin|automation|sign-in)\.spec\.ts/,

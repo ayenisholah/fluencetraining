@@ -25,10 +25,7 @@ export type AvatarProps = {
 export function Avatar({ name, src, size = 40, status, className }: AvatarProps) {
   const font = Math.max(8, Math.round(size * 0.38));
   return (
-    <span
-      className={cn("relative inline-flex shrink-0", className)}
-      style={{ width: size, height: size }}
-    >
+    <span className={cn("relative inline-flex shrink-0", className)} style={{ width: size, height: size }}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element -- avatars may come from any host
         <img src={src} alt={name} width={size} height={size} className="size-full rounded-full object-cover" />
@@ -46,10 +43,7 @@ export function Avatar({ name, src, size = 40, status, className }: AvatarProps)
         <span
           aria-label={status}
           role="img"
-          className={cn(
-            "absolute right-0 bottom-0 rounded-full ring-2 ring-surface",
-            statusColor[status],
-          )}
+          className={cn("absolute right-0 bottom-0 rounded-full ring-2 ring-surface", statusColor[status])}
           style={{ width: Math.max(6, size / 4), height: Math.max(6, size / 4) }}
         />
       )}

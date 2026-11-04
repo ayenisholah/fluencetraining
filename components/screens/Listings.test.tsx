@@ -9,8 +9,24 @@ import { ListingsScreen } from "./Listings";
 vi.mock("convex/react", async () => (await import("@/test/convex-mock")).convexReactMock);
 
 const mine = [
-  { _id: "t1", name: "Ladder", category: "hand_tools", condition: "good", description: "Three metres.", status: "available", imageUrl: "https://convex.example/1" },
-  { _id: "t2", name: "Tent", category: "camping", condition: "fair", description: "", status: "on_loan", imageUrl: null },
+  {
+    _id: "t1",
+    name: "Ladder",
+    category: "hand_tools",
+    condition: "good",
+    description: "Three metres.",
+    status: "available",
+    imageUrl: "https://convex.example/1",
+  },
+  {
+    _id: "t2",
+    name: "Tent",
+    category: "camping",
+    condition: "fair",
+    description: "",
+    status: "on_loan",
+    imageUrl: null,
+  },
 ];
 
 const row = (name: string) => screen.getByRole("heading", { name }).closest("li") as HTMLElement;
@@ -54,8 +70,13 @@ describe("ListingsScreen", () => {
     await userEvent.upload(within(form).getByLabelText("Choose a photo"), file);
     expect(within(form).getByRole("img", { name: "Selected photo" })).toHaveAttribute("src", "blob:preview");
     await userEvent.click(within(form).getByRole("button", { name: "List it" }));
-    expect(fetch).toHaveBeenCalledWith("https://convex.example/upload", expect.objectContaining({ method: "POST", body: file }));
-    expect(mutations["tools:create"]).toHaveBeenCalledWith(expect.objectContaining({ name: "Hedge trimmer", imageId: "storage1" }));
+    expect(fetch).toHaveBeenCalledWith(
+      "https://convex.example/upload",
+      expect.objectContaining({ method: "POST", body: file }),
+    );
+    expect(mutations["tools:create"]).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Hedge trimmer", imageId: "storage1" }),
+    );
   });
 
   test("editing can remove the current photo", async () => {
@@ -63,7 +84,9 @@ describe("ListingsScreen", () => {
     await userEvent.click(within(row("Ladder")).getByRole("button", { name: "Edit" }));
     await userEvent.click(screen.getByRole("button", { name: "Remove" }));
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(mutations["tools:update"]).toHaveBeenCalledWith(expect.objectContaining({ toolId: "t1", removeImage: true }));
+    expect(mutations["tools:update"]).toHaveBeenCalledWith(
+      expect.objectContaining({ toolId: "t1", removeImage: true }),
+    );
   });
 
   test("delete asks in a dialog; Keep backs out, Delete listing removes", async () => {
@@ -86,7 +109,9 @@ describe("ListingsScreen", () => {
   test("a server refusal stays in the dialog", async () => {
     render(<ListingsScreen />);
     await userEvent.click(within(row("Tent")).getByRole("button", { name: "Delete" }));
-    mutations["tools:remove"].mockRejectedValueOnce(new ConvexError({ code: "BAD_REQUEST", message: "This tool is on loan. Mark it returned first." }));
+    mutations["tools:remove"].mockRejectedValueOnce(
+      new ConvexError({ code: "BAD_REQUEST", message: "This tool is on loan. Mark it returned first." }),
+    );
     await userEvent.click(screen.getByRole("button", { name: "Delete listing" }));
     const dialog = await screen.findByRole("alertdialog");
     expect(await within(dialog).findByText(/on loan. Mark it returned first/)).toBeInTheDocument();

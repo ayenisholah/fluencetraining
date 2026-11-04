@@ -15,13 +15,27 @@ export function AdminStats() {
         label="Overdue loans"
         value={stats?.overdueLoans ?? "–"}
         icon={<ClockIcon />}
-        delta={stats ? { value: stats.overdueLoans ? "needs attention" : "all on time", direction: stats.overdueLoans ? "down" : "flat" } : undefined}
+        delta={
+          stats
+            ? {
+                value: stats.overdueLoans ? "needs attention" : "all on time",
+                direction: stats.overdueLoans ? "down" : "flat",
+              }
+            : undefined
+        }
       />
       <StatWidget
         label="Failed webhooks"
         value={stats?.failedDeliveries ?? "–"}
         icon={<WarningIcon />}
-        delta={stats ? { value: stats.failedDeliveries ? "retry below" : "all delivered", direction: stats.failedDeliveries ? "down" : "flat" } : undefined}
+        delta={
+          stats
+            ? {
+                value: stats.failedDeliveries ? "retry below" : "all delivered",
+                direction: stats.failedDeliveries ? "down" : "flat",
+              }
+            : undefined
+        }
       />
     </div>
   );

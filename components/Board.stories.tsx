@@ -29,8 +29,21 @@ export const Cards: Story = {
   render: () => (
     <ul className="grid max-w-5xl gap-5 md:grid-cols-3">
       <ToolCard tool={tool} action={<Button size="sm">Request to borrow</Button>} />
-      <ToolCard tool={{ ...tool, _id: "t2", name: "Two-person tent", category: "camping", status: "on_loan", trustedLender: false }} action={<Button size="sm">Request to borrow</Button>} />
-      <ToolCard tool={{ ...tool, _id: "t3", name: "Stand mixer", category: "kitchen", isMine: true, trustedLender: false }} action={null} />
+      <ToolCard
+        tool={{
+          ...tool,
+          _id: "t2",
+          name: "Two-person tent",
+          category: "camping",
+          status: "on_loan",
+          trustedLender: false,
+        }}
+        action={<Button size="sm">Request to borrow</Button>}
+      />
+      <ToolCard
+        tool={{ ...tool, _id: "t3", name: "Stand mixer", category: "kitchen", isMine: true, trustedLender: false }}
+        action={null}
+      />
     </ul>
   ),
 };
@@ -57,7 +70,14 @@ function Toolbar() {
   );
 }
 export const SearchAndChips: Story = { args: { tool, action: null }, render: () => <Toolbar /> };
-export const Steps: Story = { args: { tool, action: null }, render: () => <div className="max-w-5xl"><HowItWorks /></div> };
+export const Steps: Story = {
+  args: { tool, action: null },
+  render: () => (
+    <div className="max-w-5xl">
+      <HowItWorks />
+    </div>
+  ),
+};
 
 const more: BoardTool[] = [
   tool,

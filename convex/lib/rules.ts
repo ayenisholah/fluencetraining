@@ -17,10 +17,7 @@ const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 const CONTROL_EXCEPT_TAB_LF = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/;
 export const BIDI_CONTROLS = /[\u202a-\u202e\u2066-\u2069]/;
 
-export function toolFieldErrors(fields: {
-  name: string;
-  description: string;
-}): ToolFieldErrors {
+export function toolFieldErrors(fields: { name: string; description: string }): ToolFieldErrors {
   const errors: ToolFieldErrors = {};
   const name = fields.name.trim();
   if (name.length < TOOL_NAME_MIN) errors.name = "Give the tool a name (at least 2 characters).";
@@ -42,9 +39,7 @@ export function isoDay(ms: number): string {
 }
 
 export function daysBetween(from: string, to: string): number {
-  return Math.round(
-    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000,
-  );
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 }
 
 function isRealDate(value: string): boolean {
@@ -54,11 +49,7 @@ function isRealDate(value: string): boolean {
 }
 
 /** The first problem with a requested date range, or undefined if it's valid. */
-export function loanDateError(
-  startDate: string,
-  endDate: string,
-  now: number = Date.now(),
-): string | undefined {
+export function loanDateError(startDate: string, endDate: string, now: number = Date.now()): string | undefined {
   if (!isRealDate(startDate) || !isRealDate(endDate)) {
     return "Pick both dates.";
   }

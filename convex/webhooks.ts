@@ -1,10 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import {
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { sign, SIGNATURE_HEADER, TIMESTAMP_HEADER } from "./lib/hmac";
 import type { LoanEvent } from "./lib/outbox";
 import { loanEventEmail } from "./lib/email/loanEmails";
@@ -135,10 +131,7 @@ export const deliver = internalAction({
         error = `n8n responded ${response.status}`;
         // 4xx (bad signature, bad payload) will not fix itself on retry;
         // 408/429 and 5xx are transient.
-        retryable =
-          response.status >= 500 ||
-          response.status === 408 ||
-          response.status === 429;
+        retryable = response.status >= 500 || response.status === 408 || response.status === 429;
       }
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);

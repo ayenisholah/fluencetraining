@@ -43,8 +43,12 @@ export const Matrix: Story = {
           <span className="text-description text-fg-muted">{size}</span>
           {(["solid", "dim", "ghost"] as const).map((variant) => (
             <div key={variant} className="flex gap-2">
-              <Button {...args} size={size} variant={variant}>Button</Button>
-              <Button {...args} size={size} variant={variant} disabled>Button</Button>
+              <Button {...args} size={size} variant={variant}>
+                Button
+              </Button>
+              <Button {...args} size={size} variant={variant} disabled>
+                Button
+              </Button>
             </div>
           ))}
         </div>

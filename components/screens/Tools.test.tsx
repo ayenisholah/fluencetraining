@@ -10,9 +10,28 @@ vi.mock("convex/react", async () => (await import("@/test/convex-mock")).convexR
 
 const base = { condition: "good", description: "", imageUrl: null, isMine: false, trustedLender: false };
 const tools = [
-  { ...base, _id: "t1", name: "Ladder", category: "hand_tools", description: "Three metres.", status: "available", lenderName: "Ada", trustedLender: true, imageUrl: "https://convex.example/img/1" },
+  {
+    ...base,
+    _id: "t1",
+    name: "Ladder",
+    category: "hand_tools",
+    description: "Three metres.",
+    status: "available",
+    lenderName: "Ada",
+    trustedLender: true,
+    imageUrl: "https://convex.example/img/1",
+  },
   { ...base, _id: "t2", name: "Tent", category: "camping", condition: "fair", status: "on_loan", lenderName: "Bob" },
-  { ...base, _id: "t3", name: "My mower", category: "garden", condition: "worn", status: "available", isMine: true, lenderName: "Me" },
+  {
+    ...base,
+    _id: "t3",
+    name: "My mower",
+    category: "garden",
+    condition: "worn",
+    status: "available",
+    isMine: true,
+    lenderName: "Me",
+  },
 ];
 
 const card = (name: string) => screen.getByRole("heading", { name }).closest("li") as HTMLElement;
@@ -26,7 +45,10 @@ beforeEach(() => {
 describe("ToolsScreen (the board)", () => {
   test("cards show photo or category tile, status, category, condition and lender", () => {
     render(<ToolsScreen />);
-    expect(within(card("Ladder")).getByRole("img", { name: "Ladder" })).toHaveAttribute("src", "https://convex.example/img/1");
+    expect(within(card("Ladder")).getByRole("img", { name: "Ladder" })).toHaveAttribute(
+      "src",
+      "https://convex.example/img/1",
+    );
     expect(within(card("Ladder")).getByText("Available")).toBeInTheDocument();
     expect(within(card("Ladder")).getByText("Hand tools").className).toContain("bg-preset-blue-soft");
     expect(within(card("Ladder")).getByText("Trusted lender")).toBeInTheDocument();
@@ -133,7 +155,9 @@ describe("ToolsScreen (the board)", () => {
     render(<ToolsScreen />);
     await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Request to borrow" }));
     await userEvent.click(within(card("Ladder")).getByRole("button", { name: "Send request" }));
-    expect(mutations["loans:request"]).toHaveBeenCalledWith(expect.objectContaining({ toolId: "t1", startDate: expect.any(String), endDate: expect.any(String) }));
+    expect(mutations["loans:request"]).toHaveBeenCalledWith(
+      expect.objectContaining({ toolId: "t1", startDate: expect.any(String), endDate: expect.any(String) }),
+    );
     expect(await within(card("Ladder")).findByText(/Request sent/)).toBeInTheDocument();
   });
 

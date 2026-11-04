@@ -11,11 +11,7 @@ export type LoanEvent = Infer<typeof vLoanEvent>;
  * change, then schedules delivery. If the mutation rolls back, no webhook is
  * sent; if delivery fails, the row stays visible to admins.
  */
-export async function enqueueLoanEvent(
-  ctx: MutationCtx,
-  loanId: Id<"loans">,
-  event: LoanEvent,
-): Promise<void> {
+export async function enqueueLoanEvent(ctx: MutationCtx, loanId: Id<"loans">, event: LoanEvent): Promise<void> {
   const deliveryId = await ctx.db.insert("webhookDeliveries", {
     loanId,
     event,

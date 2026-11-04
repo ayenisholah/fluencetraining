@@ -7,7 +7,15 @@ import { Toggle } from "./Toggle";
 
 function ToggleDemo({ size = "md" as "md" | "sm", label }: { size?: "md" | "sm"; label?: string }) {
   const [on, setOn] = useState(true);
-  return <Toggle size={size} label={label} aria-label={label ? undefined : "Notifications"} checked={on} onCheckedChange={setOn} />;
+  return (
+    <Toggle
+      size={size}
+      label={label}
+      aria-label={label ? undefined : "Notifications"}
+      checked={on}
+      onCheckedChange={setOn}
+    />
+  );
 }
 
 const meta = { title: "Components/Selectors", component: ToggleDemo } satisfies Meta<typeof ToggleDemo>;
@@ -48,7 +56,11 @@ export const CheckboxAndRadio: Story = {
 
 function SliderDemo() {
   const [value, setValue] = useState<[number, number]>([14, 83]);
-  return <div className="w-72"><RangeSlider label="Loan length" min={0} max={100} value={value} onChange={setValue} /></div>;
+  return (
+    <div className="w-72">
+      <RangeSlider label="Loan length" min={0} max={100} value={value} onChange={setValue} />
+    </div>
+  );
 }
 
 export const Slider: Story = { render: () => <SliderDemo /> };

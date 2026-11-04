@@ -16,17 +16,34 @@ export const Checkbox = forwardRef<HTMLInputElement, ChoiceProps & { indetermina
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span className="relative inline-flex">
-        <input ref={(node) => {
-          if (node) node.indeterminate = indeterminate;
-          if (typeof ref === "function") return ref(node);
-          if (ref) ref.current = node;
-        }} id={id} type="checkbox" className={cn(box, "rounded-[5px] indeterminate:border-brand indeterminate:bg-brand")} {...props} aria-checked={indeterminate ? "mixed" : props["aria-checked"]} />
+        <input
+          ref={(node) => {
+            if (node) node.indeterminate = indeterminate;
+            if (typeof ref === "function") return ref(node);
+            if (ref) ref.current = node;
+          }}
+          id={id}
+          type="checkbox"
+          className={cn(box, "rounded-[5px] indeterminate:border-brand indeterminate:bg-brand")}
+          {...props}
+          aria-checked={indeterminate ? "mixed" : props["aria-checked"]}
+        />
         <svg
           aria-hidden
           viewBox="0 0 20 20"
-          className={cn("pointer-events-none absolute inset-0 text-on-brand", indeterminate ? "block" : "hidden peer-checked:block")}
+          className={cn(
+            "pointer-events-none absolute inset-0 text-on-brand",
+            indeterminate ? "block" : "hidden peer-checked:block",
+          )}
         >
-          <path d={indeterminate ? "M5 10h10" : "m5.5 10.5 3 3 6-6.5"} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d={indeterminate ? "M5 10h10" : "m5.5 10.5 3 3 6-6.5"}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </span>
       <label htmlFor={id} className="text-body text-fg">

@@ -1,10 +1,7 @@
 {
   "app": "npx tsx bin/app.ts",
   "watch": {
-    "include": [
-      "bin/**",
-      "lib/**"
-    ]
+    "include": ["bin/**", "lib/**"]
   },
   "context": {
     "@aws-cdk/core:checkSecretUsage": true,
