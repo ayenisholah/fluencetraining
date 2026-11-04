@@ -4,6 +4,11 @@ All notable changes, newest first. Dates are UTC. Commit references are short ha
 
 ## Unreleased
 
+### Added
+- The SES SMTP IAM user (`lendloop-prod-ses-smtp`) and its send policy are defined in CDK instead of by hand. The policy covers recipient identities, which the SES sandbox requires.
+- A $1/month AWS Budget emails `ALERT_EMAIL` as soon as real (or forecast) spend appears on the free-plan account.
+- `.git-blame-ignore-revs` skips the repo-wide formatting commit.
+
 ### Fixed
 - **Production email is delivered.** The EC2 host sent every notification to Mailpit, which kept it on the host. Bootstrap now imports the SES SMTP credential from Secrets Manager (`put-external-secrets.sh --ses`), renders the workflows for SES with the shared `deploy/ec2/n8n_mail.py`, sets the ops mailbox from `ALERT_EMAIL`, and fails the deploy if any of it doesn't import. Mailpit runs only when `config.mailProvider` is `"mailpit"`.
 

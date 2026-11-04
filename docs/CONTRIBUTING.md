@@ -3,6 +3,7 @@
 ## Setup
 - Use Node 22 (`nvm use` reads `.nvmrc`). `npm install` also installs the git hooks (husky).
 - Change dependencies with npm 10, the version bundled with Node 22 and used in CI. Newer npm versions write a `package-lock.json` that CI's `npm ci` rejects. On another Node version, use `npx npm@10 install <pkg>`.
+- Optional: `git config blame.ignoreRevsFile .git-blame-ignore-revs` hides the repo-wide formatting commit from `git blame` (GitHub does this automatically).
 - Follow [README › Local setup](../README.md#local-setup) for Docker, Convex, Clerk and n8n.
 
 ## Using AI agents

@@ -58,7 +58,7 @@ flowchart LR
 | `LendLoop-Web` / Amplify Hosting | `WEB_COMPUTE` Next.js SSR app, production `main` branch with automatic builds; custom domain association and certificate/DNS validation. Delivery infrastructure is managed by Amplify rather than a separately declared CloudFront distribution. |
 | `LendLoop-Observability` / CloudWatch | Dashboard `LendLoop-Prod`, host/application alarms, log metric filters and composite alarm. |
 | CloudWatch Synthetics and S3 | Three canaries every 15 minutes. Encrypted, private artifact bucket with a 14-day expiration policy; run retention seven days for success and fourteen for failure. |
-| SNS | SSL-enforced topic `lendloop-prod-alerts`. Alarm and recovery notifications are attached; no subscriptions are created by the stack. |
+| SNS | SSL-enforced topic `lendloop-prod-alerts`. Alarm and recovery notifications are attached; the stack subscribes the `ALERT_EMAIL` repository variable by email (one-time confirmation). |
 | `LendLoop-Deployer` / IAM | User `lendloop-github-deployer` for GitHub Actions; can assume account/region CDK bootstrap roles and perform listed deployment operations. Access keys are created separately. |
 | SES / IAM SMTP user | Manually configured outside these stacks: domain identity, DKIM, custom MAIL FROM, SMTP IAM user and restricted send policy. See [SES configuration](ses-smtp.md). |
 

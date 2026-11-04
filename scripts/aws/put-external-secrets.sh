@@ -9,7 +9,8 @@
 #   bash scripts/aws/put-external-secrets.sh --clerk   # only the Clerk key (rotation)
 #   bash scripts/aws/put-external-secrets.sh --ses [iam-access-key.csv]
 #       lendloop/prod/SES_SMTP_CREDENTIALS <- SMTP user and password for the
-#       lendloop-n8n-smtp IAM user, derived from an access key: the given CSV
+#       CDK-managed IAM user (SES_USER, default lendloop-prod-ses-smtp),
+#       derived from an access key: the given CSV
 #       (owner-only permissions), or a new key created here. Checked against
 #       SES before it is stored; deploys then import it into n8n.
 # Safe to re-run: it updates the values in place.
@@ -36,8 +37,8 @@ if [ "${1:-}" = "--ses" ]; then
   csv=${2:-}
   if [ -z "$csv" ]; then
     # IAM allows two keys per user; delete an unused one first if this fails.
-    created=$(aws iam create-access-key --user-name lendloop-n8n-smtp --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
-    echo "Created a new access key for lendloop-n8n-smtp; delete the old one once this works."
+    created=$(aws iam create-access-key --user-name "${SES_USER:-lendloop-prod-ses-smtp}" --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
+    echo "Created a new access key for ${SES_USER:-lendloop-prod-ses-smtp}; delete older keys once mail works."
   fi
   # Derive the SMTP password (deploy/ec2/n8n_mail.py) and prove it logs in to
   # SES before storing it. New keys can take a few seconds to become valid.

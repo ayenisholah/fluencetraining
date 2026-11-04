@@ -1,0 +1,6 @@
+# Commits git blame should skip. Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# (GitHub's blame view reads this file automatically.)
+
+# #15: repo-wide Prettier formatting (squashed with the lint and agent-docs changes)
+f4b4952152c52e2c9be01c09ecda8cfd9e7f9187

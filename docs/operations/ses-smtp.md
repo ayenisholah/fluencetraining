@@ -17,7 +17,7 @@ bash scripts/aws/put-external-secrets.sh --ses                   # creates a new
 bash scripts/aws/put-external-secrets.sh --ses /private/key.csv  # or derives from an existing key CSV (chmod 600)
 ```
 
-It derives the SMTP password, logs in to SES (without sending) and only then stores `{user, password}`. The next deploy, or `bash scripts/aws/refresh-host.sh`, imports it. After rotating, delete the old access key in IAM. To go back to Mailpit, set `mailProvider: "mailpit"` and deploy.
+It derives the SMTP password, logs in to SES (without sending) and only then stores `{user, password}`. It uses the CDK-managed user `lendloop-prod-ses-smtp`; set `SES_USER=<name>` to use another. The next deploy, or `bash scripts/aws/refresh-host.sh`, imports it. After rotating, delete the old access key in IAM. To go back to Mailpit, set `mailProvider: "mailpit"` and deploy.
 
 **Sandbox:** until AWS grants production access, SES only delivers to verified addresses (and addresses at the verified domain). Verify each test recipient with `aws sesv2 create-email-identity --email-identity <address>` (they click a link), and request production access with `aws sesv2 put-account-details --production-access-enabled --mail-type TRANSACTIONAL --website-url https://lendloop.sholaayeni.xyz --use-case-description "<what LendLoop sends and why>"`. Check the state with `aws sesv2 get-account`.
 
@@ -27,7 +27,7 @@ The provider commands below target the **local repo-root Docker Compose stack**.
 
 ## Configure SES
 
-The sending configuration is Stockholm (`eu-north-1`), sender `LendLoop <notifications@sholaayeni.xyz>`, and operational alerts `ayenisholah@gmail.com`. Domain verification, DKIM signing, and custom MAIL FROM `bounce.sholaayeni.xyz` must succeed in SES. The SMTP IAM user needs `ses:SendRawEmail` on the domain identity ARN, restricted by `ses:FromAddress` to the notification address.
+The sending configuration is Stockholm (`eu-north-1`), sender `LendLoop <notifications@sholaayeni.xyz>`, and operational alerts `ayenisholah@gmail.com`. Domain verification, DKIM signing, and custom MAIL FROM `bounce.sholaayeni.xyz` must succeed in SES. The SMTP IAM user `lendloop-prod-ses-smtp` (defined in `infra/lib/backend-stack.ts`) may call `ses:SendRawEmail` on every identity in the account and region, but only with `ses:FromAddress` equal to the notification address. It needs more than the domain identity: in the sandbox SES also authorises against each **recipient's** verified identity, so a domain-only policy fails with `554 Access denied ... identity/<recipient>`.
 
 Download an IAM access-key CSV for the SMTP user to a private directory outside this repository. Keep its contents out of chat, logs, shell arguments, and Git. Deactivate exposed or replaced keys.
 

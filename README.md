@@ -379,7 +379,7 @@ The repository defines production in AWS account `571787168993`, region `eu-nort
 - **Amplify Hosting:** Next.js SSR, building the `main` branch.
 - **EC2:** one ARM64 `t4g.small` host with encrypted EBS, running self-hosted Convex, n8n and Caddy through Docker Compose.
 - **Secrets Manager and Systems Manager:** service secrets, deployment parameters, host access and refreshes without SSH.
-- **CloudWatch, Synthetics and SNS:** logs, metrics, dashboard, endpoint checks and alarm routing. SNS subscriptions require operator setup.
+- **CloudWatch, Synthetics and SNS:** logs, metrics, dashboard, endpoint checks and alarm routing, emailed to the address in the `ALERT_EMAIL` repository variable.
 - **AWS Backup:** daily host backups with seven-day retention.
 - **Amazon SES:** SMTP sender `LendLoop <notifications@sholaayeni.xyz>`. Namecheap hosts DNS; Clerk provides user authentication.
 - **CDK / CloudFormation, S3 and IAM:** four application stacks, deployment bundles and GitHub deployment permissions.

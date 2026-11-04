@@ -25,6 +25,8 @@ export const config = {
   mailProvider: "ses" as "ses" | "mailpit",
   /** Sender for notifications; the domain is verified in SES (DKIM). */
   mailFrom: "LendLoop <notifications@sholaayeni.xyz>",
+  /** IAM user n8n authenticates to SES SMTP as (keys via put-external-secrets.sh --ses). */
+  sesSmtpUser: "lendloop-prod-ses-smtp",
   logRetentionDays: 30,
   tags: { project: "lendloop", environment: "production", managedBy: "cdk" },
 } as const;
