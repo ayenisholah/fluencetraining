@@ -77,6 +77,7 @@ Tests live next to the code they test (`Foo.tsx` + `Foo.test.tsx`).
 ## 5. Never
 
 - Edit generated files: `convex/_generated/**`, `next-env.d.ts`, build output (`.next/`, `storybook-static/`, `infra/cdk.out/`).
+- Change `package-lock.json` with any npm other than 10 (the one bundled with Node 22, which CI uses). Newer npm writes lockfiles that CI's `npm ci` rejects. On a newer Node, run `npx npm@10 install ...`.
 - Commit secrets, `.env*` files, real email addresses or keys. This repo is **public**. Configuration values go in GitHub variables or AWS Secrets Manager (`scripts/aws/put-external-secrets.sh`).
 - Disable or loosen a lint rule, type check, test or CI step to make your change pass. Fix the code. An `eslint-disable` needs a `-- reason` and must be the narrowest possible.
 - Use `--no-verify`, force-push to `main`, or merge without CI passing.
