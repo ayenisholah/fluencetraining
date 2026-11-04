@@ -66,7 +66,7 @@ test("only admins get the admin area", async () => {
 test("set-up: owner lists a tool, renter borrows it, owner approves", async () => {
   await listTool(owner, toolName, "Garden");
   await expect(
-    (await requestToBorrow(renter, toolName)).getByText("Request sent. The lender has been notified."),
+    (await requestToBorrow(renter, toolName)).getByText("Request sent. We'll email the lender."),
   ).toBeVisible();
   await owner.goto("/incoming");
   await cardFor(owner, toolName, "Requested").getByRole("button", { name: "Approve" }).click();

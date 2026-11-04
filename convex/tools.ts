@@ -39,8 +39,10 @@ export const listPublic = query({
   handler: async (ctx, { pageNumber, pageSize, search, category }) => {
     const term = searchTerm(search);
     const source = term
-      ? ctx.db.query("tools").withSearchIndex("search", (q) => {
-          const base = q.search("searchText", term).eq("status", "available");
+      ? ctx.db.query("tools").withSearchIndex("searchPublic", (q) => {
+          // Name only: matching the description would let a signed-out caller
+          // confirm words in a description they aren't shown.
+          const base = q.search("publicSearchText", term).eq("status", "available");
           return category ? base.eq("category", category) : base;
         })
       : category

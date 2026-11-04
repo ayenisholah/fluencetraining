@@ -77,17 +77,18 @@ export default function PrivacyPage() {
       <section>
         <h2>How long we keep it</h2>
         <ul>
-          <li>Account and listing data: until you delete your account.</li>
-          <li>Loan history: kept while your account exists, then anonymised.</li>
-          <li>Notification and error logs: up to 90 days.</li>
+          <li>Account and listing data: until your account is deleted.</li>
+          <li>Loan history: kept while your account exists; on deletion your name and email are removed from it.</li>
+          <li>Notification and error logs: deleted automatically after 90 days.</li>
+          <li>Automation run history (the email service&apos;s logs): failed runs only, deleted after 7 days.</li>
         </ul>
       </section>
 
       <section>
         <h2>Your choices</h2>
         <p>
-          You can edit or delete your listings at any time, and delete your account from your profile menu. To ask for a
-          copy of your data or its deletion, contact privacy@lendloop.example.
+          You can edit or delete your listings at any time. To delete your account, or to ask for a copy of your data,
+          contact privacy@lendloop.example and we&apos;ll do it within 30 days.
         </p>
       </section>
     </LegalPage>

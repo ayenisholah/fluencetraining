@@ -285,7 +285,7 @@ test("category filter narrows the board", async () => {
 
 test("borrower requests it", async () => {
   const card = await requestFromTools(borrower);
-  await expect(card.getByText("Request sent. The lender has been notified.")).toBeVisible();
+  await expect(card.getByText("Request sent. We'll email the lender.")).toBeVisible();
 });
 
 test("a second open request for the same tool is refused", async () => {
@@ -339,9 +339,7 @@ test("the returned tool is available again, on the board and the landing page", 
 
 test("borrower cancels a new request", async () => {
   // Wait for the mutation to land before navigating away, or it may be dropped.
-  await expect(
-    (await requestFromTools(borrower)).getByText("Request sent. The lender has been notified."),
-  ).toBeVisible();
+  await expect((await requestFromTools(borrower)).getByText("Request sent. We'll email the lender.")).toBeVisible();
   await borrower.goto("/requests");
   const open = toolCard(borrower, "Requested");
   await open.getByRole("button", { name: "Cancel request" }).click();
@@ -352,9 +350,7 @@ test("borrower cancels a new request", async () => {
 
 test("lender declines a request; the borrower sees it declined", async () => {
   // Wait for the mutation to land before navigating away, or it may be dropped.
-  await expect(
-    (await requestFromTools(borrower)).getByText("Request sent. The lender has been notified."),
-  ).toBeVisible();
+  await expect((await requestFromTools(borrower)).getByText("Request sent. We'll email the lender.")).toBeVisible();
   await lender.goto("/incoming");
   const open = toolCard(lender, "Requested");
   await expect(open).toHaveCount(1);

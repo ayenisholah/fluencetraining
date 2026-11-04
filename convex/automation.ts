@@ -1,9 +1,21 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { daysBetween } from "./lib/dates";
 import { overdueReminderEmail } from "./lib/email/reminderEmail";
 import { firstName } from "./lib/people";
 import { vAutomationKind } from "./schema";
+
+const EMAIL_LIKE = /[^\s@<>"'(),;:/]+@[^\s@<>"'(),;:]+\.[^\s@<>"'(),;:]+/g;
+
+/**
+ * Error details come from n8n and SMTP providers and can quote a recipient
+ * ("554 ... identity/jane@example.com"). Mask addresses before storing: the
+ * detail is shown in Admin and kept for weeks.
+ */
+export function redactDetail(detail: string | undefined): string | undefined {
+  return detail?.replace(EMAIL_LIKE, "[email]").slice(0, 500);
+}
 
 export function reminderKey(loanId: string, asOf: string): string {
   return `overdue:${loanId}:${asOf}`;
@@ -96,9 +108,44 @@ export const recordEvent = internalMutation({
       loanId: loanId ?? undefined,
       kind: args.kind,
       status: args.status,
-      detail: args.detail?.slice(0, 500),
+      detail: redactDetail(args.detail),
       at: Date.now(),
     });
     return { ok: true as const, id, duplicate: false };
+  },
+});
+
+/** How long automation history is kept (the privacy page says 90 days). */
+export const RETENTION_DAYS = 90;
+const PURGE_BATCH = 500;
+
+/**
+ * Deletes automation history older than RETENTION_DAYS: finished webhook
+ * deliveries (delivered or permanently failed; pending ones are never
+ * touched) and n8n write-backs. Their idempotency keys only matter while a
+ * retry is possible, which is minutes, not months. Batched and rescheduled
+ * until nothing old is left. Run daily by convex/crons.ts.
+ */
+export const purgeOld = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    let deleted = 0;
+    for (const status of ["delivered", "failed"] as const) {
+      const rows = await ctx.db
+        .query("webhookDeliveries")
+        .withIndex("by_status", (q) => q.eq("status", status).lt("_creationTime", cutoff))
+        .take(PURGE_BATCH - deleted);
+      for (const row of rows) await ctx.db.delete(row._id);
+      deleted += rows.length;
+    }
+    const events = await ctx.db
+      .query("automationEvents")
+      .withIndex("by_creation_time", (q) => q.lt("_creationTime", cutoff))
+      .take(PURGE_BATCH - deleted);
+    for (const row of events) await ctx.db.delete(row._id);
+    deleted += events.length;
+    if (deleted >= PURGE_BATCH) await ctx.scheduler.runAfter(0, internal.automation.purgeOld, {});
+    return { deleted };
   },
 });
