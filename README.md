@@ -45,7 +45,7 @@ A ten-minute walkthrough of the brief, using two accounts (one normal window, on
 
 **Email on the live site:** Amazon SES is still in its sandbox, so it only delivers to verified addresses. If you're reviewing this application and want the emails, reply to my submission email with the addresses you'll sign up with. AWS sends each one a verification link to click. For an unverified address the app works normally, SES rejects the email, and the failure appears in Admin › Automation health. The local stack has no such limit, because Mailpit catches everything.
 
-**Admin on the live site:** roles can only be changed by an operator, by design, so there's no self-service route. Reply with the account you signed up with and I'll promote it. Locally, run the [`users:setRole` command](#4-run-it). The overdue reminders and failure handling are easiest to try on the [local stack](#trying-the-automations).
+**Admin on the live site:** roles can only be changed by an operator, by design, so there's no self-service route. Reply with the account you signed up with and I'll promote it. Locally, run the [`users:setRole` command](#4-run-it). The overdue reminders and failure handling are easiest to try on the [local stack](#trying-the-automations), and the [local setup](#local-setup) has no email or admin limits.
 
 **Where to look in the code:**
 
@@ -148,16 +148,29 @@ docker-compose.yml   Convex (self-hosted), Convex dashboard, n8n, Mailpit
 
 ## Local setup
 
-**You need:** Docker, Node 22 with npm 10 (`nvm use` reads `.nvmrc`), Python 3 (for n8n provider imports), and a Clerk development instance.
+Allow about 15 minutes, most of it the first image download. Everything runs on your machine except Clerk, and all email is caught by Mailpit, so nothing is really sent.
 
-The default development stack runs locally except for Clerk. Selecting SES also connects n8n to AWS for email. Convex is **self-hosted in Docker** so that it and n8n can call each other on the compose network. With Convex cloud, the cloud could not reach a webhook on `localhost`.
+**You need:**
+
+- Docker with Compose v2, running
+- Node 22 with npm 10 (`nvm use` reads `.nvmrc`)
+- Python 3, `openssl` and `curl`
+- A free [Clerk](https://clerk.com) account
+- Ports 3000, 3210, 3211, 5678, 6791 and 8025 free
+
+Convex is **self-hosted in Docker** so that it and n8n can call each other on the compose network. With Convex cloud, the cloud could not reach a webhook on `localhost`.
 
 ### 1. Install and start the stack
 
 ```bash
+git clone https://github.com/ayenisholah/fluencetraining.git lendloop
+cd lendloop
+nvm use
 npm install
 npm run setup
 ```
+
+It's finished when it prints `Done.`. The line `CLERK_JWT_ISSUER_DOMAIN is not set yet` is expected: step 3 sets it.
 
 `npm run setup` (see `scripts/setup.sh`) does the following, and is safe to re-run:
 
@@ -169,8 +182,8 @@ npm run setup
 
 ### 2. Create the Clerk application
 
-1. In the [Clerk dashboard](https://dashboard.clerk.com), create an application (email sign-in is enough).
-2. Copy the **Publishable key** and **Secret key** into `.env.local`.
+1. In the [Clerk dashboard](https://dashboard.clerk.com), create an application (email sign-in is enough). Use its development instance: keys start with `pk_test_` and `sk_test_`.
+2. Copy the **Publishable key** and **Secret key** into `.env.local`, which step 1 created, as `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`.
    Under **Configure → User & authentication**, turn on **First and last name** and make it required. Otherwise email-code sign-ups have no name and appear as "Neighbour".
 3. Go to **Configure → JWT templates → New template → Convex**. Keep the name `convex`. The template's default claims include `email` and `name`; LendLoop needs `email` to send notifications.
 
@@ -186,11 +199,12 @@ npx convex dev --once
 ### 4. Run it
 
 ```bash
+npm run seed         # optional: four neighbours and 100 sample tools
 npm run dev          # http://localhost:3000
-npm run convex       # optional: watch mode that redeploys Convex functions on save
+npm run convex       # optional, in a second terminal: redeploys Convex functions on save
 ```
 
-Sign in, then make yourself an admin:
+Sign in, then make yourself an admin and refresh the page to see **Admin**:
 
 ```bash
 npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
@@ -203,13 +217,29 @@ npx convex run users:setRole '{"email":"you@example.com","role":"admin"}'
 | n8n | http://localhost:5678 (create the local owner on first visit) |
 | Convex dashboard | http://localhost:6791 (admin key from `.env.local`) |
 
+### Check it works
+
+1. http://localhost:3000 shows the tagline and, if you seeded, a list of tools.
+2. Sign in with a new account. You land on **All tools**.
+3. In a private window, sign up with a second email address. List a tool with one account and request it with the other.
+4. The email appears in Mailpit at http://localhost:8025 within a few seconds, and the loan shows "Notification sent".
+
+### If something goes wrong
+
+| What you see | Fix |
+|---|---|
+| `Clerk keys are missing from your environment` | Add both keys to `.env.local` (step 2), then restart `npm run dev`. |
+| Clerk sign-in fails on localhost | You're using production keys. Use the `pk_test_` and `sk_test_` keys. |
+| Signed in, but the app never finishes loading | Convex is rejecting the token. Check the JWT template is named exactly `convex`, then repeat step 3 with the right Issuer URL. |
+| Names show as "Neighbour" | Turn on **First and last name** in Clerk (step 2) and use a new account. |
+| `port is already allocated` | Stop whatever is using the ports listed above, then re-run `npm run setup`. |
+| `npm ci` reports a lockfile mismatch | That's npm 11. Use `npm install`, or npm 10. |
+| No email in Mailpit | n8n takes about 30 seconds to register its webhook after setup. Failed deliveries retry on their own, or use Retry in Admin › Automation health. `docker compose ps` should show every service up. |
+| You want a clean start | `docker compose down -v`, delete `.env` and `.env.local`, then start again from `npm run setup` and step 2. This deletes all local data. |
+
 ### Sample data
 
-Fill the board with a believable neighbourhood: four neighbours and 100 tools covering every category. It's safe to re-run, because anything that already exists is skipped.
-
-```bash
-npm run seed
-```
+`npm run seed` fills the board with a believable neighbourhood: four neighbours and 100 tools covering every category. It's safe to re-run, because anything that already exists is skipped.
 
 The seeded neighbours are `role: "user"` with `@lendloop.local` addresses, so their notifications land in Mailpit. They can't sign in, so they exist only to lend. Each e2e spec deletes its own "E2E …" tool when it finishes. If an interrupted run leaves some behind, this removes them along with their loans and activity:
 

@@ -4,7 +4,7 @@ name: lendloop
 
 services:
   convex:
-    image: ghcr.io/convex/convex-backend:latest
+    image: ghcr.io/convex/convex-backend@sha256:207cf95def42f01614b6e3af0af5c20d0dcaa5ff2adf258ee7bc9555576644fa
     stop_grace_period: 10s
     stop_signal: SIGINT
     ports:
@@ -24,7 +24,7 @@ services:
       start_period: 10s
 
   convex-dashboard:
-    image: ghcr.io/convex/convex-dashboard:latest
+    image: ghcr.io/convex/convex-dashboard@sha256:a55bf8abca1332f787bc4d4a79850182175027be7b70aa230be4389a1d3268e2
     ports:
       - "127.0.0.1:6791:6791"
     environment:
